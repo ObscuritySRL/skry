@@ -1,17 +1,17 @@
 /**
  * instructions-readonly — under a restricted profile the system-prompt INSTRUCTIONS must not describe action tools
- * that tools/list does not expose, and a disabled-tool error must give a CATEGORY-ACCURATE remedy (SKRY_OS=1
+ * that tools/list does not expose, and a disabled-tool error must give a CATEGORY-ACCURATE remedy (UMBRIEL_OS=1
  * enables only os/fs — it does NOT enable input/window tools, which need a profile bump or an allow-list entry).
  *
- * Proof (SKRY_PROFILE=readonly): initialize returns the READ-ONLY instructions (no "Prefer invoke" action verbs);
- * a disabled input tool (click) is steered to SKRY_PROFILE, NOT SKRY_OS=1; a disabled os tool (launch_app) IS
- * steered to SKRY_OS=1.
+ * Proof (UMBRIEL_PROFILE=readonly): initialize returns the READ-ONLY instructions (no "Prefer invoke" action verbs);
+ * a disabled input tool (click) is steered to UMBRIEL_PROFILE, NOT UMBRIEL_OS=1; a disabled os tool (launch_app) IS
+ * steered to UMBRIEL_OS=1.
  *
  * bun test is broken repo-wide — runnable harness (only the MCP subprocess):
  * Run: bun run example/instructions-readonly.integration.test.ts
  */
 type Rpc = { id?: number; result?: { isError?: boolean; instructions?: string; serverInfo?: { name?: string; version?: string }; tools?: Record<string, unknown>[]; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'readonly' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'readonly' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';
@@ -66,14 +66,14 @@ try {
   const tools = list.result?.tools ?? [];
   assert(tools.length > 0 && tools.every((tool) => !('category' in tool)), 'tools/list entries carry no internal `category` field (MCP Tool wire shape only)');
   // read_clipboard is gated as the 'input' category (NOT 'read'), so the read-only profile must NOT auto-expose the
-  // secret-bearing global clipboard — a deployer opts in with SKRY_ALLOW=read_clipboard.
-  assert(!tools.some((tool) => tool.name === 'read_clipboard'), 'readonly does NOT expose read_clipboard (clipboard is a plaintext secret store — opt in with SKRY_ALLOW=read_clipboard)');
+  // secret-bearing global clipboard — a deployer opts in with UMBRIEL_ALLOW=read_clipboard.
+  assert(!tools.some((tool) => tool.name === 'read_clipboard'), 'readonly does NOT expose read_clipboard (clipboard is a plaintext secret store — opt in with UMBRIEL_ALLOW=read_clipboard)');
 
   const click = await call('tools/call', { name: 'click', arguments: { ref: 'e1' } });
-  assert(click.result?.isError === true && /SKRY_PROFILE=safe/.test(textOf(click)) && !/SKRY_OS=1/.test(textOf(click)), 'a disabled INPUT tool (click) steers to SKRY_PROFILE, NOT the inapplicable SKRY_OS=1');
+  assert(click.result?.isError === true && /UMBRIEL_PROFILE=safe/.test(textOf(click)) && !/UMBRIEL_OS=1/.test(textOf(click)), 'a disabled INPUT tool (click) steers to UMBRIEL_PROFILE, NOT the inapplicable UMBRIEL_OS=1');
 
   const launch = await call('tools/call', { name: 'launch_app', arguments: { command: 'notepad' } });
-  assert(launch.result?.isError === true && /SKRY_OS=1/.test(textOf(launch)), 'a disabled OS tool (launch_app) steers to SKRY_OS=1');
+  assert(launch.result?.isError === true && /UMBRIEL_OS=1/.test(textOf(launch)), 'a disabled OS tool (launch_app) steers to UMBRIEL_OS=1');
 } finally {
   proc.kill();
 }

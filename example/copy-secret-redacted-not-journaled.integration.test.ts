@@ -1,7 +1,7 @@
 /**
  * copy-secret-redacted-not-journaled — the clipboard secret-redaction floor read_clipboard advertises must be
  * PATH-INDEPENDENT: copy / cut / press_key Ctrl+C echo the clipboard too, and that echo also becomes the on-disk
- * SKRY_TRACE observation. A copied AWS-key shape (AKIA…) must come back «redacted» from EVERY clipboard-reflecting
+ * UMBRIEL_TRACE observation. A copied AWS-key shape (AKIA…) must come back «redacted» from EVERY clipboard-reflecting
  * tool — not just read_clipboard — and must NOT be persisted verbatim into the trace JSONL. Without this an agent under
  * prompt-injection deterministically chooses `copy {ref}` over `read_clipboard` to defeat the masking floor.
  *
@@ -25,7 +25,7 @@ const SECRET = 'AKIAIOSFODNN7EXAMPLE'; // an AWS access-key-id shape the default
 const tracePath = join(tmpdir(), `umbriel-copyredact-${process.pid}-${Date.now()}.jsonl`);
 await rm(tracePath, { force: true });
 
-const { call, kill, textOf } = spawnServer({ SKRY_PROFILE: 'safe', SKRY_TRACE: tracePath });
+const { call, kill, textOf } = spawnServer({ UMBRIEL_PROFILE: 'safe', UMBRIEL_TRACE: tracePath });
 // The current-generation Edit/Document ref from a FRESH snapshot (a no-change delta carries no refs — only re-extract
 // when the tree actually re-grounded). The probed ref is then REUSED across type/find_text/copy/cut without an
 // intervening snapshot, which would otherwise bump the generation and stale the ref.

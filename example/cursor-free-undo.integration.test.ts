@@ -2,7 +2,7 @@
  * cursor-free-undo — press_key {ref, key:'Control+Z'} on a classic Edit with its own window handle undoes the last
  * edit CURSOR-FREE via EM_UNDO (no Ctrl+Z keystroke, no focus, works minimized/locked) — the one undo-key the
  * cursor-free Edit cluster (WM_SETTEXT/WM_CHAR/WM_COPY/WM_CUT/WM_PASTE/EM_SETSEL) was missing. It falls through to
- * the SendInput chord (gated under SKRY_CURSOR=never) only for a no-own-HWND sub-control.
+ * the SendInput chord (gated under UMBRIEL_CURSOR=never) only for a no-own-HWND sub-control.
  *
  * Proof (minimized Notepad over the MCP wire): type, then press_key Ctrl+Z reports "(EM_UNDO)" and the edit reverts.
  * Notepad closed in teardown.
@@ -14,7 +14,7 @@ import User32 from '@bun-win32/user32';
 import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';

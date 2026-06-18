@@ -6,19 +6,19 @@
     "url": "https://github.com/ObscuritySRL/umbriel",
     "source": "github"
   },
-  "version": "1.9.0",
+  "version": "1.9.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "umbriel",
-      "version": "1.9.0",
+      "version": "1.9.2",
       "runtimeHint": "bunx",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
-          "name": "SKRY_PROFILE",
+          "name": "UMBRIEL_PROFILE",
           "description": "Capability profile: 'readonly' (inspect/read only), 'safe' (read + input + window — default), or 'full' (also os + fs tools).",
           "isRequired": false,
           "isSecret": false,
@@ -26,35 +26,35 @@
           "default": "safe"
         },
         {
-          "name": "SKRY_OS",
+          "name": "UMBRIEL_OS",
           "description": "Set to '1' to allow OS-level tools (launch_app, run_program, open_path) AND filesystem tools (read_file, write_file, list_dir) regardless of profile.",
           "isRequired": false,
           "isSecret": false,
           "format": "string"
         },
         {
-          "name": "SKRY_ALLOW",
+          "name": "UMBRIEL_ALLOW",
           "description": "Comma-separated tool names or categories to additionally allow on top of the profile.",
           "isRequired": false,
           "isSecret": false,
           "format": "string"
         },
         {
-          "name": "SKRY_DENY",
-          "description": "Comma-separated tool names or categories to deny, overriding the profile and SKRY_ALLOW.",
+          "name": "UMBRIEL_DENY",
+          "description": "Comma-separated tool names or categories to deny, overriding the profile and UMBRIEL_ALLOW.",
           "isRequired": false,
           "isSecret": false,
           "format": "string"
         },
         {
-          "name": "SKRY_CURSOR",
+          "name": "UMBRIEL_CURSOR",
           "description": "Set to 'never' to forbid the real-cursor fallback entirely (strictly cursor-free). By default clicks/drags are cursor-free but fall back to the real hardware cursor when no cursor-free path exists.",
           "isRequired": false,
           "isSecret": false,
           "format": "string"
         },
         {
-          "name": "SKRY_FS_ROOT",
+          "name": "UMBRIEL_FS_ROOT",
           "description": "Sandbox root directory that read_file/write_file/list_dir are confined to when fs tools are enabled.",
           "isRequired": false,
           "isSecret": false,

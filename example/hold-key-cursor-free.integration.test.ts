@@ -1,14 +1,14 @@
 /**
- * hold-key-cursor-free — hold_key had ONLY a SendInput path, so it was wholly refused under SKRY_CURSOR=never and
+ * hold-key-cursor-free — hold_key had ONLY a SendInput path, so it was wholly refused under UMBRIEL_CURSOR=never and
  * never worked on a background/locked desktop — the one input verb with no cursor-free route. hold_key {ref} on a control
  * with its OWN window handle now posts a WM_KEYDOWN autorepeat stream (postHoldKey) closed by WM_KEYUP — no focus, no
  * SendInput — so it survives the cursor lockdown; only the no-ref / no-own-HWND case still needs SendInput.
  *
- * Proof (under SKRY_CURSOR=never): hold_key {ref} on a synthetic own-HWND Edit is ALLOWED, reports "cursor-free", and
+ * Proof (under UMBRIEL_CURSOR=never): hold_key {ref} on a synthetic own-HWND Edit is ALLOWED, reports "cursor-free", and
  * actually holds for ~durationMs (the autorepeat loop ran); hold_key with NO ref is still refused. Window destroyed in
  * teardown.
  *
- * bun test is broken repo-wide — runnable harness (MCP subprocess started with SKRY_CURSOR=never + a synthetic Edit):
+ * bun test is broken repo-wide — runnable harness (MCP subprocess started with UMBRIEL_CURSOR=never + a synthetic Edit):
  * Run: bun run example/hold-key-cursor-free.integration.test.ts
  */
 import Kernel32 from '@bun-win32/kernel32';
@@ -30,7 +30,7 @@ const pump = (): void => {
 };
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe', SKRY_CURSOR: 'never' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe', UMBRIEL_CURSOR: 'never' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';
@@ -84,7 +84,7 @@ try {
 
   // No-ref hold_key still needs SendInput → still refused under never (the lockdown holds where there's no cursor-free path).
   const noRef = await call('tools/call', { name: 'hold_key', arguments: { key: 'a', durationMs: 50 } });
-  assert(noRef.result?.isError === true && /SKRY_CURSOR=never/.test(textOf(noRef)), 'hold_key with no ref is still refused under never (no cursor-free path)');
+  assert(noRef.result?.isError === true && /UMBRIEL_CURSOR=never/.test(textOf(noRef)), 'hold_key with no ref is still refused under never (no cursor-free path)');
 
   if (parent === 0n || edit === 0n) console.log('  skip: could not create the synthetic Edit');
   else {
@@ -107,5 +107,5 @@ try {
   if (parent !== 0n) User32.DestroyWindow(parent);
 }
 
-console.log(failures === 0 ? '\nPASS — hold_key {ref} holds an own-HWND control cursor-free (survives SKRY_CURSOR=never); no-ref hold_key still refused.' : `\nFAILED — ${failures} assertion(s)`);
+console.log(failures === 0 ? '\nPASS — hold_key {ref} holds an own-HWND control cursor-free (survives UMBRIEL_CURSOR=never); no-ref hold_key still refused.' : `\nFAILED — ${failures} assertion(s)`);
 process.exit(failures === 0 ? 0 : 1);

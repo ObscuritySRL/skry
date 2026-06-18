@@ -28,7 +28,7 @@ await Bun.$`rm -rf ${root}`.quiet().nothrow();
 await Bun.$`mkdir -p ${root}`.quiet();
 const content = 'this content must survive a stdin-close shutdown — '.repeat(40); // ~2KB, non-empty
 
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe', SKRY_OS: '1', SKRY_FS_ROOT: root } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe', UMBRIEL_OS: '1', UMBRIEL_FS_ROOT: root } });
 try {
   proc.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'drain-test', version: '1' } } })}\n`);
   proc.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'write_file', arguments: { path: 'out.txt', content } } })}\n`);

@@ -22,7 +22,7 @@ umbriel.initialize();
 const priorCalc = new Set(umbriel.windows({ includeUntitled: true }).filter((window) => /Calcul/i.test(window.title)).map((window) => window.hWnd));
 const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' }); // returns the CalculatorApp window (NOT the cmd shim) so teardown can actually close it
 
-const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
+const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 const pending = new Map<number, (message: { result?: Record<string, unknown> }) => void>();

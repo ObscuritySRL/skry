@@ -23,7 +23,7 @@ const before = new Set(
     .filter((window) => window.className === 'Notepad')
     .map((window) => window.hWnd),
 );
-const { call, kill, textOf } = spawnServer({ SKRY_PROFILE: 'full' });
+const { call, kill, textOf } = spawnServer({ UMBRIEL_PROFILE: 'full' });
 
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'launch-app-new-window', version: '1' } });

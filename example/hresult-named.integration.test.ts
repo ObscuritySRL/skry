@@ -40,7 +40,7 @@ assert(hresult(0x80070005) === '0x80070005', 'a non-UIA HRESULT (E_ACCESSDENIED)
 
 // (B) live MCP — a garbage hWnd must surface the named, actionable error to the agent.
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let stream = '';

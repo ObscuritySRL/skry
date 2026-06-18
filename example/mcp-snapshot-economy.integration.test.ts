@@ -13,7 +13,7 @@
 const calc = Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
 await Bun.sleep(1500);
 
-const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'inherit', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
+const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'inherit', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 const pending = new Map<number, (message: { result?: Record<string, unknown> }) => void>();

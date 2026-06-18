@@ -1,5 +1,5 @@
 /**
- * drag-select-cursor-free — drag had ONLY a real-mouse SendInput path, so it hard-errored under SKRY_CURSOR=never and
+ * drag-select-cursor-free — drag had ONLY a real-mouse SendInput path, so it hard-errored under UMBRIEL_CURSOR=never and
  * could never drag-select/marquee without an unlocked foregrounded desktop. drag {select:true} now posts a cursor-free
  * left-button drag (WM_LBUTTONDOWN → interpolated WM_MOUSEMOVE(MK_LBUTTON) → WM_LBUTTONUP, postDragToHwnd) to an own-HWND
  * {ref} — drag-selecting text in a classic Edit/RichEdit or marquee-selecting list items with no real cursor; under
@@ -35,7 +35,7 @@ const pump = (): void => {
 };
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';

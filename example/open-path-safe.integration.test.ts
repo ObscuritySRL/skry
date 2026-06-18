@@ -3,7 +3,7 @@
  *
  * The handler used `cmd /c start "" <path>`, and cmd re-parses its arguments, so a path containing shell
  * metacharacters (`"` `&` `%VAR%`) injected arbitrary commands — behind a benign "open with the default handler"
- * label, grantable in isolation via SKRY_ALLOW=open_path. openPath() now uses ShellExecuteW: the path is a real
+ * label, grantable in isolation via UMBRIEL_ALLOW=open_path. openPath() now uses ShellExecuteW: the path is a real
  * lpFile string, no shell, no command-line re-parse.
  *
  * Proof (side-effect-free): a path crafted to drop a sentinel file IF re-parsed by a shell opens nothing and the

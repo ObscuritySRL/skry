@@ -1,7 +1,7 @@
 /**
- * MCP trace journal — proves SKRY_TRACE persists a replayable per-call JSONL over the REAL stdio server.
+ * MCP trace journal — proves UMBRIEL_TRACE persists a replayable per-call JSONL over the REAL stdio server.
  *
- * Drives packages/umbriel/mcp.ts as a child process with SKRY_TRACE pointed at a temp file, runs two read-only
+ * Drives packages/umbriel/mcp.ts as a child process with UMBRIEL_TRACE pointed at a temp file, runs two read-only
  * tool calls (list_monitors, list_processes — NO window launched, so no app to clean up), then reads the journal
  * and asserts one JSON line per call with the wired fields {ts, tool, args(masked), ok, observation}. Also asserts
  * a free-text arg is MASKED to its length (never echoed). Fails before the fix — the server wrote no trace file.
@@ -16,7 +16,7 @@ import { join } from 'node:path';
 const tracePath = join(tmpdir(), `umbriel-trace-${process.pid}-${Date.now()}.jsonl`);
 await rm(tracePath, { force: true });
 
-const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'inherit', env: { ...Bun.env, SKRY_PROFILE: 'safe', SKRY_TRACE: tracePath } });
+const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'inherit', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe', UMBRIEL_TRACE: tracePath } });
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 const pending = new Map<number, (message: { result?: Record<string, unknown> }) => void>();
@@ -71,7 +71,7 @@ await Bun.sleep(400);
 server.kill();
 
 const raw = await Bun.file(tracePath).text().catch(() => '');
-if (raw.length === 0) await fail('SKRY_TRACE produced no journal file — the trace gate is not wired');
+if (raw.length === 0) await fail('UMBRIEL_TRACE produced no journal file — the trace gate is not wired');
 const lines = raw.split('\n').filter((line) => line.length > 0).map((line) => JSON.parse(line));
 if (lines.length !== 2) await fail(`expected one journal line per tool call (2), got ${lines.length}`);
 ok(`journal has ${lines.length} lines — one per tools/call`);

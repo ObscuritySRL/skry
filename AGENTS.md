@@ -111,12 +111,12 @@ umbriel does not declare new FFI symbols, but it calls into the `@bun-win32/*` b
 
 `mcp.ts` is the `umbriel` bin: a stdio Model Context Protocol server exposing the automation surface as tools. It is security-gated by environment variables — treat these as a contract:
 
-- **`SKRY_PROFILE`** — capability profile: `readonly` (inspect/read only), `safe` (read + input + window — default), or `full` (also OS + filesystem tools).
-- **`SKRY_OS`** — `1` to allow OS-level tools (`launch_app`, `run_program`, `open_path`) and filesystem tools regardless of profile.
-- **`SKRY_ALLOW` / `SKRY_DENY`** — comma-separated tool names/categories to add or remove on top of the profile (deny wins).
-- **`SKRY_CURSOR`** — `never` to forbid the real-cursor fallback entirely (strictly cursor-free).
-- **`SKRY_FS_ROOT`** — sandbox root that `read_file`/`write_file`/`list_dir` are confined to.
-- **`SKRY_TRACE` / `SKRY_AUDIT` / `SKRY_REDACT`** — journaling and credential-masking controls.
+- **`UMBRIEL_PROFILE`** — capability profile: `readonly` (inspect/read only), `safe` (read + input + window — default), or `full` (also OS + filesystem tools).
+- **`UMBRIEL_OS`** — `1` to allow OS-level tools (`launch_app`, `run_program`, `open_path`) and filesystem tools regardless of profile.
+- **`UMBRIEL_ALLOW` / `UMBRIEL_DENY`** — comma-separated tool names/categories to add or remove on top of the profile (deny wins).
+- **`UMBRIEL_CURSOR`** — `never` to forbid the real-cursor fallback entirely (strictly cursor-free).
+- **`UMBRIEL_FS_ROOT`** — sandbox root that `read_file`/`write_file`/`list_dir` are confined to.
+- **`UMBRIEL_TRACE` / `UMBRIEL_AUDIT` / `UMBRIEL_REDACT`** — journaling and credential-masking controls.
 
 Credentials (password fields, secret-typed input) are redacted and never journaled. Do not add a tool or code path that bypasses redaction or the profile gate. `server.json` is the MCP-registry manifest; keep its env-var docs in sync with `mcp.ts`.
 
