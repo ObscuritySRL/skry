@@ -16,7 +16,7 @@ import { type Pointer, toArrayBuffer } from 'bun:ffi';
 import Kernel32 from '@bun-win32/kernel32';
 import User32 from '@bun-win32/user32';
 
-import { captureScreen, readClipboardImage, writeClipboardImage } from 'skry';
+import { captureScreen, readClipboardImage, writeClipboardImage } from 'umbriel';
 
 const CF_DIB = 8;
 /** Put a RAW CF_DIB blob on the clipboard — to exercise decode paths (32-bpp, top-down, malformed) we never WRITE. */

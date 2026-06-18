@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess, full profile for the os category):
  * Run: bun run example/launch-app-fallback.integration.test.ts
  */
-import { closeWindow, findWindow } from 'skry';
+import { closeWindow, findWindow } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'full' } });

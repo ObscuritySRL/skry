@@ -9,7 +9,7 @@
  * bun test is broken repo-wide — runnable harness (no windows spawned; needs an interactive desktop for SendInput):
  * Run: bun run example/key-state.integration.test.ts
  */
-import { isKeyDown, keyDown, keyUp, skry } from 'skry';
+import { isKeyDown, keyDown, keyUp, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -20,7 +20,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   assert(typeof isKeyDown('A') === 'boolean', 'isKeyDown returns a boolean');
   assert(!isKeyDown('F8'), 'a key that is not held reads false');
@@ -35,7 +35,7 @@ try {
   await Bun.sleep(40);
   assert(!isKeyDown('Shift'), 'isKeyDown reports the key released');
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — GetAsyncKeyState input observation tracks real key state (crash-safe polling, no hook).' : `\nFAILED — ${failures} assertion(s)`);

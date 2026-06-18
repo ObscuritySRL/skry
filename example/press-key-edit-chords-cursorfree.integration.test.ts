@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Character Map):
  * Run: bun run example/press-key-edit-chords-cursorfree.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
@@ -62,8 +62,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const charmap = await skry.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
+umbriel.initialize();
+const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'edit-chords', version: '1' } });
   if (charmap === null) console.log('  skip: Character Map did not launch');
@@ -92,7 +92,7 @@ try {
     closeWindow(charmap.hWnd);
     charmap.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Control+A/C/X/V on an own-HWND control are delivered cursor-free (no SendInput, cursor unmoved).' : `\nFAILED — ${failures} assertion(s)`);

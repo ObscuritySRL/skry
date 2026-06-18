@@ -18,7 +18,7 @@ import User32 from '@bun-win32/user32';
 const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
 const WS_VISIBLE = 0x1000_0000;
 const PM_REMOVE = 0x0001;
-const TITLE = 'skry-attach-probe-4419';
+const TITLE = 'umbriel-attach-probe-4419';
 const wide = (text: string): Buffer => Buffer.from(`${text}\0`, 'utf16le');
 const pumpMsg = Buffer.alloc(48);
 const pump = (): void => {

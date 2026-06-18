@@ -24,7 +24,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (launches + force-closes one Notepad):
  * Run: bun run example/filter-not.integration.test.ts
  */
-import { automation, closeWindow, comRelease, compileCondition, ControlType, matches, needsSubtreeFilter, selectorToString, skry, windowProcessId } from 'skry';
+import { automation, closeWindow, comRelease, compileCondition, ControlType, matches, needsSubtreeFilter, selectorToString, umbriel, windowProcessId } from 'umbriel';
 
 import { assert, finish } from './_harness';
 
@@ -43,12 +43,12 @@ assert(needsSubtreeFilter({ nameNot: 'Close' }) === false, 'needsSubtreeFilter f
 const rendered = selectorToString({ controlType: ControlType.Button, nameNot: 'Close', hasNot: { name: 'Five' }, hasNotText: 'pad' });
 assert(/nameNot: "Close"/.test(rendered) && /hasNot: \{.*name: "Five".*\}/.test(rendered) && /hasNotText: "pad"/.test(rendered), `selectorToString renders nameNot + hasNot + hasNotText (${rendered})`);
 
-skry.initialize();
+umbriel.initialize();
 const compiled = compileCondition(automation(), { controlType: ControlType.Button, nameNot: 'Close' });
 assert(compiled.needsClientFilter === true, 'compileCondition forces needsClientFilter for a { nameNot } selector');
 if (compiled.owned) comRelease(compiled.condition);
 
-const notepad = await skry.launch(['notepad.exe'], { title: 'Untitled - Notepad' }, 8000).catch(() => skry.launch(['notepad.exe'], { className: 'Notepad' }, 8000));
+const notepad = await umbriel.launch(['notepad.exe'], { title: 'Untitled - Notepad' }, 8000).catch(() => umbriel.launch(['notepad.exe'], { className: 'Notepad' }, 8000));
 try {
   let anchor = null;
   for (let attempt = 0; attempt < 50 && anchor === null; attempt += 1) {
@@ -110,7 +110,7 @@ try {
   closeWindow(notepad.hWnd);
   notepad.dispose();
   if (pid) Bun.spawnSync(['taskkill', '/F', '/PID', String(pid)]);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 finish('PASS — nameNot / hasNot / hasNotText exclusion predicates drop the matching candidate and keep the rest.');

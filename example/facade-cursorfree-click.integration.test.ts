@@ -4,13 +4,13 @@
  * session even when a cursor-free path (InvokePattern / own-HWND WM_CHAR) existed — violating the drive-in-the-dark
  * doctrine the MCP layer already honors. Both now go cursor-free first via the shared performAgentAction helper.
  *
- * Proof: park the cursor, skry.execute({do:'click'}) the Character Map "Select" button, and assert the real cursor never
+ * Proof: park the cursor, umbriel.execute({do:'click'}) the Character Map "Select" button, and assert the real cursor never
  * moved (invoke is cursor-free). Character Map closed in teardown.
  *
  * bun test is broken repo-wide — runnable script (lib facade + a spawned Character Map; no MCP subprocess):
  * Run: bun run example/facade-cursorfree-click.integration.test.ts
  */
-import { closeWindow, ControlType, execute, skry } from 'skry';
+import { closeWindow, ControlType, execute, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -22,13 +22,13 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const charmap = await skry.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
+umbriel.initialize();
+const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
   if (charmap === null) console.log('  skip: Character Map did not launch');
   else {
     await Bun.sleep(900);
-    const window = skry.attach(charmap.hWnd);
+    const window = umbriel.attach(charmap.hWnd);
     const button = window.find({ name: 'Select', controlType: ControlType.Button });
     if (button === null) console.log('  skip: no "Select" button in Character Map');
     else {
@@ -54,7 +54,7 @@ try {
     closeWindow(charmap.hWnd);
     charmap.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — execute()/safeExecute() click cursor-free (invoke first), no foreground/cursor theft.' : `\nFAILED — ${failures} assertion(s)`);

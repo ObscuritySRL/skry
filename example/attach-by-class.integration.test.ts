@@ -11,7 +11,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/attach-by-class.integration.test.ts
  */
-import { ControlType, type RefNode, snapshot, skry } from 'skry';
+import { ControlType, type RefNode, snapshot, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -25,9 +25,9 @@ function countButtons(node: RefNode): number {
   return (node.ref !== undefined && node.role === (ControlType[ControlType.Button] ?? 'Button') ? 1 : 0) + node.children.reduce((sum, child) => sum + countButtons(child), 0);
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
-  const taskbar = skry.attach({ className: 'Shell_TrayWnd' });
+  const taskbar = umbriel.attach({ className: 'Shell_TrayWnd' });
   try {
     assert(taskbar.name.length >= 0, `attached to the taskbar by className alone (no title) — name=${JSON.stringify(taskbar.name)}`);
     const snap = snapshot(taskbar, { maxDepth: 20 });
@@ -41,7 +41,7 @@ try {
 } catch (error) {
   assert(false, `attach by className threw: ${error instanceof Error ? error.message : String(error)}`);
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a title-less window (taskbar/tray) is reachable by className alone.' : `\nFAILED — ${failures} assertion(s)`);

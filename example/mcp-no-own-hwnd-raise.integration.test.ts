@@ -20,7 +20,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (drives the real MCP subprocess + spawns/closes Settings):
  * Run: bun run example/mcp-no-own-hwnd-raise.integration.test.ts
  */
-import { closeWindow, foregroundWindow, PropertyId, raiseWindow, skry } from 'skry';
+import { closeWindow, foregroundWindow, PropertyId, raiseWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -67,19 +67,19 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 Bun.spawn(['explorer.exe', 'ms-settings:easeofaccess-visualeffects'], { stdout: 'ignore', stderr: 'ignore' });
 let settingsHwnd = 0n;
 for (let i = 0; i < 40 && settingsHwnd === 0n; i++) {
   await Bun.sleep(250);
-  settingsHwnd = skry.windows().find((w) => w.title === 'Settings')?.hWnd ?? 0n;
+  settingsHwnd = umbriel.windows().find((w) => w.title === 'Settings')?.hWnd ?? 0n;
 }
 // A classic own-HWND decoy whose foreground the WinUI act can visibly STEAL — Character Map (#32770) has its own HWND.
 Bun.spawn(['charmap.exe'], { stdout: 'ignore', stderr: 'ignore' });
 let decoyHwnd = 0n;
 for (let i = 0; i < 24 && decoyHwnd === 0n; i++) {
   await Bun.sleep(200);
-  decoyHwnd = skry.windows().find((w) => w.title.startsWith('Character Map'))?.hWnd ?? 0n;
+  decoyHwnd = umbriel.windows().find((w) => w.title.startsWith('Character Map'))?.hWnd ?? 0n;
 }
 
 try {
@@ -93,7 +93,7 @@ try {
 
     // A no-own-HWND WinUI ToggleSwitch (renders as Button + TogglePattern, NO own HWND → has only the UIA pattern, the
     // exact control class the criticism is about), with bounds. Record name + baseline state so we can restore it.
-    const settings = skry.attach(settingsHwnd);
+    const settings = umbriel.attach(settingsHwnd);
     const scan = settings.findAll({});
     const toggle = scan.find((el) => el.nativeWindowHandle === 0n && el.getProperty(PropertyId.IsTogglePatternAvailable) === true && el.boundingRectangle.width > 0 && el.boundingRectangle.height > 0) ?? null;
     const name = toggle?.name ?? '';
@@ -133,7 +133,7 @@ try {
 
         // restore the user's setting + verify the act actually LANDED (a real toggle, not a no-op)
         await Bun.sleep(250);
-        const after2 = skry.attach(settingsHwnd);
+        const after2 = umbriel.attach(settingsHwnd);
         const allAfter = after2.findAll({});
         const flipped = allAfter.find((el) => el.name === name && el.getProperty(PropertyId.IsTogglePatternAvailable) === true) ?? null;
         if (flipped !== null && baseline !== -1) assert(flipped.toggleState !== baseline, `the toggle actually FLIPPED (was ${baseline}, now ${flipped.toggleState}) — the disclosed act still LANDED`);
@@ -149,7 +149,7 @@ try {
   proc.kill();
   if (decoyHwnd !== 0n) closeWindow(decoyHwnd);
   if (settingsHwnd !== 0n) closeWindow(settingsHwnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(

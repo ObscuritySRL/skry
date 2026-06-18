@@ -11,7 +11,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/window-events.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -22,24 +22,24 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   // process table (toolhelp32)
-  const processes = skry.listProcesses();
+  const processes = umbriel.listProcesses();
   assert(processes.length > 10 && processes.some((process) => /explorer\.exe/i.test(process.name)), `listProcesses enumerated ${processes.length} processes (incl. explorer.exe)`);
-  const explorerPid = await skry.waitForProcess('explorer.exe', { timeout: 4000 });
+  const explorerPid = await umbriel.waitForProcess('explorer.exe', { timeout: 4000 });
   assert(explorerPid > 0, `waitForProcess('explorer.exe') resolved (pid ${explorerPid}, already running)`);
 
   // window lifecycle + focus hook
   const events: string[] = [];
-  const watcher = skry.watchWindows((event) => {
+  const watcher = umbriel.watchWindows((event) => {
     if (event.className === 'Notepad' || /Notepad/.test(event.title)) events.push(event.type);
   });
 
   let notepadHwnd = 0n;
   try {
     Bun.spawn(['cmd', '/c', 'start', 'notepad'], { stdout: 'ignore', stderr: 'ignore' });
-    const appeared = await skry.waitForWindow({ className: 'Notepad' }, { timeout: 8000 });
+    const appeared = await umbriel.waitForWindow({ className: 'Notepad' }, { timeout: 8000 });
     notepadHwnd = appeared.hWnd;
     assert(appeared.className === 'Notepad', `waitForWindow resolved on the new window ${JSON.stringify(appeared.title)}`);
     await Bun.sleep(1200);
@@ -52,7 +52,7 @@ try {
   assert(events.includes('close'), `watcher caught Notepad 'close' (events: ${events.join(', ')})`);
   watcher.stop();
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — hooked window appear/focus/close + process events on the main thread (no foreign-thread hazard).' : `\nFAILED — ${failures} assertion(s)`);

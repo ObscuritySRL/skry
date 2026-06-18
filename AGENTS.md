@@ -1,10 +1,10 @@
 # AGENTS
 
-Rules for working in **skry** — Playwright for the Windows desktop, from [Bun](https://bun.sh). A single, zero-native-dependency package that drives and tests native Windows GUIs through the UI Automation accessibility tree (find by name, invoke, type, assert), plus synthetic input, full-screen capture + image matching, native-window introspection (Spy++-style), an LLM computer-use adapter, OCR, and a stdio **MCP server**. No node-gyp, no prebuilt binaries, no sidecar process. Follow these rules exactly.
+Rules for working in **umbriel** — Playwright for the Windows desktop, from [Bun](https://bun.sh). A single, zero-native-dependency package that drives and tests native Windows GUIs through the UI Automation accessibility tree (find by name, invoke, type, assert), plus synthetic input, full-screen capture + image matching, native-window introspection (Spy++-style), an LLM computer-use adapter, OCR, and a stdio **MCP server**. No node-gyp, no prebuilt binaries, no sidecar process. Follow these rules exactly.
 
-skry is pure TypeScript over [`bun:ffi`](https://bun.sh/docs/api/ffi). It does not bind any DLL itself — it consumes the published `@bun-win32/*` FFI binding packages (`core`, `user32`, `oleacc`, `combase`, `kernel32`, `gdi32`, `shell32`, `shcore`, `oleaut32`, `advapi32`, `dwmapi`, `d3d11`) as ordinary pinned npm dependencies, and composes them into a high-level desktop-automation API.
+umbriel is pure TypeScript over [`bun:ffi`](https://bun.sh/docs/api/ffi). It does not bind any DLL itself — it consumes the published `@bun-win32/*` FFI binding packages (`core`, `user32`, `oleacc`, `combase`, `kernel32`, `gdi32`, `shell32`, `shcore`, `oleaut32`, `advapi32`, `dwmapi`, `d3d11`) as ordinary pinned npm dependencies, and composes them into a high-level desktop-automation API.
 
-> skry was extracted from the `bun-win32` monorepo (formerly `@bun-win32/uia` + `bun-uia`) into its own standalone repo and unscoped npm package. The FFI layer it stands on still lives in `@bun-win32/*`; only the product is standalone.
+> umbriel was extracted from the `bun-win32` monorepo (formerly `@bun-win32/uia` + `bun-uia`) into its own standalone repo and unscoped npm package. The FFI layer it stands on still lives in `@bun-win32/*`; only the product is standalone.
 
 ---
 
@@ -21,11 +21,11 @@ skry is pure TypeScript over [`bun:ffi`](https://bun.sh/docs/api/ffi). It does n
 
 ## Repository Layout
 
-skry is a **single package** (the repo root *is* the package), not a monorepo. The source modules are grouped into concern folders — Bun runs `.ts` directly, so there is no `src/` and no build step.
+umbriel is a **single package** (the repo root *is* the package), not a monorepo. The source modules are grouped into concern folders — Bun runs `.ts` directly, so there is no `src/` and no build step.
 
 ```
-index.ts            the public surface: `export const skry = { … }` facade + re-exports of every module
-mcp.ts              the stdio MCP server (the `skry` bin); ~3.3k lines, the largest single file
+index.ts            the public surface: `export const umbriel = { … }` facade + re-exports of every module
+mcp.ts              the stdio MCP server (the `umbriel` bin); ~3.3k lines, the largest single file
 
 com/                COM + UIA foundation — the package's spine
   constants.ts        ControlType / PatternId / PropertyId / TreeScope / SLOT …
@@ -60,7 +60,7 @@ scripts/            repo tooling (release-check.ts — the pre-publish gate)
 AI.md README.md server.json   binding/usage docs + MCP registry manifest
 ```
 
-Cross-folder imports are plain relative paths (`../com/constants`); same-folder stay `./`. The single entry object is **`skry`** (`import { skry } from 'skry'`). Classes (`Element`, `Window`), enums, and free functions are also named exports from `index.ts`. `index.ts` and `mcp.ts` stay at the root (the package entry points + bin).
+Cross-folder imports are plain relative paths (`../com/constants`); same-folder stay `./`. The single entry object is **`umbriel`** (`import { umbriel } from 'umbriel'`). Classes (`Element`, `Window`), enums, and free functions are also named exports from `index.ts`. `index.ts` and `mcp.ts` stay at the root (the package entry points + bin).
 
 ---
 
@@ -87,13 +87,13 @@ bun run mcp.ts                       # start the stdio MCP server locally
 
 ## FFI Binding Rules (inherited, non-negotiable)
 
-skry does not declare new FFI symbols, but it calls into the `@bun-win32/*` bindings and decodes their buffers. The conventions still apply to every line that touches a pointer or handle:
+umbriel does not declare new FFI symbols, but it calls into the `@bun-win32/*` bindings and decodes their buffers. The conventions still apply to every line that touches a pointer or handle:
 
 - **`u64` (TS `bigint`)** for all handles (`HWND`, `HANDLE`, COM interface pointers, …), pointer-sized integers, and remote/opaque addresses. **NULL is `0n`**; check `=== 0n`.
 - **`ptr` (TS `Pointer`)** for local buffers the caller allocates (`Buffer`/`TypedArray.ptr`), strings, by-ref structs, and callbacks. **NULL is `null`**.
 - **Assemble structs immediately before the blocking call.** An `await` between building a `Buffer` and passing its `.ptr` can relocate the backing store and hand the native side a stale address — read `.ptr` inline at the call site, never cache it.
 - **No type casts. Ever.** No `as any`, no `as unknown as T`. The only allowed narrowing is `!`, `BigInt()` (number → handle), and explicit annotations to break circular inference. Prefer `satisfies` over `as`.
-- **CoInitialize before COM-backed calls.** `skry.initialize()` owns the apartment; COM pattern/OCR/WGC paths assume it has run.
+- **CoInitialize before COM-backed calls.** `umbriel.initialize()` owns the apartment; COM pattern/OCR/WGC paths assume it has run.
 
 ---
 
@@ -109,7 +109,7 @@ skry does not declare new FFI symbols, but it calls into the `@bun-win32/*` bind
 
 ## The MCP Server
 
-`mcp.ts` is the `skry` bin: a stdio Model Context Protocol server exposing the automation surface as tools. It is security-gated by environment variables — treat these as a contract:
+`mcp.ts` is the `umbriel` bin: a stdio Model Context Protocol server exposing the automation surface as tools. It is security-gated by environment variables — treat these as a contract:
 
 - **`SKRY_PROFILE`** — capability profile: `readonly` (inspect/read only), `safe` (read + input + window — default), or `full` (also OS + filesystem tools).
 - **`SKRY_OS`** — `1` to allow OS-level tools (`launch_app`, `run_program`, `open_path`) and filesystem tools regardless of profile.
@@ -141,7 +141,7 @@ Credentials (password fields, secret-typed input) are redacted and never journal
 
 ## Releasing
 
-skry publishes as the **unscoped `skry`** package and registers a server on the **MCP registry** as `io.github.ObscuritySRL/skry`.
+umbriel publishes as the **unscoped `umbriel`** package and registers a server on the **MCP registry** as `io.github.ObscuritySRL/umbriel`.
 
 ```bash
 bunx tsc --noEmit                    # gate: zero type errors
@@ -155,7 +155,7 @@ bun publish --access public --otp <code>   # unscoped, but pass --access public 
 - **Always `bun publish`, never `npm publish`.**
 - **Pin `@bun-win32/*` deps to published versions** (caret ranges). Never reintroduce `workspace:*` — this repo has no workspace.
 - **Keep `server.json` `version` in lockstep with `package.json`**, and `mcpName` (in `package.json`) equal to `server.json` `name`.
-- The `skry` npm name and the MCP `identifier` must stay identical.
+- The `umbriel` npm name and the MCP `identifier` must stay identical.
 
 ---
 

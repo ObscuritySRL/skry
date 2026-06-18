@@ -1,5 +1,5 @@
 // Correctness + perf gate for the COM vtable SLOT table — the package's spine, where one transposed slot is an
-// unchecked function-pointer call that SEGFAULTS (com.ts). audit.ts/nullcheck.ts skip skry (no structs/ or
+// unchecked function-pointer call that SEGFAULTS (com.ts). audit.ts/nullcheck.ts skip umbriel (no structs/ or
 // types/ dir), so this is the SLOT table's only automated coverage. It parses UIAutomationClient.h's C-style
 // `*Vtbl` structs (the authoritative vtable declaration order) into methodName→slotIndex sets and asserts
 // every constants.ts SLOT entry the header defines matches. Skips cleanly when the SDK header is absent.

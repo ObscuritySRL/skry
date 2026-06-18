@@ -76,7 +76,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-setval-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 360, 220, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-setval-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 360, 220, 0n, 0n, BigInt(hInstance), null);
 const pw = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_PASSWORD, 10, 10, 320, 28, parent, 0n, BigInt(hInstance), null);
 const plain = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 60, 320, 28, parent, 0n, BigInt(hInstance), null);
 pump();

@@ -9,7 +9,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/coldtree-minimized.integration.test.ts
  */
-import { coldTreeNote } from 'skry';
+import { coldTreeNote } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

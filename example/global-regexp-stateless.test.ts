@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — this is a runnable script:
  * Run: bun run example/global-regexp-stateless.test.ts
  */
-import { type ElementProperties, matches, redactTree, type UiaNode } from 'skry';
+import { type ElementProperties, matches, redactTree, type UiaNode } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

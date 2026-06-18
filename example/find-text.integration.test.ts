@@ -9,7 +9,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/find-text.integration.test.ts
  */
-import { closeWindow, ControlType, skry, windowProcessId } from 'skry';
+import { closeWindow, ControlType, umbriel, windowProcessId } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -21,7 +21,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 let npHwnd = 0n;
 const npClass = Buffer.from('Notepad\0', 'utf16le');
@@ -31,7 +31,7 @@ for (let attempt = 0; attempt < 25 && npHwnd === 0n; attempt += 1) {
 }
 
 try {
-  const notepad = skry.attach(npHwnd);
+  const notepad = umbriel.attach(npHwnd);
   const edit = notepad.find({ controlType: ControlType.Document }) ?? notepad.find({ controlType: ControlType.Edit });
   assert(edit !== null, 'found the Notepad document');
   edit?.setValue('the quick brown fox jumps over the lazy dog'); // cursor-free seed
@@ -55,7 +55,7 @@ try {
   closeWindow(npHwnd);
   await Bun.sleep(700);
   try {
-    const reattached = skry.attach(npHwnd);
+    const reattached = umbriel.attach(npHwnd);
     reattached.find({ name: /Don.?t save/i })?.invoke();
     reattached.dispose();
   } catch {
@@ -65,7 +65,7 @@ try {
 } finally {
   const notepadPid = npHwnd !== 0n ? windowProcessId(npHwnd) : 0;
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — desktop getByText verified (find + cursor-free select + read-back).' : `\nFAILED — ${failures} assertion(s)`);

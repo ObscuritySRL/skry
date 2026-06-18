@@ -16,7 +16,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/select-option.integration.test.ts
  */
-import { closeWindow, ControlType, skry } from 'skry';
+import { closeWindow, ControlType, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -27,22 +27,22 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const priorMaps = new Set(
-  skry
+  umbriel
     .windows()
     .filter((window) => (window.title ?? '').includes('Character Map'))
     .map((window) => window.hWnd),
 );
 Bun.spawn(['charmap.exe'], { stdout: 'ignore', stderr: 'ignore' });
 await Bun.sleep(2500);
-const hWnd = skry.windows().find((window) => (window.title ?? '').includes('Character Map') && !priorMaps.has(window.hWnd))?.hWnd ?? 0n;
+const hWnd = umbriel.windows().find((window) => (window.title ?? '').includes('Character Map') && !priorMaps.has(window.hWnd))?.hWnd ?? 0n;
 
 try {
   if (hWnd === 0n) {
     console.log('[select-option] could not open Character Map — SKIPPING');
   } else {
-    const charmap = skry.attach(hWnd);
+    const charmap = umbriel.attach(hWnd);
     const combo = charmap.findAll({ controlType: ControlType.ComboBox }).find((candidate) => candidate.name.startsWith('Character set'));
     console.log(`  combobox: ${combo !== undefined ? JSON.stringify(combo.name) : 'NOT FOUND'} (value ${JSON.stringify(combo?.value)})`);
     if (combo === undefined) {
@@ -69,7 +69,7 @@ try {
   }
 } finally {
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — cursor-free one-call combobox selectOption verified (text + ignoreCase + no-match).' : `\nFAILED — ${failures} assertion(s)`);

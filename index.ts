@@ -19,7 +19,7 @@ import { captureWindowLive } from './capture/wgc';
 import { listWindows } from './element/window';
 
 /** The Playwright-for-desktop facade: attach to a window, then find/waitFor/act/serialize. */
-export const skry = {
+export const umbriel = {
   attach,
   captureScreen,
   captureWindowLive,

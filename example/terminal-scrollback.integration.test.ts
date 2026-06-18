@@ -13,7 +13,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/terminal-scrollback.integration.test.ts
  */
-import { ControlType, type Element, skry, windowProcessId } from 'skry';
+import { ControlType, type Element, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -26,25 +26,25 @@ function assert(condition: boolean, message: string): void {
 
 const isConsole = (className: string): boolean => /CASCADIA_HOSTING_WINDOW_CLASS|ConsoleWindowClass/.test(className);
 
-skry.initialize();
+umbriel.initialize();
 const lineCount = 600;
-const prior = new Set(skry.windows().filter((w) => isConsole(w.className)).map((w) => w.hWnd));
+const prior = new Set(umbriel.windows().filter((w) => isConsole(w.className)).map((w) => w.hWnd));
 // `start` opens the console in its own top-level window (the host the machine is configured for); the for-loop
 // emits hundreds of scrollback lines so the off-screen buffer dwarfs the visible region.
-const fill = `for /L %i in (1,1,${lineCount}) do @echo scrollback line %i of the skry terminal-scrollback probe`;
+const fill = `for /L %i in (1,1,${lineCount}) do @echo scrollback line %i of the umbriel terminal-scrollback probe`;
 Bun.spawnSync(['cmd.exe', '/c', 'start', 'cmd.exe', '/k', fill]);
 
 let terminal = 0n;
 for (let attempt = 0; attempt < 60 && terminal === 0n; attempt += 1) {
   await Bun.sleep(150);
-  terminal = skry.windows().find((w) => isConsole(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  terminal = umbriel.windows().find((w) => isConsole(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 try {
   assert(terminal !== 0n, 'launched a console window');
   if (terminal !== 0n) {
     await Bun.sleep(2500); // let the fill loop finish writing the scrollback
-    const win = skry.attach(terminal);
+    const win = umbriel.attach(terminal);
     // The console body is a Text/Document control exposing an ITextProvider; pick the one with the most text.
     let body: Element | null = null;
     let bodyFull = 0;
@@ -72,7 +72,7 @@ try {
 } finally {
   const terminalPid = terminal !== 0n ? windowProcessId(terminal) : 0;
   if (terminalPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(terminalPid)]);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — visibleText() reads only the on-screen region of a huge terminal scrollback (GetVisibleRanges), not the whole buffer.' : `\nFAILED — ${failures} assertion(s)`);

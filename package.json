@@ -1,7 +1,7 @@
 {
   "author": "Stev Peifer <stev.p@outlook.com>",
   "bugs": {
-    "url": "https://github.com/ObscuritySRL/skry/issues"
+    "url": "https://github.com/ObscuritySRL/umbriel/issues"
   },
   "dependencies": {
     "@bun-win32/advapi32": "^1.0.13",
@@ -26,12 +26,12 @@
     "./mcp": "./mcp.ts"
   },
   "bin": {
-    "skry": "./mcp.ts"
+    "umbriel": "./mcp.ts"
   },
   "license": "MIT",
-  "mcpName": "io.github.ObscuritySRL/skry",
+  "mcpName": "io.github.ObscuritySRL/umbriel",
   "module": "index.ts",
-  "name": "skry",
+  "name": "umbriel",
   "peerDependencies": {
     "typescript": "^5"
   },
@@ -39,10 +39,10 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://github.com/ObscuritySRL/skry#readme",
+  "homepage": "https://github.com/ObscuritySRL/umbriel#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ObscuritySRL/skry.git"
+    "url": "git+https://github.com/ObscuritySRL/umbriel.git"
   },
   "type": "module",
   "version": "1.9.0",
@@ -109,7 +109,7 @@
     "example:get-variant": "bun ./example/get-variant.integration.test.ts",
     "example:grid-cell": "bun ./example/grid-cell.integration.test.ts",
     "example:harness-asserted-guard": "bun ./example/harness-asserted-guard.integration.test.ts",
-    "example:hello-skry": "bun ./example/hello-skry.ts",
+    "example:hello-umbriel": "bun ./example/hello-umbriel.ts",
     "example:hresult-named": "bun ./example/hresult-named.integration.test.ts",
     "example:inline-state": "bun ./example/inline-state.integration.test.ts",
     "example:inspector": "bun ./example/inspector.ts",
@@ -136,7 +136,7 @@
     "example:reveal-offscreen": "bun ./example/reveal-offscreen.integration.test.ts",
     "example:safety-floor": "bun ./example/safety-floor.integration.test.ts",
     "example:select-option": "bun ./example/select-option.integration.test.ts",
-    "example:selftest": "bun ./example/skry.selftest.ts",
+    "example:selftest": "bun ./example/umbriel.selftest.ts",
     "example:set-of-marks": "bun ./example/set-of-marks.ts",
     "example:snapshot-economy": "bun ./example/snapshot-economy.integration.test.ts",
     "example:snapshot-fallback": "bun ./example/snapshot-fallback.integration.test.ts",
@@ -146,7 +146,7 @@
     "example:text-content": "bun ./example/text-content.integration.test.ts",
     "example:transform-pattern": "bun ./example/transform-pattern.integration.test.ts",
     "example:type-cursorfree": "bun ./example/type-cursorfree.integration.test.ts",
-    "example:skry-report": "bun ./example/skry-report.ts",
+    "example:umbriel-report": "bun ./example/umbriel-report.ts",
     "example:uwp-content": "bun ./example/uwp-content.integration.test.ts",
     "example:vcall-safety": "bun ./example/vcall-safety.integration.test.ts",
     "example:virtual-desktop": "bun ./example/virtual-desktop.integration.test.ts",

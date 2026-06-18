@@ -13,7 +13,7 @@
  * Run: bun run example/scroll-to-position.integration.test.ts
  */
 import Kernel32 from '@bun-win32/kernel32';
-import { ControlType, skry } from 'skry';
+import { ControlType, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
@@ -80,16 +80,16 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-scroll-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 220, 220, 360, 300, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-scroll-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 220, 220, 360, 300, 0n, 0n, BigInt(hInstance), null);
 const edit = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL, 10, 10, 320, 240, parent, 0n, BigInt(hInstance), null);
 if (edit !== 0n) User32.SendMessageW(edit, WM_SETTEXT, 0n, BigInt(wide(Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join('\r\n')).ptr!));
 pump();
 const ticker = setInterval(pump, 5);
 
-skry.initialize();
+umbriel.initialize();
 // An independent UIA client (this process) reads the Edit's TRUE vertical percent back after each MCP scroll — robust to
 // the snapshot/Δ economy of the action's own reply.
-const probeWindow = parent === 0n ? null : skry.attach(parent);
+const probeWindow = parent === 0n ? null : umbriel.attach(parent);
 const probeEdit = probeWindow?.find({ controlType: ControlType.Edit }) ?? null;
 const vpct = (): number => probeEdit?.scrollInfo?.verticalPercent ?? -1;
 
@@ -128,7 +128,7 @@ try {
   proc.kill();
   probeEdit?.release();
   probeWindow?.dispose();
-  skry.uninitialize();
+  umbriel.uninitialize();
   if (parent !== 0n) User32.DestroyWindow(parent);
 }
 

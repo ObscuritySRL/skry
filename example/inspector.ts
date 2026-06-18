@@ -6,16 +6,16 @@
  * a find() comes back empty. Press Ctrl+C to stop (or set DEMO_DURATION_MS).
  *
  * APIs demonstrated:
- * - skry.focused (the foreground element), skry.tree (cached subtree), ControlType reverse-map
+ * - umbriel.focused (the foreground element), umbriel.tree (cached subtree), ControlType reverse-map
  *
  * Run: bun run example/inspector.ts
  *      DEMO_DURATION_MS=4000 bun run example/inspector.ts
  */
-import { skry, type UiaNode } from 'skry';
+import { umbriel, type UiaNode } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const deadline = Bun.env.DEMO_DURATION_MS ? Date.now() + Number(Bun.env.DEMO_DURATION_MS) : Number.POSITIVE_INFINITY;
-skry.initialize();
+umbriel.initialize();
 
 function colorFor(role: string): string {
   if (role === 'Button' || role === 'SplitButton') return '\x1b[96m';
@@ -40,8 +40,8 @@ for (;;) {
   if (hWnd !== 0n && hWnd !== lastHwnd) {
     lastHwnd = hWnd;
     try {
-      const app = skry.attach(hWnd);
-      const tree = skry.tree(app, { agentProfile: true, maxDepth: 12 });
+      const app = umbriel.attach(hWnd);
+      const tree = umbriel.tree(app, { agentProfile: true, maxDepth: 12 });
       const lines: string[] = [];
       render(tree, 0, lines);
       console.log(`\x1b[2J\x1b[H\x1b[1m\x1b[95m  UIA inspector — focused window\x1b[0m\n`);
@@ -54,4 +54,4 @@ for (;;) {
   }
   await Bun.sleep(400);
 }
-skry.uninitialize();
+umbriel.uninitialize();

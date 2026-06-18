@@ -14,7 +14,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (spawns + kills only the MCP server subprocess):
  * Run: bun run example/attach-classname.integration.test.ts
  */
-import { skry } from 'skry';
+import { umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -26,14 +26,14 @@ function assert(condition: boolean, message: string): void {
 }
 
 // Part A — library: a disposed Snapshot resolves every ref to null (rank-2 use-after-release guard).
-skry.initialize();
+umbriel.initialize();
 try {
-  const target = skry.windows().find((window) => window.title.length > 0);
+  const target = umbriel.windows().find((window) => window.title.length > 0);
   if (target === undefined) console.log('  skip: no titled window to snapshot');
   else {
-    const app = skry.attach(target.hWnd);
+    const app = umbriel.attach(target.hWnd);
     try {
-      const snapshot = skry.snapshot(app);
+      const snapshot = umbriel.snapshot(app);
       const firstRef = snapshot.marks[0]?.ref;
       if (firstRef === undefined) console.log('  skip: snapshot had no refs to exercise resolve()');
       else {
@@ -47,12 +47,12 @@ try {
   }
   // Library attach({className}) prefers a VISIBLE window of that class (not FindWindowW's first Z-order match, which
   // for the Chromium/Electron family is an invisible helper).
-  const visible = skry.windows({ includeUntitled: true });
+  const visible = umbriel.windows({ includeUntitled: true });
   const klass = visible.find((window) => visible.filter((other) => other.className === window.className).length >= 1)?.className;
   if (klass === undefined) console.log('  skip: no class to exercise library className attach');
   else {
     const visibleHandles = new Set(visible.filter((window) => window.className === klass).map((window) => window.hWnd));
-    const byClass = skry.attach({ className: klass });
+    const byClass = umbriel.attach({ className: klass });
     try {
       assert(visibleHandles.has(byClass.nativeWindowHandle), `library attach({className:${JSON.stringify(klass)}}) lands on a VISIBLE window of that class`);
     } finally {
@@ -60,7 +60,7 @@ try {
     }
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 // Part B — MCP server: className attach refuses / disambiguates / succeeds.
@@ -107,7 +107,7 @@ try {
 
   // Opportunistic: a class with >1 visible window must disambiguate, not silently pick one.
   const counts = new Map<string, number>();
-  for (const window of skry.windows({ includeUntitled: true })) counts.set(window.className, (counts.get(window.className) ?? 0) + 1);
+  for (const window of umbriel.windows({ includeUntitled: true })) counts.set(window.className, (counts.get(window.className) ?? 0) + 1);
   const multi = [...counts.entries()].find(([, count]) => count > 1)?.[0];
   if (multi === undefined) console.log('  skip: no class has >1 visible window to exercise disambiguation');
   else {

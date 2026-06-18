@@ -16,7 +16,7 @@
  * Run: bun run example/type-cursorfree-fast.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { closeWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 
 const EM_SETMODIFY = 0x00b9;
 const SW_MINIMIZE = 6;
@@ -36,8 +36,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 const editor = notepad.find({ controlType: 50004 }) ?? notepad.find({ controlType: 50030 });
 const editHwnd = editor?.nativeWindowHandle ?? 0n;
 const probe = `hello probe ${Date.now()}`;
@@ -75,7 +75,7 @@ try {
   editor?.release();
   notepad.dispose();
   closeWindow(notepad.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Element.type() takes the cursor-free WM_CHAR path on an own-HWND control: text lands, mouse unmoved, foreground unchanged, sub-500ms.' : `\nFAILED — ${failures} assertion(s)`);

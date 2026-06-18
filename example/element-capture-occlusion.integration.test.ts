@@ -18,7 +18,7 @@
  * Run: bun run example/element-capture-occlusion.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { captureScreen, closeWindow, ControlType, foregroundWindow, isMinimized, maximizeWindow, ocrBitmap, setControlText, skry, wgcAvailable } from 'skry';
+import { captureScreen, closeWindow, ControlType, foregroundWindow, isMinimized, maximizeWindow, ocrBitmap, setControlText, umbriel, wgcAvailable } from 'umbriel';
 
 const HWND_BOTTOM = 0x1n;
 const HWND_TOP = 0x0n;
@@ -40,7 +40,7 @@ function assert(condition: boolean, message: string): void {
 
 function spawnOccluder(target: bigint): bigint {
   const prior = new Set(
-    skry
+    umbriel
       .windows()
       .filter((window) => window.className === 'CabinetWClass')
       .map((window) => window.hWnd),
@@ -49,7 +49,7 @@ function spawnOccluder(target: bigint): bigint {
   let hWnd = 0n;
   for (let attempt = 0; attempt < 30 && hWnd === 0n; attempt += 1) {
     Bun.sleepSync(300);
-    hWnd = skry.windows().find((window) => window.className === 'CabinetWClass' && !prior.has(window.hWnd))?.hWnd ?? 0n;
+    hWnd = umbriel.windows().find((window) => window.className === 'CabinetWClass' && !prior.has(window.hWnd))?.hWnd ?? 0n;
   }
   if (hWnd !== 0n) {
     if (target !== 0n) User32.SetWindowPos(target, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
@@ -60,15 +60,15 @@ function spawnOccluder(target: bigint): bigint {
   return hWnd;
 }
 
-skry.initialize();
+umbriel.initialize();
 if (!wgcAvailable()) {
   console.log('SKIP — Windows.Graphics.Capture unavailable (locked / headless / secure desktop); element capture not provable here.');
-  skry.uninitialize();
+  umbriel.uninitialize();
   process.exit(0);
 }
 
 const priorNotepads = new Set(
-  skry
+  umbriel
     .windows()
     .filter((window) => window.className === 'Notepad')
     .map((window) => window.hWnd),
@@ -77,11 +77,11 @@ Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 let notepadHwnd = 0n;
 for (let attempt = 0; attempt < 40 && notepadHwnd === 0n; attempt += 1) {
   Bun.sleepSync(300);
-  notepadHwnd = skry.windows().find((window) => window.className === 'Notepad' && !priorNotepads.has(window.hWnd))?.hWnd ?? 0n;
+  notepadHwnd = umbriel.windows().find((window) => window.className === 'Notepad' && !priorNotepads.has(window.hWnd))?.hWnd ?? 0n;
 }
 
 let occluderHwnd = 0n;
-const window = notepadHwnd === 0n ? null : skry.attach(notepadHwnd);
+const window = notepadHwnd === 0n ? null : umbriel.attach(notepadHwnd);
 try {
   if (window === null) {
     console.log('SKIP — Notepad did not appear (app model wedged/unavailable); element capture not provable this run.');
@@ -126,7 +126,7 @@ try {
     if (notepadHwnd !== 0n) closeWindow(notepadHwnd);
     window.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Element.capture/ocr read JUST the control, occlusion-correct (FlaUI Capture.Element / Playwright locator.screenshot parity).' : `\nFAILED — ${failures} assertion(s)`);

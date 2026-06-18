@@ -1,5 +1,5 @@
 /**
- * Safety floor — live proof that skry survives an unattended agent loop over arbitrary apps.
+ * Safety floor — live proof that umbriel survives an unattended agent loop over arbitrary apps.
  *
  * Four crash/leak hazards a long-lived driver hits, each proven fixed:
  *  A. WGC bundle lifecycle — init → capture → uninitialize → capture ×3 stays clean: uninitialize now frees
@@ -16,11 +16,11 @@
  * bun test is broken repo-wide for FFI; this is a standalone harness:
  * Run: bun run example/safety-floor.integration.test.ts
  */
-import { captureWindowLive, closeWindow, disposeWgc, Element, findWindow, msaaTree, skry, vcall, wgcAvailable } from 'skry';
+import { captureWindowLive, closeWindow, disposeWgc, Element, findWindow, msaaTree, umbriel, vcall, wgcAvailable } from 'umbriel';
 
 // child mode: the WGC lifecycle loop, run in a subprocess so a segfault surfaces as a non-zero exit
 if (Bun.env.SAFETY_CHILD === 'wgc') {
-  skry.initialize();
+  umbriel.initialize();
   const available = wgcAvailable(); // build + cache the device bundle (false on a locked/headless box)
   Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
   let hWnd = 0n;
@@ -30,9 +30,9 @@ if (Bun.env.SAFETY_CHILD === 'wgc') {
   }
   let lastCaptureOk = false;
   for (let iteration = 0; iteration < 3; iteration += 1) {
-    skry.initialize();
+    umbriel.initialize();
     lastCaptureOk = (await captureWindowLive(hWnd)) !== null; // iterations 2-3 run on a bundle rebuilt after a prior uninitialize
-    skry.uninitialize(); // disposeWgc() runs first → bundle released + nulled, RoUninitialize paired
+    umbriel.uninitialize(); // disposeWgc() runs first → bundle released + nulled, RoUninitialize paired
   }
   disposeWgc(); // idempotent no-op (already disposed) — proves the self-guard
   if (hWnd !== 0n) closeWindow(hWnd); // close the throwaway Calculator
@@ -71,7 +71,7 @@ assert(getterThrew.includes('null interface pointer'), 'Element(0n).name throws 
 // C. MSAA accChildCount clamp (arithmetic + the real walk still works)
 console.log('\n[C] MSAA child-count clamp');
 assert(Math.min(0x7fff_ffff, 0x0001_0000) === 0x0001_0000, 'a 2.1B child count clamps to 65536 (a 1 MB alloc, not ~34 GB)');
-skry.initialize();
+umbriel.initialize();
 Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
 let calcHwnd = 0n;
 for (let attempt = 0; attempt < 20 && calcHwnd === 0n; attempt += 1) {
@@ -81,7 +81,7 @@ for (let attempt = 0; attempt < 20 && calcHwnd === 0n; attempt += 1) {
 const tree = calcHwnd !== 0n ? msaaTree(calcHwnd, 3) : null;
 assert(tree !== null, 'msaaTree still returns a tree (the hoisted IID did not break the walk)');
 if (calcHwnd !== 0n) closeWindow(calcHwnd); // close the throwaway Calculator
-skry.uninitialize();
+umbriel.uninitialize();
 
 // A. WGC bundle lifecycle subprocess: init → capture → uninitialize → capture ×3, clean + rebuilt
 console.log('\n[A] WGC bundle lifecycle (subprocess; exit-code asserted)');

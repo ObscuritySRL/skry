@@ -16,7 +16,7 @@
  * Run: bun run example/screenshot-origin.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { findWindow } from 'skry';
+import { findWindow } from 'umbriel';
 type Part = { type?: string; text?: string; data?: string; mimeType?: string };
 type Rpc = { id?: number; result?: { isError?: boolean; content?: Part[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });

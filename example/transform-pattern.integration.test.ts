@@ -1,5 +1,5 @@
 /**
- * transform-pattern — UIA TransformPattern parity (FlaUI's AutomationElement.Patterns.Transform). skry could
+ * transform-pattern — UIA TransformPattern parity (FlaUI's AutomationElement.Patterns.Transform). umbriel could
  * only SetWindowPos a top-level HWND (moveWindow), so it could not cursor-free move/resize an element via UIA —
  * and could not reach an HWND-less child (MDI child, dockable/floating pane, splitter panel) with no nativeWindowHandle.
  *
@@ -16,7 +16,7 @@
  * bun test is broken repo-wide — this is a runnable harness:
  * Run: bun run example/transform-pattern.integration.test.ts
  */
-import { closeWindow, fromHandle, listWindows, skry } from 'skry';
+import { closeWindow, fromHandle, listWindows, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -27,7 +27,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const before = new Set(listWindows().filter((window) => window.className === 'Notepad').map((window) => window.hWnd));
 Bun.spawn(['notepad.exe']);
 let target = 0n;
@@ -55,7 +55,7 @@ try {
   }
 } finally {
   if (target !== 0n) closeWindow(target);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Element.move/resize via UIA TransformPattern is cursor-free and live (FlaUI Transform parity).' : `\nFAILED — ${failures} assertion(s)`);

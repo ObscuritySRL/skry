@@ -14,7 +14,7 @@
  * Run: bun run example/click-no-raise-waitstate.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { fromHandle, initialize, uninitialize } from 'skry';
+import { fromHandle, initialize, uninitialize } from 'umbriel';
 
 const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
 const WS_VISIBLE = 0x1000_0000;

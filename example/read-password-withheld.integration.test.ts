@@ -11,7 +11,7 @@
  * Run: bun run example/read-password-withheld.integration.test.ts
  */
 import Kernel32 from '@bun-win32/kernel32';
-import { type AgentAction, ControlType, execute, safeExecute, skry } from 'skry';
+import { type AgentAction, ControlType, execute, safeExecute, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
@@ -33,7 +33,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-pw-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 360, 200, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-pw-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 360, 200, 0n, 0n, BigInt(hInstance), null);
 const edit = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_PASSWORD, 10, 10, 320, 28, parent, 0n, BigInt(hInstance), null);
 if (edit !== 0n) {
   User32.SetWindowTextW(edit, wide(SECRET).ptr!);
@@ -45,11 +45,11 @@ if (edit !== 0n) {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   if (parent === 0n || edit === 0n) console.log('  skip: could not create the password Edit');
   else {
-    const window = skry.attach(parent);
+    const window = umbriel.attach(parent);
     const probe = window.find({ controlType: ControlType.Edit });
     const isPw = probe?.isPassword ?? false;
     probe?.release();
@@ -64,7 +64,7 @@ try {
     window.dispose();
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
   if (edit !== 0n) User32.DestroyWindow(edit);
   if (parent !== 0n) User32.DestroyWindow(parent);
 }

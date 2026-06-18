@@ -14,7 +14,7 @@
  * bun test is broken repo-wide — runnable harness:
  * Run: bun run example/named-cached-readpath.integration.test.ts
  */
-import { closeWindow, snapshot, skry } from 'skry';
+import { closeWindow, snapshot, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -25,8 +25,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const win = await skry.launch(['calc.exe'], { title: 'Calculator' }).catch(() => null);
+umbriel.initialize();
+const win = await umbriel.launch(['calc.exe'], { title: 'Calculator' }).catch(() => null);
 try {
   if (win === null) {
     console.log('  skip: Calculator did not launch');
@@ -47,7 +47,7 @@ try {
     assert(typeMismatch === 0, `cachedControlTypeName === controlTypeName for all ${checked} ref elements (the named() cached read path)`);
     assert(nameMismatch === 0, `cachedName === name for all ${checked} ref elements (byte-identical, no round-trip needed)`);
 
-    const root = skry.attach(win.hWnd); // a non-cache-built element — the find()-resolved analog
+    const root = umbriel.attach(win.hWnd); // a non-cache-built element — the find()-resolved analog
     let boundaryOk = false;
     try {
       boundaryOk = root.cachedControlType === 0;
@@ -63,7 +63,7 @@ try {
     closeWindow(win.hWnd);
     win.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — named() reads the ref path from cache (== live) and falls back to live exactly at the uncached boundary.' : `\nFAILED — ${failures} assertion(s)`);

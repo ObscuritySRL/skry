@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Explorer):
  * Run: bun run example/context-menu-posted.integration.test.ts
  */
-import { closeWindow, postKey, skry } from 'skry';
+import { closeWindow, postKey, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -56,9 +56,9 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const prior = new Set(
-  skry
+  umbriel
     .windows({ includeUntitled: true })
     .filter((w) => w.className === 'CabinetWClass')
     .map((w) => w.hWnd),
@@ -67,7 +67,7 @@ Bun.spawn(['explorer.exe', '/n,C:\\Windows\\System32'], { stdout: 'ignore', stde
 let explorer = 0n;
 for (let i = 0; i < 25 && explorer === 0n; i += 1) {
   await Bun.sleep(300);
-  explorer = skry.windows({ includeUntitled: true }).find((w) => w.className === 'CabinetWClass' && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  explorer = umbriel.windows({ includeUntitled: true }).find((w) => w.className === 'CabinetWClass' && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'ctx-posted', version: '1' } });
@@ -91,7 +91,7 @@ try {
 } finally {
   proc.kill();
   if (explorer !== 0n) closeWindow(explorer);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — context_menu opens a menu cursor-free (UIA ShowContextMenu or a posted right-click fallback).' : `\nFAILED — ${failures} assertion(s)`);

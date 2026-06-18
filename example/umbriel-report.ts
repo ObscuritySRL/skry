@@ -6,17 +6,17 @@
  * richly-formatted health check you run before writing automation against an app.
  *
  * APIs demonstrated:
- * - skry.initialize / focused / attach, Element pattern probes, msaaTree (oleacc fallback)
+ * - umbriel.initialize / focused / attach, Element pattern probes, msaaTree (oleacc fallback)
  *
- * Run: bun run example/skry-report.ts
+ * Run: bun run example/umbriel-report.ts
  */
-import { ControlType, msaaTree, skry } from 'skry';
+import { ControlType, msaaTree, umbriel } from 'umbriel';
 
-skry.initialize();
+umbriel.initialize();
 console.log(`\n\x1b[1m\x1b[95m  UI Automation report\x1b[0m\n`);
 console.log(`  \x1b[92m✓\x1b[0m IUIAutomation client active`);
 
-const focused = skry.focused();
+const focused = umbriel.focused();
 console.log(`  focused element : ${focused.controlTypeName} ${JSON.stringify(focused.name)}`);
 console.log(`  bounds          : ${JSON.stringify(focused.boundingRectangle)}`);
 console.log(`  enabled         : ${focused.isEnabled}`);
@@ -62,10 +62,10 @@ for (const [name, probe] of probes) {
   console.log(`    ${supported ? '\x1b[92m✓\x1b[0m' : '\x1b[2m·\x1b[0m'} ${name}`);
 }
 
-const accessible = msaaTree(focused.nativeWindowHandle !== 0n ? focused.nativeWindowHandle : skry.focused().nativeWindowHandle, 1);
+const accessible = msaaTree(focused.nativeWindowHandle !== 0n ? focused.nativeWindowHandle : umbriel.focused().nativeWindowHandle, 1);
 console.log(`\n  \x1b[1mMSAA fallback:\x1b[0m ${accessible ? `IAccessible root ${JSON.stringify(accessible.name)} (role ${accessible.role})` : 'unavailable for this window'}`);
 
 console.log(`\n  \x1b[1mcontrol-type vocabulary:\x1b[0m ${Object.keys(ControlType).filter((key) => Number.isNaN(Number(key))).length} types known\n`);
 
 focused.release();
-skry.uninitialize();
+umbriel.uninitialize();

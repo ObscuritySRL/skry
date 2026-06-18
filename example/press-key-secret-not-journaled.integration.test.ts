@@ -19,7 +19,7 @@ import { join } from 'node:path';
 
 const SECRET_CHAR = 'q'; // a single credential character being spelled out
 const CHORD = 'Control+S'; // an intentional shortcut — must remain legible
-const tracePath = join(tmpdir(), `skry-keymask-${process.pid}-${Date.now()}.jsonl`);
+const tracePath = join(tmpdir(), `umbriel-keymask-${process.pid}-${Date.now()}.jsonl`);
 await rm(tracePath, { force: true });
 
 let auditText = '';
@@ -78,7 +78,7 @@ try {
   await Bun.sleep(250); // let the trace appendFile + audit flush
 
   const trace = await Bun.file(tracePath).text().catch(() => '');
-  const auditLines = auditText.split('\n').filter((line) => line.includes('[skry-audit]'));
+  const auditLines = auditText.split('\n').filter((line) => line.includes('[umbriel-audit]'));
   const audit = auditLines.join('\n');
 
   assert(auditLines.length >= 2, `both press_key calls were audited (saw ${auditLines.length} audit lines)`);

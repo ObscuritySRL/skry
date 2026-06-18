@@ -11,7 +11,7 @@
  * Run: bun run example/posttext-newline.integration.test.ts
  */
 import Kernel32 from '@bun-win32/kernel32';
-import { postText } from 'skry';
+import { postText } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
@@ -32,7 +32,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-posttext-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 400, 300, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-posttext-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 400, 300, 0n, 0n, BigInt(hInstance), null);
 const edit = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE, 10, 10, 360, 240, parent, 0n, BigInt(hInstance), null);
 
 /** Drain this thread's posted messages so the Edit's wndproc processes the WM_CHARs postText posted to it. */

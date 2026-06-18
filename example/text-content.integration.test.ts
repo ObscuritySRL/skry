@@ -10,7 +10,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/text-content.integration.test.ts
  */
-import { closeWindow, ControlType, type Element, skry, windowProcessId } from 'skry';
+import { closeWindow, ControlType, type Element, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -21,21 +21,21 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 let notepad = 0n;
-const prior = new Set(skry.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
+const prior = new Set(umbriel.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
 Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 40 && notepad === 0n; attempt += 1) {
   await Bun.sleep(150);
-  notepad = skry.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  notepad = umbriel.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 
-const marker = 'skry text-content probe 12345';
+const marker = 'umbriel text-content probe 12345';
 try {
   assert(notepad !== 0n, 'launched Notepad');
   if (notepad !== 0n) {
     await Bun.sleep(500);
-    const win = skry.attach(notepad);
+    const win = umbriel.attach(notepad);
     const editor: Element | null = win.find({ controlType: ControlType.Edit }) ?? win.find({ controlType: ControlType.Document });
     assert(editor !== null, 'found the editor control');
     if (editor !== null) {
@@ -55,9 +55,9 @@ try {
   }
 
   // opportunistic: a live terminal's buffer is readable via TextPattern
-  const term = skry.windows().find((w) => w.className === 'CASCADIA_HOSTING_WINDOW_CLASS' || /ConsoleWindowClass/.test(w.className));
+  const term = umbriel.windows().find((w) => w.className === 'CASCADIA_HOSTING_WINDOW_CLASS' || /ConsoleWindowClass/.test(w.className));
   if (term !== undefined) {
-    const win = skry.attach(term.hWnd);
+    const win = umbriel.attach(term.hWnd);
     let best = 0;
     for (const d of [...win.findAll({ controlType: ControlType.Text }), ...win.findAll({ controlType: ControlType.Document })]) {
       best = Math.max(best, d.text().length);
@@ -72,7 +72,7 @@ try {
   const notepadPid = notepad !== 0n ? windowProcessId(notepad) : 0;
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   if (notepad !== 0n) closeWindow(notepad);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — editor TextPattern content reads cursor-free; inspect_element surfaces it (terminal read is opportunistic — see terminal-scrollback.integration.test.ts for the deterministic terminal proof).' : `\nFAILED — ${failures} assertion(s)`);

@@ -11,7 +11,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/snapshot-scope.integration.test.ts
  */
-import { closeWindow, type RefNode, snapshot, skry, windowProcessId } from 'skry';
+import { closeWindow, type RefNode, snapshot, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -31,20 +31,20 @@ function pickContainer(node: RefNode, depth = 0): { name: string; depth: number 
   return best;
 }
 
-skry.initialize();
+umbriel.initialize();
 let notepad = 0n;
-const prior = new Set(skry.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
+const prior = new Set(umbriel.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
 Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 40 && notepad === 0n; attempt += 1) {
   await Bun.sleep(150);
-  notepad = skry.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? skry.windows().find((w) => /Notepad/i.test(w.title) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  notepad = umbriel.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? umbriel.windows().find((w) => /Notepad/i.test(w.title) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 try {
   assert(notepad !== 0n, 'launched Notepad');
   if (notepad !== 0n) {
     await Bun.sleep(500);
-    const win = skry.attach(notepad);
+    const win = umbriel.attach(notepad);
     const full = snapshot(win, { maxDepth: 25 });
     const container = pickContainer(full.tree);
     assert(container !== null, `full window has a named container to scope onto (${JSON.stringify(container?.name ?? '')}, ${full.marks.length} total refs)`);
@@ -66,7 +66,7 @@ try {
   const notepadPid = notepad !== 0n ? windowProcessId(notepad) : 0;
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   if (notepad !== 0n) closeWindow(notepad);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — desktop_snapshot root scoping re-grounds on a sub-element subtree.' : `\nFAILED — ${failures} assertion(s)`);

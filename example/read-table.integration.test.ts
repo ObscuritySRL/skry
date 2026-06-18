@@ -11,7 +11,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/read-table.integration.test.ts
  */
-import { closeWindow, ControlType, type TableData, skry } from 'skry';
+import { closeWindow, ControlType, type TableData, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -23,9 +23,9 @@ function assert(condition: boolean, message: string): void {
 }
 
 // Open a folder that reliably shows a details grid; also scan any already-open Explorer windows.
-skry.initialize();
+umbriel.initialize();
 const priorExplorers = new Set(
-  skry
+  umbriel
     .windows()
     .filter((window) => window.className === 'CabinetWClass')
     .map((window) => window.hWnd),
@@ -33,14 +33,14 @@ const priorExplorers = new Set(
 Bun.spawn(['explorer.exe', 'C:\\Windows\\System32'], { stdout: 'ignore', stderr: 'ignore' });
 await Bun.sleep(2500);
 // The CabinetWClass window WE just opened (diff vs prior) — close only this one, never a pre-existing user folder.
-const spawnedHwnd = skry.windows().find((window) => window.className === 'CabinetWClass' && /System32/i.test(window.title) && !priorExplorers.has(window.hWnd))?.hWnd ?? 0n;
+const spawnedHwnd = umbriel.windows().find((window) => window.className === 'CabinetWClass' && /System32/i.test(window.title) && !priorExplorers.has(window.hWnd))?.hWnd ?? 0n;
 let found: { label: string; table: TableData; columns: number } | null = null;
 try {
-  for (const info of skry.windows()) {
+  for (const info of umbriel.windows()) {
     if (info.className !== 'CabinetWClass') continue; // File Explorer
-    let window: ReturnType<typeof skry.attach>;
+    let window: ReturnType<typeof umbriel.attach>;
     try {
-      window = skry.attach(info.hWnd);
+      window = umbriel.attach(info.hWnd);
     } catch {
       continue;
     }
@@ -84,7 +84,7 @@ try {
   }
 } finally {
   if (spawnedHwnd !== 0n) closeWindow(spawnedHwnd); // close the Explorer window we opened
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — read_table verified (real grid read cell-by-cell via GridPattern).' : `\nFAILED — ${failures} assertion(s)`);

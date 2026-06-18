@@ -11,7 +11,7 @@
  * bun test is broken repo-wide — runnable script (UIA init + read-only taskbar attach):
  * Run: bun run example/no-match-deep-candidate.integration.test.ts
  */
-import { skry } from 'skry';
+import { umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -22,12 +22,12 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
-  const taskbar = skry.windows({ includeUntitled: true }).find((window) => window.className === 'Shell_TrayWnd');
+  const taskbar = umbriel.windows({ includeUntitled: true }).find((window) => window.className === 'Shell_TrayWnd');
   if (taskbar === undefined) console.log('  skip: no taskbar (Shell_TrayWnd) found');
   else {
-    const window = skry.attach(taskbar.hWnd);
+    const window = umbriel.attach(taskbar.hWnd);
     const candidates = window.findAll({});
     const names = candidates.map((candidate) => candidate.name);
     for (const candidate of candidates) candidate.release();
@@ -49,7 +49,7 @@ try {
     window.dispose();
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — no-match ranking sees candidates beyond tree position 20.' : `\nFAILED — ${failures} assertion(s)`);

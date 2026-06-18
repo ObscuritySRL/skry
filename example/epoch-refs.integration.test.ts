@@ -16,11 +16,11 @@
  * bun test is broken repo-wide — runnable harness (spawns + closes Calculator + the MCP subprocess):
  * Run: bun run example/epoch-refs.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
-skry.initialize();
-const priorCalc = new Set(skry.windows({ includeUntitled: true }).filter((window) => /Calcul/i.test(window.title)).map((window) => window.hWnd));
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' }); // returns the CalculatorApp window (NOT the cmd shim) so teardown can actually close it
+umbriel.initialize();
+const priorCalc = new Set(umbriel.windows({ includeUntitled: true }).filter((window) => /Calcul/i.test(window.title)).map((window) => window.hWnd));
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' }); // returns the CalculatorApp window (NOT the cmd shim) so teardown can actually close it
 
 const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
 const decoder = new TextDecoder();
@@ -128,8 +128,8 @@ try {
   server.kill();
   closeWindow(calc.hWnd); // close the ACTUAL CalculatorApp window (calc.kill() killed only the cmd shim)
   calc.dispose();
-  for (const window of skry.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd); // sweep any sibling calc the single-instance relaunch spawned
-  skry.uninitialize();
+  for (const window of umbriel.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd); // sweep any sibling calc the single-instance relaunch spawned
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — stale refs fail loud; fresh + post-delta refs resolve.' : `\nFAILED — ${failures} assertion(s)`);

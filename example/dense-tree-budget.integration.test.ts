@@ -14,9 +14,9 @@
  *    walker enumeration sees the same tree the old Subtree cache did).
  *  - the new IUIAutomationTreeWalker BuildCache slots (GetFirstChildElementBuildCache=10, GetNextSiblingElementBuildCache
  *    =12) do NOT segfault — a wrong slot would crash the process here, so a clean run is itself the slot proof.
- *  - skry.tree (== serialize == groundingTree == the AGENT_TOOLS read_tree tool) now threads the SAME maxNodes budget
+ *  - umbriel.tree (== serialize == groundingTree == the AGENT_TOOLS read_tree tool) now threads the SAME maxNodes budget
  *    through the per-parent BuildCache walk instead of an unbounded BuildUpdatedCache(TreeScope_Subtree): a budgeted
- *    skry.tree caps the nodes/tokens and truncates FAST (the old path walled ~5s + ~99k tokens on this flat form), and
+ *    umbriel.tree caps the nodes/tokens and truncates FAST (the old path walled ~5s + ~99k tokens on this flat form), and
  *    an unbounded budget still recovers the whole tree.
  * The PowerShell process is killed + window closed in finally. SKIPS cleanly if PowerShell / WinForms is absent.
  *
@@ -24,7 +24,7 @@
  * Run: bun run example/dense-tree-budget.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { closeWindow, attach, countNodes, estimateTokens, renderSnapshot, skry, windowProcessId } from 'skry';
+import { closeWindow, attach, countNodes, estimateTokens, renderSnapshot, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -46,7 +46,7 @@ const script =
   `for ($i = 0; $i -lt ${BUTTON_COUNT}; $i++) { $b = New-Object System.Windows.Forms.Button; $b.Text = "Btn$i"; $b.Width = 60; $b.Height = 20; $b.Left = ($i % 14) * 62; $b.Top = [int]($i / 14) * 22; $f.Controls.Add($b) }` +
   `$f.ResumeLayout(); [void]$f.ShowDialog();`;
 
-skry.initialize();
+umbriel.initialize();
 let powershellProcess: ReturnType<typeof Bun.spawn> | null = null;
 let hWnd = 0n;
 try {
@@ -64,7 +64,7 @@ try {
     try {
       // The FIX: a budgeted snapshot stays fast on the flat tree and truncates with an escape hatch.
       const budgetStart = Bun.nanoseconds();
-      const budgeted = skry.snapshot(window, { maxNodes: 400 });
+      const budgeted = umbriel.snapshot(window, { maxNodes: 400 });
       const budgetMs = (Bun.nanoseconds() - budgetStart) / 1e6;
       const budgetRender = renderSnapshot(budgeted.tree);
       const budgetMarks = budgeted.marks.length;
@@ -81,7 +81,7 @@ try {
 
       // Correctness: an unbounded snapshot recovers EVERY button — the budget is the only behavioral change.
       const fullStart = Bun.nanoseconds();
-      const full = skry.snapshot(window);
+      const full = umbriel.snapshot(window);
       const fullMs = (Bun.nanoseconds() - fullStart) / 1e6;
       const fullMarks = full.marks.length;
       const fullTruncated = full.tree.truncated === true;
@@ -90,27 +90,27 @@ try {
       assert(fullMarks >= BUTTON_COUNT, `the unbounded walk recovers all ${BUTTON_COUNT} buttons (${fullMarks} marks)`);
       assert(!fullTruncated, 'an unbounded snapshot is NOT truncated');
 
-      // skry.tree (== serialize == groundingTree == the AGENT_TOOLS read_tree tool) used to run an UNBOUNDED
+      // umbriel.tree (== serialize == groundingTree == the AGENT_TOOLS read_tree tool) used to run an UNBOUNDED
       // BuildUpdatedCache(TreeScope_Subtree) — the exact ~7s flat-tree wall + ~99k tokens this gate now also covers.
       // It threads the SAME maxNodes budget through the per-parent BuildCache walk, so a dense LOB grid stops fast.
       const treeStart = Bun.nanoseconds();
-      const tree = skry.tree(window, { agentProfile: true, maxNodes: 400 });
+      const tree = umbriel.tree(window, { agentProfile: true, maxNodes: 400 });
       const treeMs = (Bun.nanoseconds() - treeStart) / 1e6;
       const treeNodes = countNodes(tree);
       const treeTokens = estimateTokens(tree);
       const treeTruncated = tree.truncated === true;
       console.log(`  [tree maxNodes:400] → ${treeNodes} nodes, ~${treeTokens} tokens in ${treeMs.toFixed(0)} ms (truncated=${treeTruncated})`);
-      assert(treeNodes <= 401, `skry.tree maxNodes:400 caps the nodes at the budget (${treeNodes} ≤ 401), not the full ${BUTTON_COUNT}`);
-      assert(treeTruncated, 'skry.tree sets node.truncated when the budget cut the walk short');
-      assert(treeTokens < 30_000, `skry.tree maxNodes:400 stays token-economical (~${treeTokens} ≪ the old ~99k-token blob)`);
-      assert(treeMs < 2500, `skry.tree maxNodes:400 ${treeMs.toFixed(0)} ms < 2500 ms (the old unbounded path walled ~5–7s)`);
+      assert(treeNodes <= 401, `umbriel.tree maxNodes:400 caps the nodes at the budget (${treeNodes} ≤ 401), not the full ${BUTTON_COUNT}`);
+      assert(treeTruncated, 'umbriel.tree sets node.truncated when the budget cut the walk short');
+      assert(treeTokens < 30_000, `umbriel.tree maxNodes:400 stays token-economical (~${treeTokens} ≪ the old ~99k-token blob)`);
+      assert(treeMs < 2500, `umbriel.tree maxNodes:400 ${treeMs.toFixed(0)} ms < 2500 ms (the old unbounded path walled ~5–7s)`);
 
-      // Correctness: an unbounded skry.tree budget recovers the whole flat tree (the budget is the only behavioral change).
-      const treeFull = skry.tree(window, { maxNodes: 100_000 });
+      // Correctness: an unbounded umbriel.tree budget recovers the whole flat tree (the budget is the only behavioral change).
+      const treeFull = umbriel.tree(window, { maxNodes: 100_000 });
       const treeFullNodes = countNodes(treeFull);
       console.log(`  [tree unbounded] → ${treeFullNodes} nodes (truncated=${treeFull.truncated === true})`);
-      assert(treeFullNodes >= BUTTON_COUNT, `an unbounded skry.tree recovers all ${BUTTON_COUNT} buttons (${treeFullNodes} nodes)`);
-      assert(treeFull.truncated !== true, 'an unbounded skry.tree is NOT truncated');
+      assert(treeFullNodes >= BUTTON_COUNT, `an unbounded umbriel.tree recovers all ${BUTTON_COUNT} buttons (${treeFullNodes} nodes)`);
+      assert(treeFull.truncated !== true, 'an unbounded umbriel.tree is NOT truncated');
     } finally {
       window.dispose();
     }
@@ -120,7 +120,7 @@ try {
   if (hWnd !== 0n) closeWindow(hWnd);
   if (powershellPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(powershellPid)]);
   powershellProcess?.kill();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — maxNodes budget bounds a dense flat tree, truncates with an escape hatch, and the full walk stays complete.' : `\nFAILED — ${failures} assertion(s)`);

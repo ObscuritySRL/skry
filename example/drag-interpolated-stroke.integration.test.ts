@@ -16,7 +16,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (spawned Paint):
  * Run: bun run example/drag-interpolated-stroke.integration.test.ts
  */
-import { captureScreen, closeWindow, dragTo, moveTo, skry, windowProcessId } from 'skry';
+import { captureScreen, closeWindow, dragTo, moveTo, umbriel, windowProcessId } from 'umbriel';
 import Kernel32 from '@bun-win32/kernel32';
 import User32 from '@bun-win32/user32';
 
@@ -60,8 +60,8 @@ const darkAround = (cx: number, cy: number): number => {
   return dark;
 };
 
-skry.initialize();
-const paint = await skry.launch(['cmd', '/c', 'start', 'mspaint'], { className: 'MSPaintApp' }, 9000).catch(() => null);
+umbriel.initialize();
+const paint = await umbriel.launch(['cmd', '/c', 'start', 'mspaint'], { className: 'MSPaintApp' }, 9000).catch(() => null);
 try {
   if (paint === null) {
     console.log('  skip(live): Paint did not launch');
@@ -98,7 +98,7 @@ try {
     closeWindow(paint.hWnd);
     paint.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — dragTo interpolates the real-cursor path (crosses the OS drag threshold, paints a continuous stroke).' : `\nFAILED — ${failures} assertion(s)`);

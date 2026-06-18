@@ -10,7 +10,7 @@
  * Pure function over RefNode trees — no FFI, no windows, fully deterministic.
  * Run: bun run example/refs-renumbered.integration.test.ts
  */
-import { diffTrees, refsRenumbered, type RefNode } from 'skry';
+import { diffTrees, refsRenumbered, type RefNode } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

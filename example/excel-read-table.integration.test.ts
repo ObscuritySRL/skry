@@ -18,7 +18,7 @@
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { closeWindow, ControlType, type TableData, skry } from 'skry';
+import { closeWindow, ControlType, type TableData, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -41,12 +41,12 @@ if (excelPath === undefined) {
 const header = ['Name', 'Age', 'City', 'Score'];
 const alice = ['Alice', '30', 'Seattle', '95'];
 const csv = `${header.join(',')}\nAlice,30,Seattle,95\nBob,25,Portland,88\nCara,41,Denver,73\nDan,19,Austin,64\nEve,55,Boston,99\n`;
-const csvPath = join(tmpdir(), 'skry-excel-read-table.csv');
+const csvPath = join(tmpdir(), 'umbriel-excel-read-table.csv');
 await Bun.write(csvPath, csv);
 
-skry.initialize();
+umbriel.initialize();
 const priorExcels = new Set(
-  skry
+  umbriel
     .windows()
     .filter((window) => /XLMAIN/i.test(window.className))
     .map((window) => window.hWnd),
@@ -57,7 +57,7 @@ Bun.spawn([excelPath, csvPath], { stdout: 'ignore', stderr: 'ignore' });
 let spawnedHwnd = 0n;
 for (let attempt = 0; attempt < 30 && spawnedHwnd === 0n; attempt += 1) {
   await Bun.sleep(1000);
-  spawnedHwnd = skry.windows().find((window) => /XLMAIN/i.test(window.className) && !priorExcels.has(window.hWnd))?.hWnd ?? 0n;
+  spawnedHwnd = umbriel.windows().find((window) => /XLMAIN/i.test(window.className) && !priorExcels.has(window.hWnd))?.hWnd ?? 0n;
 }
 
 try {
@@ -65,7 +65,7 @@ try {
     console.log('\n[excel read_table] Excel window never appeared (cold start too slow / blocked) — SKIPPING the live assertions.');
   } else {
     await Bun.sleep(4000); // let the sheet's UIA tree populate before reading
-    const window = skry.attach(spawnedHwnd);
+    const window = umbriel.attach(spawnedHwnd);
     let table: TableData | null = null;
     const containers = [...window.findAll({ controlType: ControlType.DataGrid }), ...window.findAll({ controlType: ControlType.Table })];
     for (const container of containers) {
@@ -109,7 +109,7 @@ try {
   }
 } finally {
   if (spawnedHwnd !== 0n) closeWindow(spawnedHwnd); // close ONLY the Excel window we spawned
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Excel read_table verified (cell VALUES, not addresses).' : `\nFAILED — ${failures} assertion(s)`);

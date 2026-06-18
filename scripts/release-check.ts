@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 /**
- * release-check.ts — pre-publish gate for the standalone `skry` package.
+ * release-check.ts — pre-publish gate for the standalone `umbriel` package.
  *
- * Adapted from the bun-win32 monorepo's published-deps.ts, but for skry's flat,
+ * Adapted from the bun-win32 monorepo's published-deps.ts, but for umbriel's flat,
  * single-package layout (no workspace, no packages/ dir). It verifies two things
  * that a publish would otherwise silently get wrong:
  *

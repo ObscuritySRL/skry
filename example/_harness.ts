@@ -1,12 +1,12 @@
 /**
- * Shared test harness for the skry integration tests (example/<name>.integration.test.ts).
+ * Shared test harness for the umbriel integration tests (example/<name>.integration.test.ts).
  *
  * Each test file is a standalone `bun run` script (bun test is broken repo-wide), so before this
  * module every file inlined three identical primitives. This factors them out without changing any
  * assertion: the MCP stdio JSON-RPC client (spawnServer), the pass/fail reporter (assert/finish),
  * and the JSON-RPC message type (Rpc). It deliberately imports nothing from the package so a pure
  * MCP-client test does not pull the FFI/COM surface into its own process; app-launching files keep
- * their own `skry.launch` / `closeWindow` lines, which vary per target and are not boilerplate.
+ * their own `umbriel.launch` / `closeWindow` lines, which vary per target and are not boilerplate.
  *
  * Run any test: bun run example/<name>.integration.test.ts
  */

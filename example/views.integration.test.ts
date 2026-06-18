@@ -9,7 +9,7 @@
  * bun test is broken repo-wide — runnable harness (spawns + closes one Explorer window):
  * Run: bun run example/views.integration.test.ts
  */
-import { closeWindow, type Element, listWindows, skry } from 'skry';
+import { closeWindow, type Element, listWindows, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -20,7 +20,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const prior = new Set(listWindows({ includeUntitled: true }).filter((w) => /CabinetWClass/i.test(w.className)).map((w) => w.hWnd));
 Bun.spawn(['explorer.exe', 'C:\\Windows'], { stdout: 'ignore', stderr: 'ignore' });
 let hWnd = 0n;
@@ -33,7 +33,7 @@ try {
     console.log('  skip: no Explorer window opened');
   } else {
     await Bun.sleep(1800); // let the Items View realize
-    const app = skry.attach(hWnd);
+    const app = umbriel.attach(hWnd);
     let container: Element | null = null;
     const stack: Element[] = [app];
     let nodes = 0;
@@ -67,7 +67,7 @@ try {
   }
 } finally {
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — MultipleViewPattern switches a list/grid view mode cursor-free.' : `\nFAILED — ${failures} assertion(s)`);

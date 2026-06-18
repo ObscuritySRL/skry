@@ -13,7 +13,7 @@
  * bun test is broken repo-wide — runnable harness (spawns + closes Notepad):
  * Run: bun run example/virtual-desktop.integration.test.ts
  */
-import { closeWindow, skry, windowDesktopId, windowOnCurrentDesktop, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowDesktopId, windowOnCurrentDesktop, windowProcessId } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -27,7 +27,7 @@ function assert(condition: boolean, message: string): void {
 
 const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-skry.initialize();
+umbriel.initialize();
 let notepad: ReturnType<typeof Bun.spawn> | null = null;
 let hWnd = 0n;
 try {
@@ -63,8 +63,8 @@ try {
     // regression: the cached IVirtualDesktopManager must be RELEASED on uninitialize (the disposer) and re-created on
     // re-init — otherwise this re-query would vcall a freed COM object (use-after-free → segfault). When the manager is
     // unavailable (os-wall), the re-query must still degrade to null cleanly rather than fail.
-    skry.uninitialize();
-    skry.initialize();
+    umbriel.uninitialize();
+    umbriel.initialize();
     const reCurrent = windowOnCurrentDesktop(hWnd);
     if (reCurrent === null) console.log('  skip(os-wall): re-query degrades to null after re-init (no use-after-free, manager still unavailable)');
     else assert(reCurrent === true, 'after uninitialize → initialize, windowOnCurrentDesktop still works (no use-after-free)');
@@ -74,7 +74,7 @@ try {
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   if (hWnd !== 0n) closeWindow(hWnd);
   notepad?.kill();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — virtual-desktop placement read via IVirtualDesktopManager (detection works; cross-desktop move is the documented OS wall).' : `\nFAILED — ${failures} assertion(s)`);

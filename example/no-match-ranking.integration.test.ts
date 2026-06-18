@@ -12,7 +12,7 @@
  * bun test is broken repo-wide — runnable script:
  * Run: bun run example/no-match-ranking.integration.test.ts
  */
-import { ControlType, closeWindow, formatNoMatch, skry, windowProcessId } from 'skry';
+import { ControlType, closeWindow, formatNoMatch, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -36,12 +36,12 @@ const typeMiss = formatNoMatch({ controlType: ControlType.Edit }, 'Untitled - No
 assert(/no controlType "Edit" here — this window exposes: Document, Text, Button/.test(typeMiss), `a controlType miss names the available types — got: ${JSON.stringify(typeMiss.slice(-90))}`);
 
 // 2) Live: waitFor timeout carries an elapsed-time prefix (taskbar is always present; read-only, never closed).
-skry.initialize();
+umbriel.initialize();
 try {
-  const taskbar = skry.windows({ includeUntitled: true }).find((window) => window.className === 'Shell_TrayWnd');
+  const taskbar = umbriel.windows({ includeUntitled: true }).find((window) => window.className === 'Shell_TrayWnd');
   if (taskbar === undefined) console.log('  skip: no taskbar (Shell_TrayWnd) found');
   else {
-    const window = skry.attach(taskbar.hWnd);
+    const window = umbriel.attach(taskbar.hWnd);
     let caught = '';
     try {
       await window.waitFor({ name: '__no_such_control_xyz__' }, { timeout: 400 });
@@ -54,7 +54,7 @@ try {
 
   // 3) Live: a cold agent's universal reach for controlType:'Edit' on modern Notepad (WinUI exposes Document/Text, no Edit)
   // must now be taught which types ARE here — the same wall the name-miss path already teaches. Spawn + force-kill Notepad.
-  const notepad = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+  const notepad = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
   try {
     const editMiss = notepad.describeNoMatch({ controlType: ControlType.Edit });
     assert(/no controlType "Edit" here — this window exposes:/.test(editMiss), `Notepad's Edit miss names the available control types — got: ${JSON.stringify(editMiss.slice(0, 160))}`);
@@ -66,7 +66,7 @@ try {
     closeWindow(notepad.hWnd);
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — no-match candidates are ranked + deduped with a nameContains steer; waitFor timeouts are labelled.' : `\nFAILED — ${failures} assertion(s)`);

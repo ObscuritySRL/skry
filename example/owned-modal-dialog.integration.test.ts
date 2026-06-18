@@ -12,7 +12,7 @@
  * bun test is broken repo-wide — runnable harness (raw Win32 windows, no app spawned):
  * Run: bun run example/owned-modal-dialog.integration.test.ts
  */
-import { ownedForegroundDialog, ownedModalDialog } from 'skry';
+import { ownedForegroundDialog, ownedModalDialog } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
@@ -29,10 +29,10 @@ function assert(condition: boolean, message: string): void {
 }
 
 const dialogClass = wide('#32770'); // the system dialog-box class — no RegisterClass needed
-const owner = User32.CreateWindowExW(0, dialogClass.ptr!, wide('skry-test-owner').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 120, 120, 320, 220, 0n, 0n, 0n, null);
+const owner = User32.CreateWindowExW(0, dialogClass.ptr!, wide('umbriel-test-owner').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 120, 120, 320, 220, 0n, 0n, 0n, null);
 // An owned overlapped window: hWndParent = owner sets the OWNER (GetWindow GW_OWNER === owner), the same relationship a
 // real modal dialog has with its parent.
-const dialog = owner === 0n ? 0n : User32.CreateWindowExW(0, dialogClass.ptr!, wide('skry-test-modal').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 160, 160, 220, 130, owner, 0n, 0n, null);
+const dialog = owner === 0n ? 0n : User32.CreateWindowExW(0, dialogClass.ptr!, wide('umbriel-test-modal').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 160, 160, 220, 130, owner, 0n, 0n, null);
 try {
   if (owner === 0n || dialog === 0n) console.log('  skip: could not create the test windows');
   else {

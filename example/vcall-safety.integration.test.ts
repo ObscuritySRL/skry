@@ -14,7 +14,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/vcall-safety.integration.test.ts
  */
-import { skry, vcall } from 'skry';
+import { umbriel, vcall } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -34,7 +34,7 @@ function throwsWith(label: string, fn: () => void, needle: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   // (A) existing guard: a null interface pointer.
   throwsWith('null interface (0n)', () => void vcall(0n, 2, [], []), 'null interface pointer');
@@ -59,9 +59,9 @@ process.exit(2);
 
   // (D) happy path: the guard never fires on a valid live object. Attach read-only to any existing top-level
   //     window and read a property (which routes through vcall). No window is spawned or closed.
-  const target = skry.windows().find((w) => w.title.length > 0);
+  const target = umbriel.windows().find((w) => w.title.length > 0);
   if (target !== undefined) {
-    const window = skry.attach(target.hWnd);
+    const window = umbriel.attach(target.hWnd);
     try {
       const name = window.name; // routes through vcall(get_CurrentName)
       const role = window.controlTypeName;
@@ -75,9 +75,9 @@ process.exit(2);
 
   // (E) perf: the added branches are predicted-not-taken; on the live cross-process path they are noise. Time a
   //     batch of real property reads (each a guarded vcall round-trip) to report the dominant per-call cost.
-  const perfTarget = skry.windows().find((w) => w.title.length > 0);
+  const perfTarget = umbriel.windows().find((w) => w.title.length > 0);
   if (perfTarget !== undefined) {
-    const window = skry.attach(perfTarget.hWnd);
+    const window = umbriel.attach(perfTarget.hWnd);
     try {
       const iterations = 2000;
       const start = Bun.nanoseconds();
@@ -89,7 +89,7 @@ process.exit(2);
     }
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a use-after-free / corrupt interface pointer now raises a catchable error instead of a segfault.' : `\nFAILED — ${failures} assertion(s)`);

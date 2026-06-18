@@ -16,7 +16,7 @@
  * bun test is broken repo-wide — this is a runnable harness:
  * Run: bun run example/snapshot-economy.integration.test.ts
  */
-import { capSnapshot, closeWindow, ControlType, diffTrees, pruneRefTree, type RefNode, renderDiff, renderSnapshot, skry } from 'skry';
+import { capSnapshot, closeWindow, ControlType, diffTrees, pruneRefTree, type RefNode, renderDiff, renderSnapshot, umbriel } from 'umbriel';
 
 function refs(text: string): Set<string> {
   const found = new Set<string>();
@@ -120,28 +120,28 @@ function measurePrune(label: string, tree: RefNode): { unprunedLines: number; pr
 
 // A + B. live
 async function live(): Promise<void> {
-  skry.initialize();
-  const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+  umbriel.initialize();
+  const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
   try {
     // A. prune token win + the ref-preservation invariant — on a dense app (Calculator) and a noisy one (Settings).
     console.log('\n[A] prune + ref-preservation invariant (live)');
-    const calcSnap = skry.snapshot(calc);
+    const calcSnap = umbriel.snapshot(calc);
     const calcMeasure = measurePrune('Calculator', calcSnap.tree);
     assert(calcMeasure.prunedLines < calcMeasure.unprunedLines, 'prune removes at least one ref-less structural line');
     calcSnap.dispose();
     // Settings is the noisy-app reference. Attach is best-effort (may be policy-blocked / slow); the
     // ref-preservation invariant is hard, the prune MAGNITUDE is informational (honest: ~8-12% on Settings —
     // most ref-less lines are NAMED section labels the agent needs, so they are kept by design, not dropped).
-    let settings: Awaited<ReturnType<typeof skry.launch>> | null = null;
+    let settings: Awaited<ReturnType<typeof umbriel.launch>> | null = null;
     try {
-      settings = await skry.launch(['cmd', '/c', 'start', 'ms-settings:'], { className: 'ApplicationFrameWindow', title: 'Settings' }, 12_000);
-      await skry.waitForIdle(settings, { quietMs: 600, timeout: 6_000 });
+      settings = await umbriel.launch(['cmd', '/c', 'start', 'ms-settings:'], { className: 'ApplicationFrameWindow', title: 'Settings' }, 12_000);
+      await umbriel.waitForIdle(settings, { quietMs: 600, timeout: 6_000 });
     } catch (error) {
       console.log(`  (could not attach Settings — skipping the noisy-app measurement: ${(error as Error).message})`);
       settings = null;
     }
     if (settings !== null) {
-      const settingsSnap = skry.snapshot(settings);
+      const settingsSnap = umbriel.snapshot(settings);
       measurePrune('Settings', settingsSnap.tree);
       settingsSnap.dispose();
       closeWindow(settings.hWnd); // close the throwaway Settings we launched
@@ -157,12 +157,12 @@ async function live(): Promise<void> {
     enter!.invoke(); // ensure entry mode regardless of leftover state
     enter!.release();
     await Bun.sleep(250);
-    const renamePrior = skry.snapshot(calc).tree;
+    const renamePrior = umbriel.snapshot(calc).tree;
     const again = calc.find({ controlType: ControlType.Button, name: 'Five' });
     again!.invoke(); // append another digit → display name changes, no control added/removed
     again!.release();
     await Bun.sleep(250);
-    const renameNext = skry.snapshot(calc);
+    const renameNext = umbriel.snapshot(calc);
     const fullBody = renderSnapshot(pruneRefTree(renameNext.tree) ?? renameNext.tree);
     const diff = diffTrees(renamePrior, renameNext.tree);
     const refChurn = diff.appeared.some((c) => c.ref !== undefined) || diff.disappeared.some((c) => c.ref !== undefined);
@@ -182,7 +182,7 @@ async function live(): Promise<void> {
   } finally {
     closeWindow(calc.hWnd); // close the throwaway Calculator we launched
     calc.dispose();
-    skry.uninitialize();
+    umbriel.uninitialize();
   }
 }
 

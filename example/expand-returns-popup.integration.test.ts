@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Character Map):
  * Run: bun run example/expand-returns-popup.integration.test.ts
  */
-import { closeWindow, postKey, skry } from 'skry';
+import { closeWindow, postKey, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -56,8 +56,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const charmap = await skry.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
+umbriel.initialize();
+const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'expand-popup', version: '1' } });
   if (charmap === null) console.log('  skip: Character Map did not launch');
@@ -83,7 +83,7 @@ try {
     closeWindow(charmap.hWnd);
     charmap.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — expand auto-returns a dropdown that opens in its own window (no hand-hunting).' : `\nFAILED — ${failures} assertion(s)`);

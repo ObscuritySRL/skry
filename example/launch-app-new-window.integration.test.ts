@@ -13,7 +13,7 @@
  * os category + input to stamp the marker):
  * Run: bun run example/launch-app-new-window.integration.test.ts
  */
-import { closeWindow, listWindows } from 'skry';
+import { closeWindow, listWindows } from 'umbriel';
 
 import { assert, finish, skip, spawnServer } from './_harness';
 

@@ -19,7 +19,7 @@
 import { JSCallback } from 'bun:ffi';
 
 import Gdi32 from '@bun-win32/gdi32';
-import { ocrAvailable, ocrWindow, skry, wgcAvailable } from 'skry';
+import { ocrAvailable, ocrWindow, umbriel, wgcAvailable } from 'umbriel';
 import User32 from '@bun-win32/user32';
 import { ShowWindowCommand, WindowStyles } from '@bun-win32/user32';
 
@@ -67,7 +67,7 @@ function paintPhrase(hWnd: bigint): void {
   User32.ReleaseDC(hWnd, dc);
 }
 
-skry.initialize();
+umbriel.initialize();
 let hWnd = 0n;
 let className: Buffer | null = null;
 let wndProc: JSCallback | null = null;
@@ -133,7 +133,7 @@ try {
   if (hWnd !== 0n) User32.DestroyWindow(hWnd);
   if (className !== null) User32.UnregisterClassW(className.ptr!, 0n);
   wndProc?.close();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — OCR read a window’s live pixels via WGC (ocrWindow → captureWindowLive → ocrBitmap).' : `\nFAILED — ${failures} assertion(s)`);

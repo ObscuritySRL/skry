@@ -16,7 +16,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Calculator):
  * Run: bun run example/actionability-gate.integration.test.ts
  */
-import { closeWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -62,8 +62,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+umbriel.initialize();
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 const calcPid = windowProcessId(calc.hWnd);
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'actionability-gate', version: '1' } });
@@ -108,7 +108,7 @@ try {
     if (calcPid > 0) process.kill(calcPid); // belt-and-suspenders: Calculator is a UWP host; closeWindow may leave the process — kill its PID so no window survives
   } catch {}
   calc.dispose();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — the act path auto-waits for a not-yet-present target and refuses a disabled one (Playwright actionability at the verb).' : `\nFAILED — ${failures} assertion(s)`);

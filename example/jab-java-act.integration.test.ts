@@ -20,7 +20,7 @@
  */
 import { existsSync, readdirSync } from 'node:fs';
 
-import { closeWindow, isJavaWindow, javaInvoke, type JavaNode, javaSetText, javaTree, skry } from 'skry';
+import { closeWindow, isJavaWindow, javaInvoke, type JavaNode, javaSetText, javaTree, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -60,7 +60,7 @@ const TITLE = 'JAB Act Test';
 const dir = `${Bun.env.TEMP ?? 'C:/Windows/Temp'}/uia_jabact_${process.pid}`;
 const bin = findJdkBin();
 
-skry.initialize();
+umbriel.initialize();
 let javaProc: ReturnType<typeof Bun.spawn> | null = null;
 let hWnd = 0n;
 try {
@@ -188,7 +188,7 @@ try {
   if (hWnd !== 0n) closeWindow(hWnd);
   javaProc?.kill();
   await Bun.$`cmd /c rmdir /s /q ${dir}`.quiet().catch(() => {});
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Java Swing app DRIVEN cursor-free via the Access Bridge (invoke + toggle + select + type).' : `\nFAILED — ${failures} assertion(s)`);

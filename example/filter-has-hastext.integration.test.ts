@@ -20,7 +20,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (launches + force-closes one Calculator):
  * Run: bun run example/filter-has-hastext.integration.test.ts
  */
-import { automation, comRelease, compileCondition, ControlType, matches, selectorToString, skry, windowProcessId } from 'skry';
+import { automation, comRelease, compileCondition, ControlType, matches, selectorToString, umbriel, windowProcessId } from 'umbriel';
 
 import { needsSubtreeFilter } from '../element/condition'; // not yet re-exported from index (coordinator: add to the condition export); imported locally so this harness runs now
 
@@ -46,7 +46,7 @@ assert(matches(buttonProps, { controlType: ControlType.Edit, has: { name: 'x' } 
 const rendered = selectorToString({ controlType: ControlType.Group, has: { name: 'Five' }, hasText: 'pad' });
 assert(/has: \{.*name: "Five".*\}/.test(rendered) && /hasText: "pad"/.test(rendered), `selectorToString renders has + hasText (${rendered})`);
 
-skry.initialize();
+umbriel.initialize();
 // compileCondition must force the client pass for a subtree-filter selector (so element.ts runs subtreeMatches).
 const compiled = compileCondition(automation(), { controlType: ControlType.Group, has: { name: 'Five' } });
 assert(compiled.needsClientFilter === true, 'compileCondition forces needsClientFilter for a { has } selector');
@@ -54,7 +54,7 @@ if (compiled.owned) comRelease(compiled.condition);
 
 // Launch via the AppsFolder AUMID, not `start calc`: the explorer protocol path reliably (re)activates the UWP broker
 // even when `start calc` wedges after rapid kill/relaunch; cold start can exceed the 8 s default, so allow 30 s.
-const calc = await skry.launch(['explorer.exe', 'shell:AppsFolder\\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App'], { title: 'Calculator' }, 30_000);
+const calc = await umbriel.launch(['explorer.exe', 'shell:AppsFolder\\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App'], { title: 'Calculator' }, 30_000);
 try {
   // The XAML content realizes a beat after the window appears — retry the anchor find before asserting.
   let anchor = null;
@@ -103,7 +103,7 @@ try {
   const pid = windowProcessId(calc.hWnd);
   calc.dispose();
   if (pid) Bun.spawnSync(['taskkill', '/F', '/PID', String(pid)]);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — has/hasText descendant-scoped filter resolves the contained candidate and returns null on a miss.' : `\nFAILED — ${failures} assertion(s)`);

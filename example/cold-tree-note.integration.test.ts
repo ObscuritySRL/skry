@@ -5,7 +5,7 @@
  *
  * Run: bun run example/cold-tree-note.integration.test.ts
  */
-import { coldTreeNote } from 'skry';
+import { coldTreeNote } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

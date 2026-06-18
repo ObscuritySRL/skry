@@ -12,7 +12,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/multi-select.integration.test.ts
  */
-import { closeWindow, ControlType, skry } from 'skry';
+import { closeWindow, ControlType, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -23,22 +23,22 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const priorExplorers = new Set(
-  skry
+  umbriel
     .windows()
     .filter((window) => window.className === 'CabinetWClass')
     .map((window) => window.hWnd),
 );
 Bun.spawn(['explorer.exe', 'C:\\Windows\\System32\\drivers\\etc'], { stdout: 'ignore', stderr: 'ignore' });
 await Bun.sleep(2500);
-const hWnd = skry.windows().find((window) => window.className === 'CabinetWClass' && !priorExplorers.has(window.hWnd))?.hWnd ?? 0n;
+const hWnd = umbriel.windows().find((window) => window.className === 'CabinetWClass' && !priorExplorers.has(window.hWnd))?.hWnd ?? 0n;
 
 try {
   if (hWnd === 0n) {
     console.log('[multi-select] could not open Explorer — SKIPPING');
   } else {
-    const explorer = skry.attach(hWnd);
+    const explorer = umbriel.attach(hWnd);
     const list = explorer.find({ controlType: ControlType.List });
     const items = explorer.findAll({ controlType: ControlType.ListItem });
     console.log(`  list container: ${list !== null}, list items: ${items.length}`);
@@ -72,7 +72,7 @@ try {
   }
 } finally {
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — cursor-free multi-select verified (select / addToSelection / getSelection / removeFromSelection).' : `\nFAILED — ${failures} assertion(s)`);

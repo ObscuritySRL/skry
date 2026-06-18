@@ -1,5 +1,5 @@
 /**
- * UIA self-test — the real FFI integration suite for skry.
+ * UIA self-test — the real FFI integration suite for umbriel.
  *
  * Drives live apps (Calculator, Notepad, Mouse Properties) through the published package surface and
  * asserts ground truth: Calculator computes 5+3=8, Notepad round-trips a value, the cached tree equals
@@ -11,15 +11,15 @@
  *
  * APIs demonstrated:
  * - initialize / uninitialize (COM apartment + IUIAutomation activation)
- * - skry.attach / find / findAll / waitFor (Playwright-for-desktop query + auto-retry)
+ * - umbriel.attach / find / findAll / waitFor (Playwright-for-desktop query + auto-retry)
  * - Element.invoke / setValue / value / text / toggle / expand / select / rangeValue (control patterns)
  * - Element.scroll / setScrollPercent / scrollInfo (ScrollPattern container scroll — cursor-free, works locked)
- * - createCacheRequest / findAllCached (the cached round-trip), skry.tree (agent grounding)
+ * - createCacheRequest / findAllCached (the cached round-trip), umbriel.tree (agent grounding)
  * - screenshot (PrintWindow → PNG), msaaTree (oleacc fallback)
  *
- * Run: bun run example/skry.selftest.ts
+ * Run: bun run example/umbriel.selftest.ts
  */
-import { closeWindow, ControlType, countNodes, createCacheRequest, msaaTree, NoScroll, screenshot, ScrollAmount, skry, windowProcessId } from 'skry';
+import { closeWindow, ControlType, countNodes, createCacheRequest, msaaTree, NoScroll, screenshot, ScrollAmount, umbriel, windowProcessId } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -58,7 +58,7 @@ async function closeNotepad(hWnd: bigint): Promise<void> {
   closeWindow(hWnd);
   await Bun.sleep(700);
   try {
-    const notepad = skry.attach(hWnd);
+    const notepad = umbriel.attach(hWnd);
     const dontSave = notepad.find({ name: /Don.?t save/i });
     dontSave?.invoke();
     dontSave?.release();
@@ -68,24 +68,24 @@ async function closeNotepad(hWnd: bigint): Promise<void> {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const cursor = Buffer.alloc(8);
 User32.GetCursorPos(cursor.ptr!);
 const locked = User32.SetCursorPos(cursor.readInt32LE(0), cursor.readInt32LE(4)) === 0;
 console.log(`\x1b[1mUIA self-test\x1b[0m  session: ${locked ? 'LOCKED (synthetic input skipped)' : 'unlocked'}`);
 
 section('1. activate');
-const pUia = skry.initialize();
+const pUia = umbriel.initialize();
 check('initialize() returns a client', pUia !== 0n, `0x${pUia.toString(16)}`);
-check('initialize() is idempotent', skry.initialize() === pUia);
-skry.uninitialize();
-check('re-init after uninitialize works', skry.initialize() !== 0n);
+check('initialize() is idempotent', umbriel.initialize() === pUia);
+umbriel.uninitialize();
+check('re-init after uninitialize works', umbriel.initialize() !== 0n);
 
 if (!skipWindows) {
   Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
   const calcHwnd = findWindow('Calculator');
   Bun.sleepSync(900);
-  const calc = skry.attach(calcHwnd);
+  const calc = umbriel.attach(calcHwnd);
 
   section('2. attach + query');
   check('attach resolves the window', calc.name === 'Calculator', JSON.stringify(calc.name));
@@ -120,9 +120,9 @@ if (!skipWindows) {
     Bun.sleepSync(300);
     npHwnd = User32.FindWindowW(npClass.ptr!, null);
   }
-  const notepad = skry.attach(npHwnd);
+  const notepad = umbriel.attach(npHwnd);
   const edit = notepad.find({ controlType: ControlType.Edit }) ?? notepad.find({ controlType: ControlType.Document });
-  const probe = 'skry value ✓';
+  const probe = 'umbriel value ✓';
   let valueOk = false;
   try {
     edit?.setValue(probe);
@@ -142,7 +142,7 @@ if (!skipWindows) {
     Bun.sleepSync(200);
     const typed = ' typed-✓';
     edit?.focus();
-    skry.type(typed);
+    umbriel.type(typed);
     Bun.sleepSync(300);
     check('type() appends Unicode text', edit?.text().includes('typed-✓') === true, edit ? JSON.stringify(edit.text().slice(-24)) : '');
   }
@@ -181,8 +181,8 @@ if (!skipWindows) {
   check('cached walk == naive walk', naive.length === cached.length && naive.every((value, index) => value === cached[index]), `${naive.length} nodes`);
 
   section('9. tree -> JSON (agent grounding)');
-  const full = skry.tree(calc);
-  const agent = skry.tree(calc, { agentProfile: true });
+  const full = umbriel.tree(calc);
+  const agent = umbriel.tree(calc, { agentProfile: true });
   const treeJson = JSON.stringify(agent);
   check('tree contains the digit buttons', treeJson.includes('"Five"') && treeJson.includes('"Seven"'));
   check('nodes carry bounding rectangles', /"bounds":\{"x":/.test(treeJson));
@@ -206,7 +206,7 @@ if (!skipWindows) {
   check('no-match find returns null', calc.find({ name: 'DefinitelyNotHere' }) === null);
   let attachThrew = false;
   try {
-    skry.attach('NoSuchWindowTitle12345');
+    umbriel.attach('NoSuchWindowTitle12345');
   } catch {
     attachThrew = true;
   }
@@ -222,16 +222,16 @@ if (!skipWindows) {
 
   section('13. ScrollPattern — container scroll (cursor-free, works locked)');
   Bun.spawn(['explorer.exe', 'C:\\Windows\\System32'], { stdout: 'ignore', stderr: 'ignore' });
-  let explorer: ReturnType<typeof skry.attach> | null = null;
+  let explorer: ReturnType<typeof umbriel.attach> | null = null;
   let explorerHwnd = 0n;
   let scrollList: ReturnType<typeof calc.find> = null;
   for (let i = 0; i < 25 && scrollList === null; i += 1) {
     Bun.sleepSync(300);
-    const info = skry.windows().find((window) => window.className === 'CabinetWClass' && /System32/i.test(window.title));
+    const info = umbriel.windows().find((window) => window.className === 'CabinetWClass' && /System32/i.test(window.title));
     if (info === undefined) continue;
     explorerHwnd = info.hWnd;
     try {
-      explorer = skry.attach(info.hWnd);
+      explorer = umbriel.attach(info.hWnd);
     } catch {
       continue;
     }
@@ -286,7 +286,7 @@ if (!skipWindows) {
 }
 
 section('14. cleanup');
-skry.uninitialize();
+umbriel.uninitialize();
 check('uninitialize is clean', true);
 
 console.log(`\n\x1b[1m${passes} passed, ${failures} failed\x1b[0m`);

@@ -9,7 +9,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/get-variant.integration.test.ts
  */
-import { closeWindow, ControlType, PropertyId, skry } from 'skry';
+import { closeWindow, ControlType, PropertyId, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -20,8 +20,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+umbriel.initialize();
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 try {
   // VT_I4 — ProcessId is a real positive integer.
   const processId = calc.getProperty(PropertyId.ProcessId);
@@ -61,7 +61,7 @@ try {
 } finally {
   closeWindow(calc.hWnd); // close the throwaway Calculator we launched
   calc.dispose();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — getProperty verified (VT_I4 / VT_BSTR / VT_BOOL decode, VariantClear stable).' : `\nFAILED — ${failures} assertion(s)`);

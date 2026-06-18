@@ -11,7 +11,7 @@
  * bun test is broken repo-wide — runnable script:
  * Run: bun run example/diff-duplicate-aid.test.ts
  */
-import { type DiffNode, diffTrees, refsRenumbered } from 'skry';
+import { type DiffNode, diffTrees, refsRenumbered } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

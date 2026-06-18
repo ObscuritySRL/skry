@@ -19,7 +19,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Notepad):
  * Run: bun run example/wait-for-state.integration.test.ts
  */
-import { closeWindow, windowProcessId } from 'skry';
+import { closeWindow, windowProcessId } from 'umbriel';
 import { assert, finish, skip, spawnServer } from './_harness';
 
 const { call, kill, textOf } = spawnServer();

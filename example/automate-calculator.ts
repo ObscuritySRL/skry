@@ -7,19 +7,19 @@
  * you can SEE the 8. Works on a locked session (UIA + PrintWindow do not need the input desktop).
  *
  * APIs demonstrated:
- * - skry.attach / find / findAll (query the a11y tree)
+ * - umbriel.attach / find / findAll (query the a11y tree)
  * - Element.invoke (InvokePattern), Element.name (read the display)
  * - Window.screenshot (PrintWindow → PNG visual proof)
  *
  * Run: bun run example/automate-calculator.ts
  *      DEMO_DURATION_MS=8000 bun run example/automate-calculator.ts
  */
-import { ControlType, skry } from 'skry';
+import { ControlType, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const deadline = Bun.env.DEMO_DURATION_MS ? Bun.nanoseconds() + Number(Bun.env.DEMO_DURATION_MS) * 1e6 : Number.POSITIVE_INFINITY;
 
-skry.initialize();
+umbriel.initialize();
 Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
 let hWnd = 0n;
 const title = Buffer.from('Calculator\0', 'utf16le');
@@ -32,10 +32,10 @@ if (hWnd === 0n) {
   process.exit(0);
 }
 Bun.sleepSync(800);
-const app = skry.attach(hWnd);
+const app = umbriel.attach(hWnd);
 
 console.log(`\n\x1b[1m\x1b[95m  Calculator — driven from TypeScript via UI Automation\x1b[0m\n`);
-const tree = skry.tree(app, { agentProfile: true });
+const tree = umbriel.tree(app, { agentProfile: true });
 const buttons = app.findAll({ controlType: ControlType.Button });
 console.log(`  \x1b[2mlive tree: ${buttons.length} buttons, root "${tree.name}"\x1b[0m`);
 for (const button of buttons.slice(0, 12)) console.log(`  \x1b[2m├─\x1b[0m \x1b[96mButton\x1b[0m ${button.name}`);
@@ -62,4 +62,4 @@ await Bun.write('.scratch/automate-calculator.png', app.screenshot());
 console.log(`  \x1b[2msaved .scratch/automate-calculator.png — look: the display reads 8\x1b[0m\n`);
 
 app.dispose();
-skry.uninitialize();
+umbriel.uninitialize();

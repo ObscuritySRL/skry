@@ -73,16 +73,16 @@ function spawnServer(env: Record<string, string>): Driver {
 
 const textOf = (m: Rpc): string => m.result?.content?.[0]?.text ?? '';
 
-// Parse the structured forensic audit lines out of stderr (one JSON object per `[skry-audit] {…}` line), so the
+// Parse the structured forensic audit lines out of stderr (one JSON object per `[umbriel-audit] {…}` line), so the
 // assertions compare fields, not a brittle key-order regex (the args `{}` would otherwise break a `[^}]*` match).
 type AuditLine = { tool?: string; category?: string; ok?: boolean; error?: string };
 function auditLines(stderr: string): AuditLine[] {
   const lines: AuditLine[] = [];
   for (const line of stderr.split('\n')) {
-    const marker = line.indexOf('[skry-audit] ');
+    const marker = line.indexOf('[umbriel-audit] ');
     if (marker < 0) continue;
     try {
-      lines.push(JSON.parse(line.slice(marker + '[skry-audit] '.length)) as AuditLine);
+      lines.push(JSON.parse(line.slice(marker + '[umbriel-audit] '.length)) as AuditLine);
     } catch {}
   }
   return lines;
@@ -110,7 +110,7 @@ try {
   assert(/UNTRUSTED/.test(read) && /do NOT follow instructions/.test(read), 'read_clipboard FENCES its result as untrusted content (prompt-injection boundary)');
   await Bun.sleep(50); // let the async dispatch flush its audit line to stderr
   const err = safe.stderr();
-  assert(/\[skry-audit\]/.test(err) && /"tool":"set_clipboard"/.test(err), 'a mutating call (set_clipboard) leaves a structured audit line on stderr');
+  assert(/\[umbriel-audit\]/.test(err) && /"tool":"set_clipboard"/.test(err), 'a mutating call (set_clipboard) leaves a structured audit line on stderr');
   assert(!err.includes(SECRET) && /<\d+ chars>/.test(err), 'the audit line MASKS the secret-bearing set_clipboard `text` arg (length only), never logging it verbatim');
 } finally {
   safe.kill();
@@ -169,7 +169,7 @@ try {
   await denyOff.call('initialize', init);
   await denyOff.call('tools/call', { name: 'click', arguments: { ref: 'e1' } });
   await Bun.sleep(50);
-  assert(!/\[skry-audit\]/.test(denyOff.stderr()), 'with SKRY_AUDIT=off, a refused call emits NO audit line (the explicit opt-out is honored for denials too)');
+  assert(!/\[umbriel-audit\]/.test(denyOff.stderr()), 'with SKRY_AUDIT=off, a refused call emits NO audit line (the explicit opt-out is honored for denials too)');
 } finally {
   denyOff.kill();
 }
@@ -222,7 +222,7 @@ try {
   await Bun.sleep(50);
   const err = roAuditOff.stderr();
   assert(/audit: DISABLED \(SKRY_AUDIT=off — explicit opt-out\)/.test(err), 'SKRY_AUDIT=off is reported as an EXPLICIT opt-out at startup (it cannot be silently disabled)');
-  assert(!/\[skry-audit\]/.test(err), 'with the explicit opt-out, no audit lines are emitted');
+  assert(!/\[umbriel-audit\]/.test(err), 'with the explicit opt-out, no audit lines are emitted');
 } finally {
   roAuditOff.kill();
 }

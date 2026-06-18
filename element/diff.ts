@@ -1,7 +1,7 @@
 // Diff two serialized UIA trees (before/after an action) into a compact change set — the cheap
 // "what changed" observation that lets an agent re-ground on the delta instead of re-reading the
 // whole subtree every step. Pure logic over the minimal node shape (role + name + automationId +
-// optional ref + children), so both UiaNode (skry.tree) and RefNode (snapshots) diff with no cast.
+// optional ref + children), so both UiaNode (umbriel.tree) and RefNode (snapshots) diff with no cast.
 // Nodes are keyed by their structural path plus role + automationId, so a name change at a fixed
 // position reads as a rename, not appear+disappear. Each path segment is the child's automationId
 // when it has one (a stable identity), else its index — so inserting a sibling (e.g. a result Text)

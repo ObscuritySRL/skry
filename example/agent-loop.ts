@@ -1,11 +1,11 @@
 /**
  * Claude drives Windows — the computer-use agent loop
  *
- * Wires the Anthropic Messages API (the `computer_20251124` tool) directly to skry's computer-use
+ * Wires the Anthropic Messages API (the `computer_20251124` tool) directly to umbriel's computer-use
  * adapter so Claude autonomously operates a real Windows app. Each turn: Claude sees a screenshot of the
  * Calculator window and emits a pixel action; `dispatch` resolves that coordinate to the UIA element
  * under it and `invoke()`s it — SEMANTIC-FIRST and CURSOR-FREE (the real mouse never moves, works on a
- * locked session). The model thinks it is clicking pixels; skry grounds every click in the a11y tree,
+ * locked session). The model thinks it is clicking pixels; umbriel grounds every click in the a11y tree,
  * erasing the coordinate-hallucination / downscaling-miss failure modes of screenshot-only control.
  *
  * Zero shipped dependency on @anthropic-ai/sdk — this example calls the Messages API with raw `fetch`.
@@ -14,14 +14,14 @@
  * integration test). Gated on ANTHROPIC_API_KEY — without a key it prints how to run and exits cleanly.
  *
  * APIs demonstrated:
- *   - skry.launch / attach / find (skry)   (spawn + attach + read ground truth from the a11y tree)
+ *   - umbriel.launch / attach / find (umbriel)   (spawn + attach + read ground truth from the a11y tree)
  *   - Window.screenshot / boundingRectangle         (PrintWindow PNG + window-local coordinate frame)
  *   - dispatch(window, ComputerAction)              (Anthropic computer action -> cursor-free UIA invoke)
  *   - Anthropic Messages API (computer_20251124)    (raw fetch tool-use loop; no SDK dependency)
  *
  * Run: ANTHROPIC_API_KEY=sk-... bun run example/agent-loop.ts
  */
-import { ControlType, dispatch, skry } from 'skry';
+import { ControlType, dispatch, umbriel } from 'umbriel';
 
 const API_KEY = Bun.env.ANTHROPIC_API_KEY;
 const MODEL = 'claude-opus-4-8';
@@ -49,7 +49,7 @@ if (API_KEY === undefined) {
 }
 const apiKey = API_KEY;
 
-/** Map an Anthropic `computer` tool action (snake_case) to a skry ComputerAction (camelCase), translating
+/** Map an Anthropic `computer` tool action (snake_case) to a umbriel ComputerAction (camelCase), translating
  *  the model's window-local screenshot coordinates into virtual-screen-absolute pixels for dispatch. */
 function toComputerAction(input: Record<string, unknown>, originX: number, originY: number): Parameters<typeof dispatch>[1] {
   const action = typeof input.action === 'string' ? input.action : 'screenshot';
@@ -82,7 +82,7 @@ async function callClaude(messages: object[], displayWidth: number, displayHeigh
   return data;
 }
 
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 const shot = (): { png: Uint8Array; width: number; height: number; x: number; y: number } => {
   const rect = calc.boundingRectangle;
   return { png: calc.screenshot(), width: rect.width, height: rect.height, x: rect.x, y: rect.y };
@@ -136,5 +136,5 @@ display?.release();
 const passed = /\b8\b/.test(reading);
 console.log(`\n${passed ? '\x1b[92mPASS\x1b[0m' : '\x1b[91mFAIL\x1b[0m'}  Calculator display: ${JSON.stringify(reading)}`);
 calc.dispose();
-skry.uninitialize();
+umbriel.uninitialize();
 process.exitCode = passed ? 0 : 1;

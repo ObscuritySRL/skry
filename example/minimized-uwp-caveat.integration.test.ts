@@ -66,10 +66,10 @@ try {
   assert(/hold_key \{ref\}/.test(aimd), 'AI.md lists hold_key {ref} among the cursor-free paths');
 
   const readme = await Bun.file(`${import.meta.dir}/../README.md`).text();
-  assert(caveat.test(readme), 'skry README carries the UWP/WinUI-suspend caveat');
+  assert(caveat.test(readme), 'umbriel README carries the UWP/WinUI-suspend caveat');
 
-  const aliasReadme = await Bun.file(`${import.meta.dir}/../../skry/README.md`).text();
-  assert(caveat.test(aliasReadme), 'skry README carries the UWP/WinUI-suspend caveat');
+  const aliasReadme = await Bun.file(`${import.meta.dir}/../../umbriel/README.md`).text();
+  assert(caveat.test(aliasReadme), 'umbriel README carries the UWP/WinUI-suspend caveat');
 } finally {
   proc.kill();
 }

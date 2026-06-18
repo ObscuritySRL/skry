@@ -6,16 +6,16 @@
  * Numbers come from this gated run only — never copied. Run twice to confirm stability.
  *
  * APIs demonstrated:
- * - Element property reads, findAll vs findAllCached (the cached round-trip), skry.tree, waitFor
+ * - Element property reads, findAll vs findAllCached (the cached round-trip), umbriel.tree, waitFor
  *
  * Run: bun run example/benchmark.ts
  */
 import { FFIType } from 'bun:ffi';
 import { numberOfDFGCompiles } from 'bun:jsc';
-import { createCacheRequest, estimateTokens, SLOT, skry, vcall } from 'skry';
+import { createCacheRequest, estimateTokens, SLOT, umbriel, vcall } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
-skry.initialize();
+umbriel.initialize();
 Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
 let hWnd = 0n;
 const calc = Buffer.from('Calculator\0', 'utf16le');
@@ -24,7 +24,7 @@ for (let i = 0; i < 20 && hWnd === 0n; i += 1) {
   hWnd = User32.FindWindowW(null, calc.ptr!);
 }
 Bun.sleepSync(900);
-const window = skry.attach(hWnd);
+const window = umbriel.attach(hWnd);
 
 function median(run: () => void, iterations: number): number {
   for (let i = 0; i < Math.min(iterations, 5000); i += 1) run(); // warm
@@ -64,11 +64,11 @@ request.release();
 // 4. tree build + tokens
 let treeTokens = 0;
 const treeBuild = (): void => {
-  treeTokens = estimateTokens(skry.tree(window, { agentProfile: true }));
+  treeTokens = estimateTokens(umbriel.tree(window, { agentProfile: true }));
 };
 const treeMs = median(treeBuild, 20) / 1e6;
 
-console.log(`\n# skry benchmark (sink=${sink})\n`);
+console.log(`\n# umbriel benchmark (sink=${sink})\n`);
 console.log(`machine: Windows ${Bun.env.OS ?? ''} ${process.platform}, Bun ${Bun.version}, ${navigator.hardwareConcurrency} logical CPUs\n`);
 console.log('| operation | result |');
 console.log('| --- | --- |');
@@ -82,4 +82,4 @@ console.log(`| vs OSWorld a11y-tree build (3–26 s) | **${(3000 / treeMs).toFix
 console.log(`\nDFG-compiled: read=${numberOfDFGCompiles(readControlType) > 0} naive=${numberOfDFGCompiles(naiveWalk) > 0} cached=${numberOfDFGCompiles(cachedWalk) > 0}`);
 
 window.dispose();
-skry.uninitialize();
+umbriel.uninitialize();

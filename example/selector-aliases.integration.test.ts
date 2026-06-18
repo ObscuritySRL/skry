@@ -11,7 +11,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Calculator):
  * Run: bun run example/selector-aliases.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -57,9 +57,9 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const priorCalc = new Set(skry.windows({ includeUntitled: true }).filter((window) => /Calcul/i.test(window.title)).map((window) => window.hWnd));
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+umbriel.initialize();
+const priorCalc = new Set(umbriel.windows({ includeUntitled: true }).filter((window) => /Calcul/i.test(window.title)).map((window) => window.hWnd));
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'selector-aliases', version: '1' } });
   await call('tools/call', { name: 'attach', arguments: { hWnd: `0x${calc.hWnd.toString(16)}` } });
@@ -86,8 +86,8 @@ try {
   proc.kill();
   closeWindow(calc.hWnd);
   calc.dispose();
-  for (const window of skry.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd); // sweep any sibling calc the single-instance relaunch spawned
-  skry.uninitialize();
+  for (const window of umbriel.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd); // sweep any sibling calc the single-instance relaunch spawned
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — selector aliases (role/type/id/label/accessibleName/title) fold onto UIA keys; conflicts and unknowns still error.' : `\nFAILED — ${failures} assertion(s)`);

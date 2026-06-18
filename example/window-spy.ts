@@ -1,5 +1,5 @@
 /**
- * Window spy + pixel match — skry beyond the accessibility tree.
+ * Window spy + pixel match — umbriel beyond the accessibility tree.
  *
  * Dumps a window's NATIVE HWND tree (class, control id, decoded WS_* / WS_EX_* styles, rect) like
  * Spy++ / Winspector — the structure UIA hides and the classic-Win32 controls it misses — then
@@ -8,17 +8,17 @@
  * pixel, and window-spy niches at once.
  *
  * APIs demonstrated:
- * - windowTree / renderWindowTree / windowStyles (native HWND introspection, skry)
+ * - windowTree / renderWindowTree / windowStyles (native HWND introspection, umbriel)
  * - captureScreen, locateOnScreen (full-screen capture + template matching)
  *
  * Run: bun run example/window-spy.ts            (defaults to the first listed window)
  *      bun run example/window-spy.ts "Notepad"  (any title/class substring)
  */
-import { captureScreen, locateOnScreen, renderWindowTree, skry, windowStyles, windowTree } from 'skry';
+import { captureScreen, locateOnScreen, renderWindowTree, umbriel, windowStyles, windowTree } from 'umbriel';
 
-skry.initialize();
+umbriel.initialize();
 const wanted = Bun.argv[2];
-const windows = skry.windows();
+const windows = umbriel.windows();
 const target = wanted !== undefined ? windows.find((window) => window.title.includes(wanted) || window.className.includes(wanted)) : windows[0];
 if (target === undefined) {
   console.log('no matching window');
@@ -42,5 +42,5 @@ const found = locateOnScreen(needle, { threshold: 0.9 });
 console.log(`\n\x1b[1m\x1b[95m  Pixel template match\x1b[0m  ${screen.width}x${screen.height} screen`);
 console.log(`  located the (400,300) region at ${JSON.stringify(found)} in ${((Bun.nanoseconds() - start) / 1e6).toFixed(0)} ms  (score 1 = exact)`);
 
-skry.uninitialize();
+umbriel.uninitialize();
 process.exit(0);

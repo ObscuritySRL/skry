@@ -15,7 +15,7 @@
  */
 import { existsSync } from 'node:fs';
 
-import { type RefNode, closeWindow, snapshot, skry, windowProcessId } from 'skry';
+import { type RefNode, closeWindow, snapshot, umbriel, windowProcessId } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -77,7 +77,7 @@ function flatten(node: RefNode, out: RefNode[] = []): RefNode[] {
 const TITLE = `Qt Widget Probe ${process.pid}`;
 const dir = `${Bun.env.TEMP ?? 'C:/Windows/Temp'}/uia_qt_${process.pid}`;
 
-skry.initialize();
+umbriel.initialize();
 let qtProcess: ReturnType<typeof Bun.spawn> | null = null;
 let hWnd = 0n;
 try {
@@ -113,7 +113,7 @@ try {
       console.log('  skip(live): Qt window did not appear');
     } else {
       await Bun.sleep(800); // let Qt build its accessibility tree
-      const window = skry.attach(hWnd);
+      const window = umbriel.attach(hWnd);
       const snap = snapshot(window, { maxDepth: 30 });
       try {
         const nodes = flatten(snap.tree);
@@ -143,7 +143,7 @@ try {
   if (pid) Bun.spawnSync(['taskkill', '/F', '/PID', String(pid)]);
   qtProcess?.kill();
   await Bun.$`cmd /c rmdir /s /q ${dir}`.quiet().catch(() => {});
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Qt widgets read + driven cursor-free via UIA (the toolkit is pinned against a bridge regression).' : `\nFAILED — ${failures} assertion(s)`);

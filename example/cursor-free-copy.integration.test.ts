@@ -10,7 +10,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/cursor-free-copy.integration.test.ts
  */
-import { closeWindow, ControlType, type Element, skry, windowProcessId } from 'skry';
+import { closeWindow, ControlType, type Element, umbriel, windowProcessId } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -27,13 +27,13 @@ function cursorPos(): { x: number; y: number } {
   return { x: buffer.readInt32LE(0), y: buffer.readInt32LE(4) };
 }
 
-skry.initialize();
+umbriel.initialize();
 let notepad = 0n;
-const prior = new Set(skry.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
+const prior = new Set(umbriel.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
 Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 40 && notepad === 0n; attempt += 1) {
   await Bun.sleep(150);
-  notepad = skry.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  notepad = umbriel.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 const cursorBefore = cursorPos();
@@ -41,7 +41,7 @@ try {
   assert(notepad !== 0n, 'launched Notepad');
   if (notepad !== 0n) {
     await Bun.sleep(500);
-    const win = skry.attach(notepad);
+    const win = umbriel.attach(notepad);
     const editor: Element | null = win.find({ controlType: ControlType.Edit }) ?? win.find({ controlType: ControlType.Document });
     assert(editor !== null, 'found the editor');
     if (editor !== null) {
@@ -56,8 +56,8 @@ try {
       const selection = editor.getSelectedText();
       assert(selection === 'gamma', `read the selection via TextPattern (${JSON.stringify(selection)})`);
       if (selection.length > 0) {
-        skry.writeClipboard(selection);
-        assert(skry.readClipboard() === 'gamma', 'the selection is on the clipboard — copied cursor-free');
+        umbriel.writeClipboard(selection);
+        assert(umbriel.readClipboard() === 'gamma', 'the selection is on the clipboard — copied cursor-free');
       }
       editor.release();
     }
@@ -69,7 +69,7 @@ try {
   const notepadPid = notepad !== 0n ? windowProcessId(notepad) : 0;
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   if (notepad !== 0n) closeWindow(notepad);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — copied a selection to the clipboard cursor-free (select → TextPattern → clipboard).' : `\nFAILED — ${failures} assertion(s)`);

@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (spawned Notepad):
  * Run: bun run example/triple-click-cursorfree.integration.test.ts
  */
-import { closeWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const cursor = (): { x: number; y: number } => {
@@ -28,8 +28,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { title: 'Untitled - Notepad' }, 6000).catch(() => skry.launch(['notepad.exe'], { className: 'Notepad' }, 6000).catch(() => null));
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { title: 'Untitled - Notepad' }, 6000).catch(() => umbriel.launch(['notepad.exe'], { className: 'Notepad' }, 6000).catch(() => null));
 try {
   if (notepad === null) {
     console.log('  skip(live): Notepad did not launch');
@@ -41,7 +41,7 @@ try {
     User32.SetCursorPos(7, 7);
     await Bun.sleep(80);
     const before = cursor();
-    const result = await skry.dispatch(notepad, { action: 'triple_click', coordinate: [x, y] }, { cursorless: true });
+    const result = await umbriel.dispatch(notepad, { action: 'triple_click', coordinate: [x, y] }, { cursorless: true });
     await Bun.sleep(80);
     const after = cursor();
     console.log(`  dispatch -> ${JSON.stringify(result.output ?? result.error)}`);
@@ -55,7 +55,7 @@ try {
     closeWindow(notepad.hWnd);
     notepad.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — triple_click honors cursorless (posted cursor-free, real mouse unmoved).' : `\nFAILED — ${failures} assertion(s)`);

@@ -12,7 +12,7 @@
  * bun test is broken repo-wide — runnable harness (spawned Notepad):
  * Run: bun run example/element-drag-to.integration.test.ts
  */
-import { type Element, closeWindow, skry, windowProcessId } from 'skry';
+import { type Element, closeWindow, umbriel, windowProcessId } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const cursor = (): { x: number; y: number } => {
@@ -37,8 +37,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { title: 'Untitled - Notepad' }, 6000).catch(() => skry.launch(['notepad.exe'], { className: 'Notepad' }, 6000).catch(() => null));
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { title: 'Untitled - Notepad' }, 6000).catch(() => umbriel.launch(['notepad.exe'], { className: 'Notepad' }, 6000).catch(() => null));
 try {
   if (notepad === null) {
     console.log('  skip(live): Notepad did not launch');
@@ -80,7 +80,7 @@ try {
     closeWindow(notepad.hWnd);
     notepad.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Element.dragTo(target) resolves the target element center and drives the real mouse there.' : `\nFAILED — ${failures} assertion(s)`);

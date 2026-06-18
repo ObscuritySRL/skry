@@ -1,5 +1,5 @@
 /**
- * dpi-awareness — skry.initialize() must make the process PER-MONITOR DPI-aware, not just system-DPI-aware.
+ * dpi-awareness — umbriel.initialize() must make the process PER-MONITOR DPI-aware, not just system-DPI-aware.
  *
  * Under the old system-DPI awareness (SetProcessDPIAware), a mixed-DPI multi-monitor desktop (e.g. a 150% laptop +
  * a 100% external) has its secondary-monitor coordinates bitmap-virtualized by the OS, so UIA bounding rectangles
@@ -14,7 +14,7 @@
  * Run: bun run example/dpi-awareness.integration.test.ts
  */
 import Shcore, { ProcessDpiAwareness } from '@bun-win32/shcore';
-import { skry } from 'skry';
+import { umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -25,7 +25,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   const out = Buffer.alloc(4);
   const hr = Shcore.GetProcessDpiAwareness(0n, out.ptr!); // 0 = the current process
@@ -34,17 +34,17 @@ try {
   assert(awareness === ProcessDpiAwareness.PROCESS_PER_MONITOR_DPI_AWARE, `the process is PER_MONITOR_DPI_AWARE after initialize() (got ${awareness}, want ${ProcessDpiAwareness.PROCESS_PER_MONITOR_DPI_AWARE})`);
 
   // The new init path must not have broken UIA: enumerate windows and read a bounding rectangle.
-  const windows = skry.windows();
+  const windows = umbriel.windows();
   assert(windows.length > 0, `UIA still enumerates top-level windows under per-monitor awareness (${windows.length})`);
   const target = windows.find((window) => window.title.length > 0);
   if (target !== undefined) {
-    const app = skry.attach(target.hWnd);
+    const app = umbriel.attach(target.hWnd);
     const bounds = app.boundingRectangle;
     assert(bounds.width >= 0 && bounds.height >= 0, `a window's bounding rectangle reads cleanly (${bounds.width}×${bounds.height})`);
     app.dispose();
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — initialize() makes the process per-monitor DPI-aware; UIA bounds + coords share one physical-pixel space.' : `\nFAILED — ${failures} assertion(s)`);

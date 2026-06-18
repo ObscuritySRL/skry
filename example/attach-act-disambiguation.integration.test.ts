@@ -12,7 +12,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + spawned Explorers):
  * Run: bun run example/attach-act-disambiguation.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -58,9 +58,9 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const prior = new Set(
-  skry
+  umbriel
     .windows()
     .filter((w) => w.className === 'CabinetWClass')
     .map((w) => w.hWnd),
@@ -68,7 +68,7 @@ const prior = new Set(
 Bun.spawn(['explorer.exe', 'C:\\Windows'], { stdout: 'ignore', stderr: 'ignore' });
 Bun.spawn(['explorer.exe', 'C:\\Windows\\System32'], { stdout: 'ignore', stderr: 'ignore' });
 await Bun.sleep(3000);
-const opened = skry.windows().filter((w) => w.className === 'CabinetWClass' && !prior.has(w.hWnd));
+const opened = umbriel.windows().filter((w) => w.className === 'CabinetWClass' && !prior.has(w.hWnd));
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'disambig', version: '1' } });
 
@@ -82,7 +82,7 @@ try {
   // (1) attach {processId} ambiguity — pick a pid that genuinely owns >1 visible window (same enumeration the
   // handler uses), e.g. a shell/host process; the two spawned Explorers guarantee at least one such pid exists.
   const byPid = new Map<number, number>();
-  for (const window of skry.windows({ includeUntitled: true })) byPid.set(window.processId, (byPid.get(window.processId) ?? 0) + 1);
+  for (const window of umbriel.windows({ includeUntitled: true })) byPid.set(window.processId, (byPid.get(window.processId) ?? 0) + 1);
   const multiPid = [...byPid.entries()].find(([, count]) => count > 1)?.[0];
   if (multiPid === undefined) console.log('  skip: no process owns >1 visible window right now for the processId-ambiguity case');
   else {
@@ -92,7 +92,7 @@ try {
 } finally {
   proc.kill();
   for (const window of opened) closeWindow(window.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — attach + find_and_act refuse ambiguous targets with candidate lists (no silent wrong-target).' : `\nFAILED — ${failures} assertion(s)`);

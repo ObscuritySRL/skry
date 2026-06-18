@@ -77,7 +77,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-combo-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 160, 160, 320, 220, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-combo-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 160, 160, 320, 220, 0n, 0n, BigInt(hInstance), null);
 const combo = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('ComboBox').ptr!, null, WS_CHILD | WS_VISIBLE | WS_VSCROLL | CBS_DROPDOWNLIST, 10, 10, 280, 200, parent, 0n, BigInt(hInstance), null);
 if (combo !== 0n) for (const item of ['Alpha', 'Beta', 'Gamma']) User32.SendMessageW(combo, CB_ADDSTRING, 0n, BigInt(wide(item).ptr!));
 pump();

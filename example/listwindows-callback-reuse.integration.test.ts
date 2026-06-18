@@ -12,7 +12,7 @@
  * Run: bun run example/listwindows-callback-reuse.integration.test.ts
  */
 import { FFIType, JSCallback } from 'bun:ffi';
-import { skry } from 'skry';
+import { umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -23,13 +23,13 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   // Correctness: repeated calls must return a STABLE count (the accumulator is reset each call, not appended to).
   const counts: number[] = [];
   let taskbarEveryCall = true;
   for (let i = 0; i < 30; i += 1) {
-    const windows = skry.windows({ includeUntitled: true });
+    const windows = umbriel.windows({ includeUntitled: true });
     counts.push(windows.length);
     if (!windows.some((window) => window.className === 'Shell_TrayWnd')) taskbarEveryCall = false;
   }
@@ -47,14 +47,14 @@ try {
   const allocPerCallUs = (Bun.nanoseconds() - allocStart) / 200 / 1000;
 
   const callStart = Bun.nanoseconds();
-  for (let i = 0; i < 200; i += 1) skry.windows({ includeUntitled: true });
+  for (let i = 0; i < 200; i += 1) umbriel.windows({ includeUntitled: true });
   const listPerCallMs = (Bun.nanoseconds() - callStart) / 200 / 1_000_000;
 
   console.log(`  removed per-call JSCallback alloc+close: ~${allocPerCallUs.toFixed(0)}µs | listWindows median ${listPerCallMs.toFixed(2)}ms/call`);
   assert(allocPerCallUs > 5, `the eliminated per-call JSCallback alloc cost is non-trivial (~${allocPerCallUs.toFixed(0)}µs)`);
   assert(listPerCallMs < 10, `listWindows stays well under any per-call pathology (${listPerCallMs.toFixed(2)}ms)`);
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — listWindows/renderWidgetHandles reuse one persistent JSCallback; counts stable, alloc churn removed.' : `\nFAILED — ${failures} assertion(s)`);

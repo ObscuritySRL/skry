@@ -11,7 +11,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (no windows spawned):
  * Run: bun run example/expand-range.integration.test.ts
  */
-import { ControlType, type Element, skry } from 'skry';
+import { ControlType, type Element, umbriel } from 'umbriel';
 
 let failures = 0;
 let checked = 0;
@@ -23,15 +23,15 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   let expandTested = false;
   let rangeTested = false;
-  for (const w of skry.windows()) {
+  for (const w of umbriel.windows()) {
     if (expandTested && rangeTested) break;
     let win: Element | null = null;
     try {
-      win = skry.attach(w.hWnd);
+      win = umbriel.attach(w.hWnd);
     } catch {
       continue;
     }
@@ -68,7 +68,7 @@ try {
   }
   if (checked === 0) console.log('  skip: no ComboBox/SplitButton/Slider in any running app to exercise');
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? `\nPASS — ExpandCollapse + RangeValue drive cursor-free (${checked} control(s) exercised).` : `\nFAILED — ${failures} assertion(s)`);

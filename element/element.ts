@@ -1067,7 +1067,7 @@ export class Window extends Element {
     return roots;
   }
 
-  /** Release the window element. Enables `using app = skry.attach(...)`. */
+  /** Release the window element. Enables `using app = umbriel.attach(...)`. */
   dispose(): void {
     this.release();
   }

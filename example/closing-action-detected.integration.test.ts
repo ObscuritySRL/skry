@@ -13,7 +13,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a MessageBox helper subprocess):
  * Run: bun run example/closing-action-detected.integration.test.ts
  */
-import { skry } from 'skry';
+import { umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -61,8 +61,8 @@ function assert(condition: boolean, message: string): void {
 
 // A helper process pops a modal MessageBox (its own thread blocks in MessageBoxW until OK is clicked).
 const box = Bun.spawn(['bun', '-e', "import U from '@bun-win32/user32'; const w=(t)=>Buffer.from(t+'\\0','utf16le'); U.MessageBoxW(0n, w('close me').ptr, w('UIA-CLOSE-PROBE').ptr, 0);"], { stdout: 'ignore', stderr: 'ignore' });
-skry.initialize();
-const win = await skry.waitForWindow({ title: 'UIA-CLOSE-PROBE' }, { timeout: 6000 }).catch(() => null);
+umbriel.initialize();
+const win = await umbriel.waitForWindow({ title: 'UIA-CLOSE-PROBE' }, { timeout: 6000 }).catch(() => null);
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'closing', version: '1' } });
   if (win === null) console.log('  skip: MessageBox helper window did not appear');
@@ -80,7 +80,7 @@ try {
 } finally {
   proc.kill();
   box.kill();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a window-closing action is reported as a clean close, not a misleading cold-tree re-snapshot loop.' : `\nFAILED — ${failures} assertion(s)`);
