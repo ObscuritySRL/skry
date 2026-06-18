@@ -1,105 +1,157 @@
-# umbriel
+<div align="center">
 
-**Playwright for the Windows desktop — and an MCP server that hands Claude a whole Windows machine.** Target controls by **name and role, not brittle pixels**, then click, type, wait, read, and assert across any native app — Win32, WinForms, WPF, WinUI/UWP, Electron/Chromium, **Qt** (OBS/VLC/Telegram/KDE), and Java are each pinned by a regression test — through the live accessibility tree (UI Automation, with MSAA and the Java Access Bridge behind one facade), from Bun, with **zero native dependencies**. No node-gyp, no prebuild matrix, no Appium server, no .NET. And when an app exposes no tree, it reaches past it: synthetic input, window/process introspection, background capture, OCR, and image matching.
+<img src="./assets/hero.png" alt="Umbriel" width="100%" />
 
-**Two ways to use it:**
+# Umbriel · A set of hands for your AI agent — and Playwright for the Windows desktop
 
-- **In your project** — E2E-test and automate Windows GUIs the way Playwright tests the web: `find({ name })` → `waitFor` → `invoke`/`setValue`/`type` → assert `value`/`text()`. Semantic targeting survives the DPI, theme, and layout shifts that break pixel scripts.
-- **As an AI agent's hands** — `claude mcp add umbriel -- bunx umbriel` and Claude (or any MCP client) drives the entire desktop through the a11y tree: by name, **cursor-free**, ~15 ms/step, even on a locked session.
+Drive any Windows app through four layers: fall back to OCR and pixel-matching when there's no other way in, see and manage windows even when they're hidden, send cursor-free synthetic input, and target controls by name and role. Built by Claude, for Claude — but any AI agent over MCP can use it.
 
-> The unscoped alias [`umbriel`](https://www.npmjs.com/package/umbriel) re-exports this package — `bun add umbriel` is the discoverable front door.
+[![npm](https://img.shields.io/npm/v/umbriel?color=8b5cf6&label=umbriel)](https://www.npmjs.com/package/umbriel)
+[![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)](#requirements)
+[![runtime](https://img.shields.io/badge/runtime-Bun%20%E2%89%A5%201.1-black)](https://bun.sh)
+[![deps](https://img.shields.io/badge/native%20deps-zero-22c55e)](#why-umbriel)
+
+</div>
+
+## What is it?
+
+Umbriel drives the Windows desktop the way a person would — through whatever channel actually works for the app in front of it:
+
+1. **Pixels & OCR** — when an app exposes no tree at all (canvas, custom-draw, games), fall back to full-screen capture, template matching, and text recognition.
+2. **Semantic control** — read the UI Automation tree an app exposes and target controls by *name* and *role*, not coordinates. Survives the DPI, layout, and theme changes that shatter pixel scripts.
+3. **Sight & window control** — capture the *live* pixels of any window (even fully GPU-composited or occluded), inspect raw HWND hierarchies, and move, raise, or size windows.
+4. **Synthetic input** — cursor-free clicks, keystrokes, and text that land on background, locked, minimized, or occluded windows without stealing focus.
+
+Underneath it's a few kilobytes of TypeScript on Bun's built-in FFI — no Appium server, no `.NET`, no `node-gyp`, no prebuilt binaries.
+
+## Install
+
+```bash
+bun add umbriel
+```
+
+That's the entire install story. No build step, nothing to compile.
+
+## Built for AI agents
+
+This is what Umbriel is *for*. Hand the whole desktop to an agent with one line:
+
+```bash
+claude mcp add umbriel -- bunx umbriel
+```
+
+Any MCP-speaking agent then drives Windows cursor-free, ~15 ms per step, even on a background, locked, minimized, or occluded window. No mouse hijacking, no screenshots required. It was built by Claude, for Claude, but nothing about it is Claude-specific — any AI over MCP works.
+
+Why it's fast where screenshot agents are slow: frontier computer-use agents ground their actions in screenshots, which the research calls fragile, slow, and token-hungry. Microsoft's UFO2 and the OSWorld-Human benchmark both point to the same fix — read the structure first, vision second. But building that structured snapshot the usual way takes 3–26 seconds and thousands of tokens per step. Umbriel serves it fast and in-process:
+
+```ts
+umbriel.tree(app, { agentProfile: true });
+// → one cached round-trip → { role, name, automationId, bounds, children }
+```
+
+| Operation | Result |
+| --- | --- |
+| Agent-grounding snapshot build | ~13 ms · ~2.95k tokens |
+| Single property read (cross-process) | ~58 µs |
+| vs. OSWorld snapshot build (3–26 s) | ~230–2000× faster |
+
+<sub>Measured on Windows 11, Bun 1.4 — reproduce with `bun run example/benchmark.ts`.</sub>
+
+The MCP server exposes snapshot-first tools behind a deployer policy you control:
+
+```bash
+UMBRIEL_PROFILE=readonly   # observe only
+UMBRIEL_PROFILE=safe       # default — observe + cursor-free control + window management
+UMBRIEL_PROFILE=full       # everything, including launch/run/file tools
+```
+
+`desktop_snapshot` returns a ref-keyed view — `Button "Five" [ref=e49#3]` — and every action replies with the smallest faithful update: a compact delta when little changed, a pruned snapshot when more did. The model re-grounds without drowning in tokens.
+
+## Use it from your code
+
+Umbriel is also a first-class library for E2E tests and desktop automation — find by name → wait → act → assert, just like `getByRole` on the web:
 
 ```ts
 import { ControlType, umbriel } from 'umbriel';
 
-const app = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
+const app  = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 const edit = await app.waitFor({ controlType: ControlType.Document });
+
 edit.focus().type('nothing native compiles, and it just works');
 console.log(edit.text()); // → nothing native compiles, and it just works
 ```
 
 ```ts
-// Drive Calculator to 5 + 3 = 8 by name — survives DPI/theme/layout shifts that break pixel scripts:
+// Drive Calculator to 5 + 3 = 8 — by name, not pixels:
 const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
-for (const name of ['Five', 'Plus', 'Three', 'Equals']) calc.find({ controlType: ControlType.Button, name })?.invoke();
+
+for (const name of ['Five', 'Plus', 'Three', 'Equals'])
+  calc.find({ controlType: ControlType.Button, name })?.invoke();
+
 console.log(calc.find({ automationId: 'CalculatorResults' })?.name); // → "Display is 8"
 ```
 
-`bun add umbriel` is the entire install story.
+## Why Umbriel?
 
-## Why this exists
+The Windows desktop-automation corner of npm is a minefield of native-addon build failures, paywalls, and abandoned daemons. There has been no zero-install, typed, in-process Windows-automation client for Node or Bun — until this.
 
-The Windows desktop-automation cluster on npm is a field of native-addon pain, paywalls, and abandoned daemons. Downloads verified against `api.npmjs.org` for the week of 2026-06-05→11.
+Because Umbriel is plain TypeScript over Bun's own FFI, it:
 
-| Tool | Weekly dl | Install / runtime | The catch |
-| --- | --- | --- | --- |
-| `@nut-tree-fork/nut-js` | 32,360 | libnut N-API addon (cmake-js) | Fork of a **paywalled** original — *"all of my packages around nut.js will cease to exist publicly on npm … only available through the private … registry, which requires an active subscription."* Pixel/image-match, **no a11y tree**. |
-| `appium-windows-driver` | 30,749 | Appium server **+ a separate WinAppDriver.exe** | *"WinAppDriver server has not been maintained by Microsoft for years … Developer mode must be enabled."* Two daemons + a W3C HTTP hop per element read. |
-| `@jitsi/robotjs` / `robotjs` | 15,333 / 11,375 | node-gyp / prebuild matrix | *"No prebuilt binaries found … node-gyp rebuild"* C++ compile fallback — the #1 documented install failure. Blind pixel + keystroke, **no element model**. |
-| `uiohook-napi` (input hooks) | 21,965 | N-API addon | Healthy — but global `SetWindowsHookEx` hooks run on a foreign thread and can assert/segfault (node-addon-api #903). |
-| `@bright-fish/node-ui-automation` | 33 | NAPI/COM native addon | The only real npm UIA wrapper — **dead since 2022**. |
-| NodeRT `windows.ui.uiautomation` | 15 | NodeRT native addon | Dead 2022 **and wrong namespace** (projects WinRT, not the Win32 `IUIAutomation`). |
-| FlaUI / pywinauto / AutoIt | n/a | .NET / Python / bespoke EXE | A foreign runtime to install and ship. |
+- **Can't be paywalled** — there's no compiled binary to gate behind a subscription registry.
+- **Has no build step** — no ABI matrix, no `MSVC` or Python toolchain, no `node-gyp`.
+- **Talks to Windows in-process** — no `127.0.0.1:4723` round-trip, no Appium daemon, no Developer Mode, no `WinAppDriver`.
 
-**There is no zero-install, typed, in-process `IUIAutomation` client for Node or Bun.** umbriel is a few kilobytes of TypeScript over `bun:ffi` — the runtime's own FFI, not a third-party N-API addon that rots against each Node minor (*"PLEASE ARCHIVE THIS REPO"* — node-ffi-napi #269). It **can't be paywalled** (no compiled binary to gate behind a subscription registry), has **no build step** (no node-gyp, no ABI matrix, no MSVC/Python), and talks to UIA **in-process** (no WinAppDriver.exe, no Appium daemon, no `127.0.0.1:4723` round-trip, no Developer Mode).
+<details>
+<summary><b>How the alternatives compare</b> (npm weekly downloads, week of 2026-06-05)</summary>
 
-## What you can do
+| Tool | Weekly dl | The catch |
+| --- | --- | --- |
+| FlaUI / pywinauto / AutoIt | n/a | A whole foreign runtime (`.NET` / Python / bespoke EXE) to install and ship. |
+| `@bright-fish/node-ui-automation` | 33 | The only real npm UIA wrapper — dead since 2022. |
+| `@nut-tree-fork/nut-js` | 32,360 | Fork of a now-paywalled original. Pixel/image-match only — no semantic model. |
+| `appium-windows-driver` | 30,749 | Needs an Appium server plus a separate `WinAppDriver.exe` Microsoft hasn't maintained in years. |
+| `robotjs` / `@jitsi/robotjs` | 11,375 / 15,333 | `node-gyp` C++ compile — the #1 documented install failure. Blind pixels + keystrokes, no element model. |
+| `uiohook-napi` | 21,965 | Healthy, but global hooks run on a foreign thread and can segfault. |
 
-- **Find controls semantically** — by name, role, or automationId, not a fragile `(x, y)`. Exact scalars compile to a **server-side** UIA condition (the target app filters in-process); regex/substring filter client-side.
-- **Act** — `invoke()`, `click()`, `setValue()`, `type()`, `toggle()`, `expand()`, `select()`, `setRangeValue()`, window `close()`/`setVisualState()`. Each pattern is proven against a real control.
-- **Unicode / CJK / emoji input proven** — Japanese, Korean, accented-Latin, and astral-surrogate (emoji / Unicode plane-1) text round-trip cursor-free through all three input paths — `setControlText` (WM_SETTEXT), `postText` (WM_CHAR per UTF-16 unit, surrogate pairs intact), and `Element.setValue` (ValuePattern) — pinned by `example/non-latin-input.integration.test.ts`.
-- **`waitFor`** — Playwright-class auto-retry for flaky native UIs. No other Windows-desktop npm tool has it. Timeouts quote the selector, the window, and the nearest candidates. `waitForGone(selector)` is the inverse (a spinner / modal cleared); `waitForState(selector, expectation)` is the desktop `expect(locator).toBeChecked()/toHaveValue()` — a retrying STATE assertion that confirms an action landed (a toggle is now on, a set value stuck, an item is now selected/expanded/enabled) and throws quoting the last-seen state on timeout.
-- **Read & assert** — `value`, `text()`, `isEnabled`, `boundingRectangle`, `toggleState`. Read state back through the tree to assert — pixel tools can't.
-- **Serialize the tree to JSON** for an LLM agent (`umbriel.tree`), with a token-svelte agent profile.
-- **Screenshot** any window via PrintWindow — `Window.screenshot()` is pure PrintWindow (it re-renders the window into our DC, so it works occluded/background for most GDI/WinForms/WPF windows, but returns blank bytes for a GPU-swapchain surface or a locked session); for those, `captureWindowLive(hWnd)` (and the MCP `screenshot` tool) fall back to **Windows.Graphics.Capture** (the live composited surface — proven occluded in `example/wgc-occluded.integration.test.ts`). All can come back blank on a locked / secure-desktop session — UIA reads + `invoke`/`setValue` still work there.
-- **MSAA fallback** (`umbriel.msaaTree`) for legacy / owner-draw windows.
-- **Crash-safe input observation** via `GetAsyncKeyState` polling — no foreign-thread hook, no message-pump assert.
-- **Drive in the dark** — `invoke()`/`setValue()`/`toggle()`/`scroll()` move no real cursor and work on a window that is **minimized, in the background, occluded, or on a locked session** — no focus theft, the human-transcending default. (Caveat: a classic **Win32/HWND** app stays drivable while minimized; a **UWP/WinUI** store app suspends its UI thread + a11y tree when minimized or fully backgrounded — its tree reads empty and posted actions may not land until you `restoreWindow`/`raiseWindow` it.) (A bare `postClick(x, y)` posts to whatever window owns that on-screen pixel, so for a minimized/occluded target use the element/ref path, which posts to the control's own window.) SendInput is the opt-in "a human is watching" path.
-- **See a window even when it's not visible** — `captureWindowLive(hWnd)` reads the LIVE pixels of a window via **Windows.Graphics.Capture** even fully occluded / in the background / GPU-composited (hardware-accel Chromium/Edge/Electron, games, WinUI) — the same surface Alt+Tab previews use, with no foregrounding. It reaches the GPU-swapchain content `PrintWindow` often returns blank for (WebGL/video/games — though modern DWM re-renders many composition surfaces into PrintWindow's DC, so "blank" is content- and OS-build-dependent, not universal). *Proven, not asserted:* `example/wgc-occluded.integration.test.ts` captures a WinUI window while it sits fully occluded behind a maximized window — non-blank, never foregrounded, with the PrintWindow grab written alongside to SEE the difference. (A **minimized** window has no composed surface — restore it first; a locked/disconnected session or DRM content returns null/black.)
-- **Window & monitor management** — `moveWindow`/`minimizeWindow`/`maximizeWindow`/`restoreWindow`/`raiseWindow`/`closeWindow` (no foreground required), `listMonitors()`, and the exe path + min/max/foreground state of every window.
-- **Native window introspection** — `windowTree(hWnd)` dumps the raw HWND hierarchy (class, control id, decoded `WS_*`/`WS_EX_*` styles) like Spy++/Winspector, reaching the classic-Win32 controls UIA can't see.
-- **Pixel fallback for no-a11y surfaces** — `captureScreen()` (full desktop or region), `locateOnScreen(needle)` template matching, `pixelColor(x, y)` — the nut.js/robotjs niche, in-process, for games/canvas/browsers with no a11y tree.
-- **Clipboard** — `readClipboard()`/`writeClipboard()`/`paste()` (the reliable large-text path, no per-keystroke corruption) and `copy()` (Ctrl+C + read the selection from any app).
+</details>
 
-## For AI agents
+## Highlights
 
-Frontier computer-use agents ground actions in **screenshots** and the literature calls it fragile and expensive. Microsoft **UFO2** (arXiv 2504.14603) fuses the **UI Automation tree first, vision second**, to fix *"fragile screenshot-based interaction"*; OmniParser exists because VLMs can't reliably locate clickable elements from a bitmap; and **OSWorld-Human** (arXiv 2506.16042) reports a11y-tree builds taking **3–26 seconds** and "thousands more tokens per step."
+🌐 **Reach into Chromium & Electron** — read and drive the in-page web DOM of Chrome, Edge, and every Electron app (Discord, Slack, Spotify, VS Code) as real semantic elements, not pixels — through the same `find` / `invoke` / `waitFor` API as any native control.
 
-umbriel is exactly that UIA-first substrate — served **fast and in-process**. `umbriel.tree(app, { agentProfile: true })` walks a window's subtree in **one cached round-trip** and emits ground-truth `{ role, name, automationId, bounds, children }` an agent acts on without pixel-counting. The measured build time below beats the OSWorld 3–26 s reference by **two-to-three orders of magnitude**. `umbriel.execute(app, actions)` runs a JSON action list; `AGENT_TOOLS` is a ready LLM tool schema.
+📋 **Clipboard done right** — reliable large-text paste with no per-keystroke corruption, plus copy-and-read from any app.
 
-## Drive Windows with Claude — MCP server + computer-use
+🌑 **Drive in the dark** — `invoke`, `scroll`, `setValue`, and `toggle` move no real cursor and work on windows that are hidden, minimized, occluded, or on a locked session. No focus theft.
 
-A zero-dependency **MCP server** ships in the box. Register it with one line and Claude (Desktop, Code, or any MCP client) drives Windows through the accessibility tree:
+🖼️ **Pixel & OCR fallback** — coordinate clicks, full-screen capture, template matching, and text recognition for canvases and games with nothing else to grab onto.
 
-```
-claude mcp add umbriel -- bunx umbriel
-```
+🔎 **Reads everything** — MSAA trees for legacy windows, bounding boxes, data-grid cells, enabled/checked state, native HWND hierarchies (Spy++ style), text, and values.
 
-(Windows-hardened, for clients that spawn without a shell: `claude mcp add umbriel -- cmd /c bunx -y umbriel`.) It exposes **61 snapshot-first tools** (55 under the default `safe` profile; 22 under `readonly`; the 6 os/fs tools need `full` or `UMBRIEL_OS=1`) (protocol `2025-11-25`), gated by a deployer policy. `desktop_snapshot` returns a ref-keyed tree — `Button "Five" [ref=e49#3]` — then `click`/`invoke`/`type`/`set_value`/`toggle`/`select`/`scroll` target a ref (cursor-free, so they work on a minimized/background/occluded/locked window — `select` even multi-selects a set of items with no real mouse; classic Win32/HWND apps stay drivable minimized, but a UWP/WinUI store app suspends its tree when minimized/fully backgrounded, so restore it first). Each ref carries a `#generation` tag that bumps when the tree is re-rendered, so a ref reused from before a re-render is **rejected** (not silently mis-resolved onto a different control) while a ref that survives a cheap delta keeps working. Every action returns the **smallest faithful re-grounding** — a compact `Δ` delta when little changed (`~ Text "Display is 5" → "Display is 55"`, ~28× cheaper than a full dump), else a pruned, size-capped tree — so the model re-grounds without drowning in tokens. Beyond one window it can **see the whole desktop** (`screen_capture`), **see a specific occluded/GPU window** (`capture_window` — Windows.Graphics.Capture), turn a pixel into a control (`inspect_point`), read a control's full state (`inspect_element`), read a data grid / list / table cell-by-cell (`read_table`), find + select text by content (`find_text` — the desktop getByText), read native/MSAA trees, list monitors, manage windows, and — gated default-OFF — launch apps, run programs, and read/write files. A thrown tool error comes back as `isError` so the loop self-corrects instead of stopping.
+🌍 **Real Unicode input** — Japanese, Korean, accented Latin, and emoji round-trip correctly through three independent input paths. Proven by a regression test, not promised.
 
-**Deployer policy** decides which tools exist: `UMBRIEL_PROFILE=readonly` (observe only) · `safe` (**default** — observe + cursor-free desktop control + window management, no OS reach) · `full` (everything). Overrides: `UMBRIEL_OS=1` (enable launch/run/file), `UMBRIEL_ALLOW`/`UMBRIEL_DENY`, `UMBRIEL_CURSOR=never` (strictly cursor-free), `UMBRIEL_FS_ROOT=<path>` (sandbox file tools). `tools/list` advertises only the enabled tools.
+👁️ **See the unseen** — capture the *live* pixels of a window even when it's fully GPU-composited or occluded (Chromium, Edge, Electron, games) via `Windows.Graphics.Capture` — the same surface Alt+Tab previews use.
 
-`umbriel.dispatch(window, action)` runs the **literal Anthropic `computer` and OpenAI CUA action sets** against Windows — but **semantic-first and cursor-free**: a coordinate `left_click` resolves the element under the point and `invoke()`s it, so the real mouse never moves, it works on a locked session, and every pixel action becomes a ground-truth semantic one (erasing the coordinate-hallucination and click-miss failure modes of screenshot-only agents). `screenshotWithMarks(app, umbriel.snapshot(app))` overlays numbered **Set-of-Marks** boxes derived from UIA bounds — the grounding the literature (Set-of-Mark, UFO2, Windows Agent Arena: **+57% from UIA-derived marks**) shows lifts task success, with no vision model. Honest limit: UIA can't see owner-draw/canvas/games, so the pixel layer (`locateOnScreen`) is the fallback there.
+🎯 **Semantic targeting** — find controls by `automationId`, name, or role. Exact matches are filtered inside the target app for speed; regex and substring match on your side.
 
-## Benchmarks
+🧩 **Works across the stack** — Electron/Chromium, Java, Qt (KDE, OBS, Telegram, VLC), WPF, Win32, WinForms, and WinUI/UWP — each pinned by its own regression test.
 
-Measured on Windows 11, Bun 1.4, by `bun run example/benchmark.ts` (run it to reproduce):
+⏳ **`waitFor`, the Playwright way** — auto-retry for flaky native UIs, with timeouts that quote the nearest candidates and your selector. No other Windows-desktop npm tool has it.
 
-| operation | result |
-| --- | --- |
-| single property read (cross-process) | ~58 µs |
-| naive subtree walk (73 nodes) | ~35 ms |
-| cached subtree walk (one round-trip) | ~45 ms (slower on this tiny 73-node tree — the BuildCache round-trip is a fixed cost it amortizes only as the tree grows; on a large cross-process tree it wins) |
-| **agent-grounding tree build** | **~13 ms, ~2.95k tokens** |
-| **vs OSWorld a11y-tree build (3–26 s)** | **~230–2000× faster** |
+## Requirements
 
-## Requirements & honest scoping
+- **Semantic first, pixels where there's no structure** — custom-draw, games, and WebGL surfaces fall back to the built-in pixel + OCR layer; everything with a tree gets exact semantic targeting.
+- **Synthetic typing and real clicks need an unlocked desktop** — `invoke`, reads, and `setValue` work even on a locked session, so prefer them.
+- **Windows 10 or 11, Bun ≥ 1.1** — Windows-only and Bun-only, the owned trade-off for zero dependencies and in-process speed.
 
-- **Windows 10/11, Bun ≥ 1.1.** Windows-only and Bun-only — the owned trade-off (nut.js/robotjs/uiohook are genuinely cross-platform; this is not).
-- **UIA-tree first, pixels where there's no tree.** Apps with no accessibility tree (games, canvas/WebGL, custom-draw) fall back to the built-in pixel layer — full-screen capture + `locateOnScreen` template matching + coordinate `click()` — plus MSAA. (Chromium/Edge/Electron in-page DOM is NOT a no-tree case — `webRoots()` reads it as UIA; the pixel layer is only for genuinely tree-less surfaces.) Those GPU/composited surfaces, even fully occluded or in the background, are still **seen** via `captureWindowLive` (Windows.Graphics.Capture) — including the GPU-swapchain content where `PrintWindow` goes blank (proven occluded + SEEN in `example/wgc-occluded.integration.test.ts`). UIA-native where there's a tree, pixels where there isn't.
-- **Synthetic input (`type`/`sendKeys`/`click`) needs an unlocked, interactive desktop.** UIA queries, `invoke`, and `setValue` work on a locked session; prefer them. (`screenshot`/PrintWindow can be blank when locked.)
-- **Selectors are client-side for regex/substring** (exact scalars are server-side). **Window/process lifecycle events ship** (`waitForWindow` via `SetWinEventHook`; `waitForProcess` polls a toolhelp32 snapshot); UIA property/structure event subscription is still roadmap — poll with `waitFor` / `waitForIdle`.
+## Going deeper
 
-Read [`AI.md`](./AI.md) — it is the complete surface; an agent should not need the source.
+The complete API surface lives in [AI.md](./AI.md) — written so thoroughly that an agent (or a developer) never needs to read the source. Runnable demos are in [`example/`](./example).
 
-MIT.
+---
+
+<div align="center">
+
+MIT Licensed · Built on [`bun:ffi`](https://bun.sh/docs/api/ffi) with zero native dependencies
+
+</div>
