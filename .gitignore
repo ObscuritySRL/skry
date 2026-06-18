@@ -31,3 +31,7 @@ coverage
 .idea
 .DS_Store
 *.stackdump
+
+# Local-only dev docs — never publish
+CLAUDE-FABLE-5.md
+UIA_PROMPT_4.md
