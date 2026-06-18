@@ -1,7 +1,7 @@
 /**
  * fs-sandbox-driveroot — regression for a resolveFsPath off-by-one (introduced with the reparse-escape fix).
  *
- * When SKRY_FS_ROOT is a NOT-YET-CREATED direct child of a drive root (e.g. D:\sandbox), the deepest EXISTING
+ * When UMBRIEL_FS_ROOT is a NOT-YET-CREATED direct child of a drive root (e.g. D:\sandbox), the deepest EXISTING
  * ancestor is the drive root `D:\`, which already ends in a separator. The old `resolved.slice(ancestor.length + 1)`
  * dropped the first char of the remainder, corrupting the path and throwing a bogus "escaped via a reparse point"
  * error — fail-closed, but it broke EVERY read_file/write_file/list_dir under a plausible first-run deployer config.
@@ -30,7 +30,7 @@ const root = `${drive}/__uia_fs_driveroot_test__`;
 await Bun.$`rm -rf ${root}`.quiet().nothrow();
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe', SKRY_OS: '1', SKRY_FS_ROOT: root } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe', UMBRIEL_OS: '1', UMBRIEL_FS_ROOT: root } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';

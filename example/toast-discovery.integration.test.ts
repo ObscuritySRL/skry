@@ -12,7 +12,7 @@
  * Run: bun run example/toast-discovery.integration.test.ts
  */
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';

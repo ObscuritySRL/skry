@@ -131,7 +131,7 @@ try {
         // MCP-LAYER coverage: drive java_tree / java_set_text / java_invoke over JSON-RPC against the SAME window, so the
         // handlers' hWnd resolution + arg parsing + rendered tree are proven (not just the library functions they wrap).
         type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-        const mcp = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
+        const mcp = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
         const reader = mcp.stdout.getReader();
         const decoder = new TextDecoder();
         let mcpBuffer = '';

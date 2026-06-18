@@ -30,7 +30,7 @@ export type Server = {
 };
 
 /** Spawn the MCP server over stdio and return a newline-framed JSON-RPC client. `env` is merged onto Bun.env (default profile=safe). */
-export function spawnServer(env: Record<string, string> = { SKRY_PROFILE: 'safe' }): Server {
+export function spawnServer(env: Record<string, string> = { UMBRIEL_PROFILE: 'safe' }): Server {
   const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, ...env } });
   const reader = proc.stdout.getReader();
   const decoder = new TextDecoder();

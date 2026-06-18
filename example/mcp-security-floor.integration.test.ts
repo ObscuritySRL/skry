@@ -3,15 +3,15 @@
  *   1. AUDIT: every mutating tool call leaves a structured stderr trail (default-on; only widen-able) — set_clipboard
  *      is recorded, with its secret-bearing `text` arg masked to a length, not logged verbatim. A POLICY-REFUSED call
  *      is audited too (ok:false, "DENIED by policy") for EVERY category — a denied privilege probe is the intrusion
- *      signal a least-privilege audit must keep; the explicit SKRY_AUDIT=off opt-out silences denials as well.
+ *      signal a least-privilege audit must keep; the explicit UMBRIEL_AUDIT=off opt-out silences denials as well.
  *   2. CLIPBOARD LEAST-PRIVILEGE: read_clipboard is category 'input' (NOT 'read'), so the readonly profile does NOT
  *      expose it — a least-privilege agent cannot exfiltrate the global clipboard (passwords / 2FA / API keys).
  *   3. REDACTION: under an acting profile, read_clipboard masks a planted secret shape (an AKIA… key) instead of
  *      returning it verbatim, and fences the result as UNTRUSTED content (prompt-injection boundary). copy/cut — which
  *      extract an app's text the same way — fence their returned text identically (no UNFENCED captured-text return).
- *   4. OS/READONLY MISMATCH: readonly + SKRY_OS=1 serves the ACTING instructions (not the READ-ONLY banner), so the
+ *   4. OS/READONLY MISMATCH: readonly + UMBRIEL_OS=1 serves the ACTING instructions (not the READ-ONLY banner), so the
  *      model is never told it is read-only while run_program/write_file are live. The same honesty floor holds for the
- *      SKRY_ALLOW path: a readonly profile that allow-lists an acting tool (click/type) or an fs tool (read_file)
+ *      UMBRIEL_ALLOW path: a readonly profile that allow-lists an acting tool (click/type) or an fs tool (read_file)
  *      MUST drop the READ-ONLY banner and emit a startup WARNING — the banner/instructions key off the ACTUAL allowed
  *      surface, not enabledCategories (which the allow-list never populates).
  *
@@ -101,7 +101,7 @@ const init = { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { na
 const SECRET = 'AKIAIOSFODNN7EXAMPLE'; // an AWS access-key-id-shaped string the default redaction masks
 
 // 1+3 — acting profile: audit trail + clipboard redaction + untrusted fence.
-const safe = spawnServer({ SKRY_PROFILE: 'safe' });
+const safe = spawnServer({ UMBRIEL_PROFILE: 'safe' });
 try {
   await safe.call('initialize', init);
   await safe.call('tools/call', { name: 'set_clipboard', arguments: { text: SECRET } });
@@ -134,14 +134,14 @@ try {
 }
 
 // 2 — readonly profile must NOT expose read_clipboard (it is category 'input' now, not 'read').
-const ro = spawnServer({ SKRY_PROFILE: 'readonly' });
+const ro = spawnServer({ UMBRIEL_PROFILE: 'readonly' });
 try {
   await ro.call('initialize', init);
   const list = await ro.call('tools/list', {});
   const names = (list.result?.tools ?? []).map((tool) => tool.name);
   assert(!names.includes('read_clipboard'), 'readonly profile does NOT list read_clipboard (no clipboard exfiltration under least-privilege)');
   const blocked = await ro.call('tools/call', { name: 'read_clipboard', arguments: {} });
-  assert(blocked.result?.isError === true && /disabled by the server policy/.test(textOf(blocked)), 'read_clipboard is REFUSED under readonly (steered to SKRY_ALLOW=read_clipboard / a higher profile)');
+  assert(blocked.result?.isError === true && /disabled by the server policy/.test(textOf(blocked)), 'read_clipboard is REFUSED under readonly (steered to UMBRIEL_ALLOW=read_clipboard / a higher profile)');
   await Bun.sleep(50); // let the refusal's audit line flush to stderr
   const denied = auditLines(ro.stderr()).find((line) => line.tool === 'read_clipboard');
   assert(denied !== undefined, 'a POLICY-REFUSED tools/call leaves a forensic audit line on stderr (a denied privilege probe is the intrusion signal an audit must keep)');
@@ -151,7 +151,7 @@ try {
 }
 
 // 2b — a denied READ under a deny-list is signal too: auditDenied logs ALL categories, unlike auditCall (reads skipped unless verbose).
-const deny = spawnServer({ SKRY_PROFILE: 'safe', SKRY_DENY: 'list_windows' });
+const deny = spawnServer({ UMBRIEL_PROFILE: 'safe', UMBRIEL_DENY: 'list_windows' });
 try {
   await deny.call('initialize', init);
   const blocked = await deny.call('tools/call', { name: 'list_windows', arguments: {} });
@@ -163,19 +163,19 @@ try {
   deny.kill();
 }
 
-// 2c — the explicit SKRY_AUDIT=off opt-out silences denial lines too (no silent-on for denials).
-const denyOff = spawnServer({ SKRY_PROFILE: 'readonly', SKRY_AUDIT: 'off' });
+// 2c — the explicit UMBRIEL_AUDIT=off opt-out silences denial lines too (no silent-on for denials).
+const denyOff = spawnServer({ UMBRIEL_PROFILE: 'readonly', UMBRIEL_AUDIT: 'off' });
 try {
   await denyOff.call('initialize', init);
   await denyOff.call('tools/call', { name: 'click', arguments: { ref: 'e1' } });
   await Bun.sleep(50);
-  assert(!/\[umbriel-audit\]/.test(denyOff.stderr()), 'with SKRY_AUDIT=off, a refused call emits NO audit line (the explicit opt-out is honored for denials too)');
+  assert(!/\[umbriel-audit\]/.test(denyOff.stderr()), 'with UMBRIEL_AUDIT=off, a refused call emits NO audit line (the explicit opt-out is honored for denials too)');
 } finally {
   denyOff.kill();
 }
 
-// 4 — readonly + SKRY_OS=1: instructions must reflect the LIVE os/fs reach, not the READ-ONLY banner.
-const roOs = spawnServer({ SKRY_PROFILE: 'readonly', SKRY_OS: '1' });
+// 4 — readonly + UMBRIEL_OS=1: instructions must reflect the LIVE os/fs reach, not the READ-ONLY banner.
+const roOs = spawnServer({ UMBRIEL_PROFILE: 'readonly', UMBRIEL_OS: '1' });
 try {
   const initReply = await roOs.call('initialize', init);
   const instructions = initReply.result?.instructions ?? '';
@@ -186,10 +186,10 @@ try {
   roOs.kill();
 }
 
-// 4a — readonly + SKRY_ALLOW=<acting tool>: the allow-list grants click/type/set_value WITHOUT widening
+// 4a — readonly + UMBRIEL_ALLOW=<acting tool>: the allow-list grants click/type/set_value WITHOUT widening
 // enabledCategories, so the honesty banner/instructions MUST track the actual allowed surface — not the profile's
 // categories. A readonly banner that says "NO action/input tools" while type is live mis-tells the model it cannot act.
-const roAllowActing = spawnServer({ SKRY_PROFILE: 'readonly', SKRY_ALLOW: 'type,set_value,click' });
+const roAllowActing = spawnServer({ UMBRIEL_PROFILE: 'readonly', UMBRIEL_ALLOW: 'type,set_value,click' });
 try {
   const initReply = await roAllowActing.call('initialize', init);
   const instructions = initReply.result?.instructions ?? '';
@@ -198,14 +198,14 @@ try {
   const names = new Set((list.result?.tools ?? []).map((tool) => tool.name));
   assert(names.has('click') && names.has('type') && names.has('set_value'), 'the allow-listed acting tools are actually exposed by tools/list (the banner mismatch is real reach, not theoretical)');
   await Bun.sleep(50);
-  assert(/readonly profile exposes acting tools via SKRY_ALLOW/.test(roAllowActing.stderr()), 'readonly+ALLOW=<acting> emits a startup WARNING that the banner reads READ-ONLY while acting tools are reachable');
+  assert(/readonly profile exposes acting tools via UMBRIEL_ALLOW/.test(roAllowActing.stderr()), 'readonly+ALLOW=<acting> emits a startup WARNING that the banner reads READ-ONLY while acting tools are reachable');
 } finally {
   roAllowActing.kill();
 }
 
-// 4a' — readonly + SKRY_ALLOW=read_file: an fs tool is live via the allow-list (no SKRY_OS=1), so the os/fs-reach
+// 4a' — readonly + UMBRIEL_ALLOW=read_file: an fs tool is live via the allow-list (no UMBRIEL_OS=1), so the os/fs-reach
 // warning must fire off the ACTUAL allowed surface, not enabledCategories (which the allow-list never populates).
-const roAllowFs = spawnServer({ SKRY_PROFILE: 'readonly', SKRY_ALLOW: 'read_file' });
+const roAllowFs = spawnServer({ UMBRIEL_PROFILE: 'readonly', UMBRIEL_ALLOW: 'read_file' });
 try {
   await roAllowFs.call('initialize', init);
   await Bun.sleep(50);
@@ -215,13 +215,13 @@ try {
 }
 
 // 4b — readonly with audit explicitly disabled: the opt-out must be EXPLICIT and visible (never silent).
-const roAuditOff = spawnServer({ SKRY_PROFILE: 'safe', SKRY_AUDIT: 'off' });
+const roAuditOff = spawnServer({ UMBRIEL_PROFILE: 'safe', UMBRIEL_AUDIT: 'off' });
 try {
   await roAuditOff.call('initialize', init);
   await roAuditOff.call('tools/call', { name: 'set_clipboard', arguments: { text: 'plain' } });
   await Bun.sleep(50);
   const err = roAuditOff.stderr();
-  assert(/audit: DISABLED \(SKRY_AUDIT=off — explicit opt-out\)/.test(err), 'SKRY_AUDIT=off is reported as an EXPLICIT opt-out at startup (it cannot be silently disabled)');
+  assert(/audit: DISABLED \(UMBRIEL_AUDIT=off — explicit opt-out\)/.test(err), 'UMBRIEL_AUDIT=off is reported as an EXPLICIT opt-out at startup (it cannot be silently disabled)');
   assert(!/\[umbriel-audit\]/.test(err), 'with the explicit opt-out, no audit lines are emitted');
 } finally {
   roAuditOff.kill();
@@ -229,7 +229,7 @@ try {
 
 // 5 — error-text parity: a THROWN handler error (desktop_snapshot with nothing attached) carries the RAW message, not an
 // `Error: ` prefix, so it reads identically to the errorResult() sites — isError:true already signals failure (no GUI window).
-const errParity = spawnServer({ SKRY_PROFILE: 'readonly' });
+const errParity = spawnServer({ UMBRIEL_PROFILE: 'readonly' });
 try {
   await errParity.call('initialize', init);
   const thrown = await errParity.call('tools/call', { name: 'desktop_snapshot', arguments: {} });
@@ -243,7 +243,7 @@ try {
 // 6 — inline command-line credentials: a secret pasted into run_program / launch_app `command` must NOT reach stderr
 // (audit + trace) NOR the returned error/observation text. maskArgs collapses the `command` to its exe token + a length,
 // and the launch_app/run_program echo sites interpolate that masked form — only WHICH program ran survives, never its args.
-const osSecret = spawnServer({ SKRY_PROFILE: 'full' });
+const osSecret = spawnServer({ UMBRIEL_PROFILE: 'full' });
 try {
   await osSecret.call('initialize', init);
   // launch_app: a bogus exe with the secret as a flag — fails (not on PATH), so the error text is the echo channel under test.

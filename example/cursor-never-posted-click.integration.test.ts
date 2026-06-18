@@ -1,16 +1,16 @@
 /**
- * cursor-never-posted-click — AI.md said SKRY_CURSOR=never refuses click_point/click_text, but the handler only
+ * cursor-never-posted-click — AI.md said UMBRIEL_CURSOR=never refuses click_point/click_text, but the handler only
  * refuses their cursor:true variant — the DEFAULT posted (cursor-free) click stays live (keeping the OCR→click_point
  * path to a pixel-only surface usable under the hardened policy). AI.md (the doctrine + the policy bullet) is corrected.
  *
- * Proof: under SKRY_CURSOR=never, click_point {cursor:true} is refused, but the DEFAULT click_point is NOT (it posts
+ * Proof: under UMBRIEL_CURSOR=never, click_point {cursor:true} is refused, but the DEFAULT click_point is NOT (it posts
  * cursor-free, or reports no-window — never the cursor:true refusal); and AI.md no longer lists click_point/click_text
  * among the refused tools.
  *
- * bun test is broken repo-wide — runnable harness (MCP subprocess started with SKRY_CURSOR=never):
+ * bun test is broken repo-wide — runnable harness (MCP subprocess started with UMBRIEL_CURSOR=never):
  * Run: bun run example/cursor-never-posted-click.integration.test.ts
  */
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe', SKRY_CURSOR: 'never' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe', UMBRIEL_CURSOR: 'never' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';
@@ -59,7 +59,7 @@ try {
 
   // cursor:true IS refused under never.
   const real = await call('tools/call', { name: 'click_point', arguments: { x: 5, y: 5, cursor: true } });
-  assert(real.result?.isError === true && /disabled by SKRY_CURSOR=never/.test(textOf(real)), 'click_point {cursor:true} is refused under never');
+  assert(real.result?.isError === true && /disabled by UMBRIEL_CURSOR=never/.test(textOf(real)), 'click_point {cursor:true} is refused under never');
 
   // The DEFAULT posted click is NOT the cursor:true refusal — it posts cursor-free (or reports no window).
   const posted = await call('tools/call', { name: 'click_point', arguments: { x: 5, y: 5 } });
@@ -73,5 +73,5 @@ try {
   proc.kill();
 }
 
-console.log(failures === 0 ? '\nPASS — SKRY_CURSOR=never refuses only the cursor:true variant; the default posted click_point/click_text stay live.' : `\nFAILED — ${failures} assertion(s)`);
+console.log(failures === 0 ? '\nPASS — UMBRIEL_CURSOR=never refuses only the cursor:true variant; the default posted click_point/click_text stay live.' : `\nFAILED — ${failures} assertion(s)`);
 process.exit(failures === 0 ? 0 : 1);

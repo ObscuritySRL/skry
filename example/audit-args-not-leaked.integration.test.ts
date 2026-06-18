@@ -2,11 +2,11 @@
  * audit-args-not-leaked — a credential carried in a COMMAND-LINE ARRAY arg must not land verbatim in either forensic sink.
  * maskArgs originally masked only string values under content/text/value keys; an ARRAY value (run_program.args,
  * copy_files.paths) fell through unmasked, so a secret in `args` (--password=…, -psecret, Authorization: Bearer …) — the
- * canonical home of credentials — was written in clear to BOTH the stderr [umbriel-audit] line AND the SKRY_TRACE
+ * canonical home of credentials — was written in clear to BOTH the stderr [umbriel-audit] line AND the UMBRIEL_TRACE
  * JSONL the deployer treats as trusted forensic output. The fix collapses any array arg to its element count (<N args>),
  * preserving forensic signal (HOW MANY args/paths) without the values.
  *
- * Proof (live, over the REAL stdio server under SKRY_PROFILE=full + SKRY_TRACE): run_program actually runs
+ * Proof (live, over the REAL stdio server under UMBRIEL_PROFILE=full + UMBRIEL_TRACE): run_program actually runs
  * cmd.exe with a secret in args (echo to a child process, exits on its own — nothing to clean up) and copy_files puts a
  * secret-bearing path on the clipboard. Asserts neither secret string appears in the audit line OR the trace JSONL, while
  * the element count is recorded so the journal still says HOW MANY args/paths the step carried.
@@ -28,7 +28,7 @@ const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], {
   stdin: 'pipe',
   stdout: 'pipe',
   stderr: 'pipe',
-  env: { ...Bun.env, SKRY_PROFILE: 'full', SKRY_AUDIT: 'on', SKRY_TRACE: tracePath },
+  env: { ...Bun.env, UMBRIEL_PROFILE: 'full', UMBRIEL_AUDIT: 'on', UMBRIEL_TRACE: tracePath },
 });
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();

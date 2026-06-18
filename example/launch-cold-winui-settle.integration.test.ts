@@ -21,7 +21,7 @@ Bun.spawnSync(['taskkill', '/IM', 'SystemSettings.exe', '/F']); // ensure the la
 await Bun.sleep(1200);
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_OS: '1' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_OS: '1' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';

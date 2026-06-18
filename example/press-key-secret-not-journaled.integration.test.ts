@@ -3,7 +3,7 @@
  * the forensic logs. press_key / hold_key carry the keystroke under `key`, which maskArgs originally did NOT mask (only
  * content/text/value were) and whose success message echoed the raw key — so an agent driving a no-own-HWND password box
  * char-by-char (the SendInput fallback when `type` is refused) wrote every character verbatim into BOTH the stderr audit
- * line and the SKRY_TRACE journal (args AND observation). A chord / named key (Control+S, Enter) is intentional
+ * line and the UMBRIEL_TRACE journal (args AND observation). A chord / named key (Control+S, Enter) is intentional
  * forensic signal and MUST stay legible; only a bare single printable char is masked to <char>.
  *
  * Proof (live, over the REAL stdio server): two press_key calls — a single secret char and a Control+S chord. Asserts
@@ -27,7 +27,7 @@ const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], {
   stdin: 'pipe',
   stdout: 'pipe',
   stderr: 'pipe',
-  env: { ...Bun.env, SKRY_PROFILE: 'safe', SKRY_AUDIT: 'on', SKRY_TRACE: tracePath },
+  env: { ...Bun.env, UMBRIEL_PROFILE: 'safe', UMBRIEL_AUDIT: 'on', UMBRIEL_TRACE: tracePath },
 });
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();

@@ -1,12 +1,12 @@
 /**
- * fs-sandbox — the SKRY_FS_ROOT sandbox must not be escapable via a reparse point (junction/symlink).
+ * fs-sandbox — the UMBRIEL_FS_ROOT sandbox must not be escapable via a reparse point (junction/symlink).
  *
  * resolveFsPath did a purely LEXICAL resolve()+startsWith check, so a junction created INSIDE the root pointing
  * outside it passed the check and Bun.file/Bun.write then followed the reparse point out — a real read+write escape
  * with only the `fs` policy (a junction can be left by another tool, a package, or a prior allowed write). The fix
  * realpaths the deepest existing ancestor and re-asserts it canonicalizes under the REAL root.
  *
- * Proof: drive the real MCP server (SKRY_FS_ROOT set, fs tools enabled) against a junction that escapes the root.
+ * Proof: drive the real MCP server (UMBRIEL_FS_ROOT set, fs tools enabled) against a junction that escapes the root.
  * Junctions need no admin on Windows. Cleans up the test tree.
  *
  * bun test is broken repo-wide for FFI; runnable harness (only the MCP subprocess + a temp dir it deletes):
@@ -38,7 +38,7 @@ const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], {
   stdin: 'pipe',
   stdout: 'pipe',
   stderr: 'ignore',
-  env: { ...process.env, SKRY_PROFILE: 'safe', SKRY_OS: '1', SKRY_FS_ROOT: root },
+  env: { ...process.env, UMBRIEL_PROFILE: 'safe', UMBRIEL_OS: '1', UMBRIEL_FS_ROOT: root },
 });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();

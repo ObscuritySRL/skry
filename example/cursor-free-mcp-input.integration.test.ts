@@ -2,7 +2,7 @@
  * cursor-free-mcp-input — prove the MCP `type` and `paste` TOOLS take the cursor-free path (WM_CHAR / WM_PASTE) on
  * a control with its own window handle, with NO focus and on a MINIMIZED window. Previously both tools always
  * focus()+SendInput, so they hard-failed on a locked/no-cursor session; now they post to the control's HWND when it
- * has one (and only fall to SendInput — refused under SKRY_CURSOR=never — for a WinUI/Chromium sub-control).
+ * has one (and only fall to SendInput — refused under UMBRIEL_CURSOR=never — for a WinUI/Chromium sub-control).
  *
  * Proof: spawn Notepad, MINIMIZE it, attach over the MCP wire, type into its Document ref, then paste into it — both
  * must report "cursor-free" and the text must read back. Skips cleanly when the editor has no per-control HWND
@@ -15,7 +15,7 @@ import User32 from '@bun-win32/user32';
 import { closeWindow, windowProcessId } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
-const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
+const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
 const reader = proc.stdout.getReader();
 const decoder = new TextDecoder();
 let buffer = '';

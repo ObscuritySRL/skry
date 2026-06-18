@@ -20,10 +20,10 @@ test('tool counts are derived correctly from mcp.ts', () => {
 
 test('README.md quotes the live tool counts', async () => {
   const readme = await Bun.file(`${import.meta.dir}/../README.md`).text();
-  expect(readme).toContain(`**${total} snapshot-first tools** (${safe} under the default \`safe\` profile; ${readonly} under \`readonly\`; the ${osFs} os/fs tools need \`full\` or \`SKRY_OS=1\`)`);
+  expect(readme).toContain(`**${total} snapshot-first tools** (${safe} under the default \`safe\` profile; ${readonly} under \`readonly\`; the ${osFs} os/fs tools need \`full\` or \`UMBRIEL_OS=1\`)`);
 });
 
 test('AI.md quotes the live tool counts', async () => {
   const ai = await Bun.file(`${import.meta.dir}/../AI.md`).text();
-  expect(ai).toContain(`**${total} tools** (${safe} visible under the default \`safe\` profile; ${readonly} under \`readonly\`; the ${osFs} os/fs tools need \`full\` or \`SKRY_OS=1\`)`);
+  expect(ai).toContain(`**${total} tools** (${safe} visible under the default \`safe\` profile; ${readonly} under \`readonly\`; the ${osFs} os/fs tools need \`full\` or \`UMBRIEL_OS=1\`)`);
 });
