@@ -9,7 +9,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/disabled-state.integration.test.ts
  */
-import { diffTrees, type RefNode, renderSnapshot } from 'skry';
+import { diffTrees, type RefNode, renderSnapshot } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

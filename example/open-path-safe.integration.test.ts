@@ -12,7 +12,7 @@
  * bun test is broken repo-wide — runnable harness (spawns no app/window; ShellExecuteW on a bogus file just errors):
  * Run: bun run example/open-path-safe.integration.test.ts
  */
-import { openPath, skry } from 'skry';
+import { openPath, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -28,7 +28,7 @@ await Bun.$`rm -f ${sentinel}`.quiet().nothrow();
 // If any shell re-parses this, the embedded command drops the sentinel; ShellExecuteW must treat it as one filename.
 const injection = `zzz_nonexistent" & cmd /c echo pwned > "${sentinel}" & echo "`;
 
-skry.initialize();
+umbriel.initialize();
 try {
   const opened = openPath(injection);
   await Bun.sleep(500); // give any (wrongly) spawned command time to run
@@ -37,7 +37,7 @@ try {
   assert(opened === false, 'openPath returns false for the bogus/injection path (ShellExecuteW could not open it)');
 } finally {
   await Bun.$`rm -f ${sentinel}`.quiet().nothrow();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — open_path uses ShellExecuteW: no shell, no command-line re-parse, no injection.' : `\nFAILED — ${failures} assertion(s)`);

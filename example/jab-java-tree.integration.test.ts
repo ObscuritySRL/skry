@@ -12,7 +12,7 @@
  */
 import { existsSync, readdirSync } from 'node:fs';
 
-import { closeWindow, isJavaWindow, javaTree, type JavaNode, renderJavaTree, skry } from 'skry';
+import { closeWindow, isJavaWindow, javaTree, type JavaNode, renderJavaTree, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -46,7 +46,7 @@ const TITLE = 'JAB Test Window';
 const dir = `${Bun.env.TEMP ?? 'C:/Windows/Temp'}/uia_jab_${process.pid}`;
 const bin = findJdkBin();
 
-skry.initialize();
+umbriel.initialize();
 let javaProc: ReturnType<typeof Bun.spawn> | null = null;
 let hWnd = 0n;
 try {
@@ -101,7 +101,7 @@ try {
   if (hWnd !== 0n) closeWindow(hWnd);
   javaProc?.kill();
   await Bun.$`cmd /c rmdir /s /q ${dir}`.quiet().catch(() => {});
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — Java Swing tree read cursor-free via the Access Bridge (the OCR-only wall is broken).' : `\nFAILED — ${failures} assertion(s)`);

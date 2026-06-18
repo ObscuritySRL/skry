@@ -34,7 +34,7 @@
  * Run: bun run example/wgc-occluded.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { captureWindowLive, captureWindowRGB, closeWindow, encodePNG, foregroundWindow, isMinimized, maximizeWindow, skry, wgcAvailable, windowProcessId } from 'skry';
+import { captureWindowLive, captureWindowRGB, closeWindow, encodePNG, foregroundWindow, isMinimized, maximizeWindow, umbriel, wgcAvailable, windowProcessId } from 'umbriel';
 import { assert, failureCount, skip } from './_harness';
 
 const HWND_BOTTOM = 0x1n; // SetWindowPos: place below all non-topmost windows
@@ -97,7 +97,7 @@ async function captureLiveWarm(hWnd: bigint): Promise<{ rgb: Uint8Array; width: 
  *  (the proof stays a TRUE background capture) — then maximize so it paints full-screen. (finding/35) */
 function spawnOccluder(target: bigint): bigint {
   const prior = new Set(
-    skry
+    umbriel
       .windows()
       .filter((w) => w.className === 'CabinetWClass')
       .map((w) => w.hWnd),
@@ -106,7 +106,7 @@ function spawnOccluder(target: bigint): bigint {
   let hWnd = 0n;
   for (let attempt = 0; attempt < 30 && hWnd === 0n; attempt += 1) {
     Bun.sleepSync(300);
-    hWnd = skry.windows().find((w) => w.className === 'CabinetWClass' && !prior.has(w.hWnd))?.hWnd ?? 0n;
+    hWnd = umbriel.windows().find((w) => w.className === 'CabinetWClass' && !prior.has(w.hWnd))?.hWnd ?? 0n;
   }
   if (hWnd !== 0n) {
     if (target !== 0n) User32.SetWindowPos(target, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); // sink the target below, without raising/activating it
@@ -119,19 +119,19 @@ function spawnOccluder(target: bigint): bigint {
 
 const scratch = import.meta.dir.replace(/[/\\]example$/, '/.scratch');
 
-skry.initialize();
+umbriel.initialize();
 if (!wgcAvailable()) {
   // A locked / disconnected-RDP / secure-desktop or pre-1809 box: DWM is not compositing, so WGC cannot deliver
   // a frame BY DESIGN (finding/08 hard-limit #2). Skip cleanly rather than fail the differentiating capability.
   console.log('SKIP — Windows.Graphics.Capture unavailable (locked / headless / secure desktop); cannot prove background capture here.');
-  skry.uninitialize();
+  umbriel.uninitialize();
   process.exit(0);
 }
 
 // HEADLINE on classic Notepad — a reliable Win32 top-level WGC composites and captures occluded first try.
 // Launch one fresh and track ONLY the new window (not any pre-existing Notepad) so teardown kills exactly ours.
 const priorNotepads = new Set(
-  skry
+  umbriel
     .windows()
     .filter((w) => w.className === 'Notepad')
     .map((w) => w.hWnd),
@@ -140,7 +140,7 @@ Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 let notepadHwnd = 0n;
 for (let attempt = 0; attempt < 40 && notepadHwnd === 0n; attempt += 1) {
   Bun.sleepSync(300);
-  notepadHwnd = skry.windows().find((w) => w.className === 'Notepad' && !priorNotepads.has(w.hWnd))?.hWnd ?? 0n;
+  notepadHwnd = umbriel.windows().find((w) => w.className === 'Notepad' && !priorNotepads.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 let occluderHwnd = 0n;
@@ -197,7 +197,7 @@ try {
   // user's Notepad windows (and `/IM` is worse still — finding/31). We never type into this window, so its buffer
   // is clean and WM_CLOSE raises no "Save?" dialog; it closes just this one window.
   if (notepadHwnd !== 0n) closeWindow(notepadHwnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 // COMPANION (best-effort, SKIP-not-FAIL, OPT-IN): prove the same on the GPU-composited WinUI Calculator when its app
@@ -206,13 +206,13 @@ try {
 // and the companion spins up a SECOND WGC/D3D session then force-kills Calculator — that taskkill of a process whose
 // composed surface WGC just held is the documented exit-crash vector, so the default path does not pay for it.
 if (Bun.env.WGC_OCCLUDED_CALC === '1') {
-  skry.initialize();
+  umbriel.initialize();
   let calcOccluder = 0n;
   let calcHwnd = 0n;
   Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
   for (let attempt = 0; attempt < 30 && calcHwnd === 0n; attempt += 1) {
     Bun.sleepSync(300);
-    calcHwnd = skry.windows().find((w) => w.title === 'Calculator')?.hWnd ?? 0n;
+    calcHwnd = umbriel.windows().find((w) => w.title === 'Calculator')?.hWnd ?? 0n;
   }
   try {
     if (calcHwnd === 0n) {
@@ -234,7 +234,7 @@ if (Bun.env.WGC_OCCLUDED_CALC === '1') {
     // Tear down COM/WGC/D3D first, THEN force-kill Calculator: a `taskkill /F /PID` while WGC capture-frame-pool /
     // D3D objects still reference the killed process's surfaces crashes this process at exit (3× live: vacuous-PASS +
     // exit 3). uninitialize() before the kill leaves no live COM pointing at the dead process.
-    skry.uninitialize();
+    umbriel.uninitialize();
     if (calcPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(calcPid)]);
     else if (calcHwnd !== 0n) closeWindow(calcHwnd);
   }

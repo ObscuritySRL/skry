@@ -7,16 +7,16 @@
  * a11y-tree builds otherwise take 3–26 s. Builds in one cached cross-process round-trip.
  *
  * APIs demonstrated:
- * - skry.attach, skry.tree (full + agent profiles), countNodes / estimateTokens
+ * - umbriel.attach, umbriel.tree (full + agent profiles), countNodes / estimateTokens
  *
  * Run: bun run example/agent-grounding.ts            (defaults to Calculator)
  *      bun run example/agent-grounding.ts "Notepad"  (any window title)
  */
-import { countNodes, estimateTokens, skry } from 'skry';
+import { countNodes, estimateTokens, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const wanted = Bun.argv[2] ?? 'Calculator';
-skry.initialize();
+umbriel.initialize();
 if (wanted === 'Calculator') Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
 let hWnd = 0n;
 const title = Buffer.from(`${wanted}\0`, 'utf16le');
@@ -29,12 +29,12 @@ if (hWnd === 0n) {
   process.exit(0);
 }
 Bun.sleepSync(800);
-const app = skry.attach(hWnd);
+const app = umbriel.attach(hWnd);
 
 const start = Bun.nanoseconds();
-const agent = skry.tree(app, { agentProfile: true });
+const agent = umbriel.tree(app, { agentProfile: true });
 const buildMs = (Bun.nanoseconds() - start) / 1e6;
-const full = skry.tree(app);
+const full = umbriel.tree(app);
 
 console.log(`\n\x1b[1m\x1b[95m  Agent grounding for "${app.name}"\x1b[0m\n`);
 console.log(`  full tree  : ${countNodes(full)} nodes, ~${estimateTokens(full)} tokens`);
@@ -50,4 +50,4 @@ console.log(
 );
 
 app.dispose();
-skry.uninitialize();
+umbriel.uninitialize();

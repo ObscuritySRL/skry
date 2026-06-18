@@ -14,7 +14,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/inline-state.integration.test.ts
  */
-import { AutomationElementMode, closeWindow, ControlType, createCacheRequest, DEFAULT_CACHE_PROPERTIES, PropertyId, pruneRefTree, renderSnapshot, TreeScope, skry } from 'skry';
+import { AutomationElementMode, closeWindow, ControlType, createCacheRequest, DEFAULT_CACHE_PROPERTIES, PropertyId, pruneRefTree, renderSnapshot, TreeScope, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -46,23 +46,23 @@ const STATE_IDS = [
   PropertyId.RangeValueMaximum,
 ];
 
-skry.initialize();
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+umbriel.initialize();
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 const priorExplorers = new Set(
-  skry
+  umbriel
     .windows()
     .filter((window) => window.className === 'CabinetWClass')
     .map((window) => window.hWnd),
 );
 Bun.spawn(['explorer.exe', 'C:\\Windows\\System32\\drivers\\etc'], { stdout: 'ignore', stderr: 'ignore' }); // a tiny folder — small file list, full nav tree
 await Bun.sleep(2500);
-const explorerHwnd = skry.windows().find((window) => window.className === 'CabinetWClass' && !priorExplorers.has(window.hWnd))?.hWnd ?? 0n;
+const explorerHwnd = umbriel.windows().find((window) => window.className === 'CabinetWClass' && !priorExplorers.has(window.hWnd))?.hWnd ?? 0n;
 
 try {
   // GATING — Calculator has BOTH plain Invoke buttons (digits → no state) and real toggle buttons
   // (Scientific notation / Trigonometry → on/off), so it proves the gate both ways on one app.
   console.log('\n[GATING] plain buttons show no state; real toggles show (on)/(off)');
-  const calcSnap = skry.snapshot(calc);
+  const calcSnap = umbriel.snapshot(calc);
   const calcText = renderSnapshot(pruneRefTree(calcSnap.tree) ?? calcSnap.tree);
   const line = (match: RegExp): string =>
     calcText
@@ -90,9 +90,9 @@ try {
   }, 20);
   baseReq.release();
   stateReq.release();
-  const snapMs = median(() => skry.snapshot(calc).dispose(), 15);
+  const snapMs = median(() => umbriel.snapshot(calc).dispose(), 15);
   console.log(`  buildUpdatedCache: DEFAULT ${baseMs.toFixed(2)} ms → DEFAULT+STATE ${stateMs.toFixed(2)} ms (Δ ${(stateMs - baseMs).toFixed(2)} ms for 12 extra props)`);
-  console.log(`  full skry.snapshot (cache + walk + inline state reads): ${snapMs.toFixed(2)} ms`);
+  console.log(`  full umbriel.snapshot (cache + walk + inline state reads): ${snapMs.toFixed(2)} ms`);
   assert(snapMs < 200, `snapshot build stays well-bounded (${snapMs.toFixed(2)} ms < 200 ms — no per-node round-trip blow-up)`);
   calcSnap.dispose();
 
@@ -101,8 +101,8 @@ try {
   if (explorerHwnd === 0n) {
     console.log('  (could not open Explorer — skipping the positive state assertions)');
   } else {
-    const explorer = skry.attach(explorerHwnd);
-    const snap = skry.snapshot(explorer);
+    const explorer = umbriel.attach(explorerHwnd);
+    const snap = umbriel.snapshot(explorer);
     const text = renderSnapshot(pruneRefTree(snap.tree) ?? snap.tree);
     const stateLines = text.split('\n').filter((line) => /\[ref=e\d+\].*\((expanded|collapsed|partial|selected|on|off|value=|\d+%)/.test(line));
     console.log(`  sample state-bearing refs (${stateLines.length} total):`);
@@ -122,7 +122,7 @@ try {
   closeWindow(calc.hWnd);
   calc.dispose();
   if (explorerHwnd !== 0n) closeWindow(explorerHwnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — inline ref state verified (gated, real expand/select state, bounded cost).' : `\nFAILED — ${failures} assertion(s)`);

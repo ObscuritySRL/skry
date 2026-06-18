@@ -1,7 +1,7 @@
 /**
- * Desktop MCP — drive Windows through the skry MCP server over real stdio JSON-RPC.
+ * Desktop MCP — drive Windows through the umbriel MCP server over real stdio JSON-RPC.
  *
- * Spawns mcp.ts exactly as Claude / Claude Code would (`claude mcp add skry -- bunx skry`), runs
+ * Spawns mcp.ts exactly as Claude / Claude Code would (`claude mcp add umbriel -- bunx umbriel`), runs
  * the initialize handshake, lists the tools, attaches to Calculator, captures a ref-keyed
  * desktop_snapshot, and invokes a button BY REF — the precise loop an MCP client runs. Asserts the
  * round-trip; this example IS the integration test (exits non-zero on failure).

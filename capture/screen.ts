@@ -1,7 +1,7 @@
 // The pixel-tool layer that complements the a11y tree — full-screen / region capture, pixel color,
 // and (with match.ts) template matching — for surfaces with NO accessibility tree: games, canvas,
 // custom-draw, and browsers that don't expose their content to UIA. Zero new bindings: BitBlt the
-// screen DC, GetDIBits to RGB. This is the nut.js / robotjs niche, in-process and zero-dep, so skry
+// screen DC, GetDIBits to RGB. This is the nut.js / robotjs niche, in-process and zero-dep, so umbriel
 // is a full REPLACEMENT (UIA when there's a tree, pixels when there isn't), not just a complement.
 
 import Gdi32 from '@bun-win32/gdi32';

@@ -140,7 +140,7 @@ function createDevice(driverType: number): { device: bigint; context: bigint } |
 
 function ensureBundle(): DeviceBundle {
   if (bundle !== null) return bundle;
-  initialize(); // ensure COM is initialized (skry's STA is fine — WGC activation is apartment-agnostic)
+  initialize(); // ensure COM is initialized (umbriel's STA is fine — WGC activation is apartment-agnostic)
   roInitialized = Combase.RoInitialize(1) === S_OK; // RO_INIT_MULTITHREADED; RPC_E_CHANGED_MODE under the existing STA is expected (then no RoUninitialize)
   const device = createDevice(1 /* HARDWARE */) ?? createDevice(5 /* WARP */);
   if (device === null) throw new Error('WGC: D3D11CreateDevice failed (HARDWARE and WARP)');

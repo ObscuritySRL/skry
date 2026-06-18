@@ -75,7 +75,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-deadwin-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 320, 180, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-deadwin-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 320, 180, 0n, 0n, BigInt(hInstance), null);
 const edit = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 10, 280, 28, parent, 0n, BigInt(hInstance), null);
 pump();
 let ticker: ReturnType<typeof setInterval> | undefined = setInterval(pump, 5);

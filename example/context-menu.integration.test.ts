@@ -11,7 +11,7 @@
  * Run: bun run example/context-menu.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { closeWindow, ControlType, skry, windowProcessId } from 'skry';
+import { closeWindow, ControlType, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -22,18 +22,18 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const window = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const window = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 try {
   await Bun.sleep(500);
   const target = window.find({ controlType: ControlType.Document }) ?? window.find({ controlType: ControlType.Edit }) ?? window;
-  const before = new Set(skry.windows({ includeUntitled: true }).map((w) => w.hWnd));
+  const before = new Set(umbriel.windows({ includeUntitled: true }).map((w) => w.hWnd));
 
   const opened = target.showContextMenu();
   assert(typeof opened === 'boolean', 'showContextMenu() returns a boolean without segfaulting (slot 91 binding is correct)');
 
   await Bun.sleep(400);
-  const popup = skry.windows({ includeUntitled: true }).find((w) => !before.has(w.hWnd) && (w.className === '#32768' || /Popup|Menu|Flyout|DropDown/i.test(w.className)));
+  const popup = umbriel.windows({ includeUntitled: true }).find((w) => !before.has(w.hWnd) && (w.className === '#32768' || /Popup|Menu|Flyout|DropDown/i.test(w.className)));
   if (popup === undefined) console.log('  note: this provider raised no UIA context menu (provider-dependent) — the call still succeeded safely');
   else {
     assert(popup.title.length === 0 || /menu/i.test(popup.className), `the context menu opened as an untitled popup [class=${popup.className}] — attachable`);
@@ -44,11 +44,11 @@ try {
 } finally {
   const notepadPid = windowProcessId(window.hWnd);
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
-  skry.windows({ includeUntitled: true }).filter((w) => w.className === '#32768').forEach((w) => User32.PostMessageW(w.hWnd, 0x0010, 0n, 0n)); // WM_CLOSE any stray menu
+  umbriel.windows({ includeUntitled: true }).filter((w) => w.className === '#32768').forEach((w) => User32.PostMessageW(w.hWnd, 0x0010, 0n, 0n)); // WM_CLOSE any stray menu
   window.dispose();
   await Bun.sleep(100);
   closeWindow(window.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — ShowContextMenu drives cursor-free without segfault (slot 91); menu appearance is provider-dependent.' : `\nFAILED — ${failures} assertion(s)`);

@@ -12,7 +12,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Settings):
  * Run: bun run example/combobox-expand-settle.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -59,8 +59,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const settings = await skry.launch(['cmd', '/c', 'start', 'ms-settings:'], { title: 'Settings' }).catch(() => null);
+umbriel.initialize();
+const settings = await umbriel.launch(['cmd', '/c', 'start', 'ms-settings:'], { title: 'Settings' }).catch(() => null);
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'combo-settle', version: '1' } });
   if (settings === null) console.log('  skip: Settings did not launch');
@@ -84,7 +84,7 @@ try {
     closeWindow(settings.hWnd);
     settings.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a WinUI combobox expand settles for its in-tree dropdown items.' : `\nFAILED — ${failures} assertion(s)`);

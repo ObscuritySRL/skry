@@ -8,7 +8,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + spawned Settings):
  * Run: bun run example/inspect-rangevalue.integration.test.ts
  */
-import { closeWindow, raiseWindow, skry } from 'skry';
+import { closeWindow, raiseWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -54,12 +54,12 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 Bun.spawn(['explorer.exe', 'ms-settings:sound'], { stdout: 'ignore', stderr: 'ignore' });
 let hWnd = 0n;
 for (let i = 0; i < 40 && hWnd === 0n; i++) {
   await Bun.sleep(250);
-  hWnd = skry.windows().find((w) => w.title === 'Settings')?.hWnd ?? 0n;
+  hWnd = umbriel.windows().find((w) => w.title === 'Settings')?.hWnd ?? 0n;
 }
 
 try {
@@ -88,7 +88,7 @@ try {
 } finally {
   proc.kill();
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — inspect_element surfaces a slider’s min/max range.' : `\nFAILED — ${failures} assertion(s)`);

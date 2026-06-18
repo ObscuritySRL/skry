@@ -12,7 +12,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/find-cached.integration.test.ts
  */
-import { closeWindow, ControlType, type Element, skry, windowProcessId } from 'skry';
+import { closeWindow, ControlType, type Element, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -23,20 +23,20 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 let notepad = 0n;
-const prior = new Set(skry.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
+const prior = new Set(umbriel.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
 Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 40 && notepad === 0n; attempt += 1) {
   await Bun.sleep(150);
-  notepad = skry.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  notepad = umbriel.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 try {
   assert(notepad !== 0n, 'launched Notepad');
   if (notepad !== 0n) {
     await Bun.sleep(500);
-    const win = skry.attach(notepad);
+    const win = umbriel.attach(notepad);
 
     // pick a named control via the cached findAll, then re-find it both ways and compare.
     const named = win.findAll({ controlType: ControlType.Button }).filter((b) => b.name.trim().length >= 3);
@@ -66,7 +66,7 @@ try {
   const notepadPid = notepad !== 0n ? windowProcessId(notepad) : 0;
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   if (notepad !== 0n) closeWindow(notepad);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — cached client-filter find is correct (same matches as live), and ~2× faster on a large window.' : `\nFAILED — ${failures} assertion(s)`);

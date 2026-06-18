@@ -11,7 +11,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/uwp-content.integration.test.ts
  */
-import { closeWindow, ControlType, type RefNode, snapshot, skry } from 'skry';
+import { closeWindow, ControlType, type RefNode, snapshot, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -25,19 +25,19 @@ function countRole(node: RefNode, role: string): number {
   return (node.role === role && node.ref !== undefined ? 1 : 0) + node.children.reduce((sum, child) => sum + countRole(child, role), 0);
 }
 
-skry.initialize();
+umbriel.initialize();
 let frame = 0n;
-const priorPids = new Set(skry.windows().filter((w) => w.className === 'ApplicationFrameWindow' && /settings/i.test(w.title)).map((w) => w.hWnd));
+const priorPids = new Set(umbriel.windows().filter((w) => w.className === 'ApplicationFrameWindow' && /settings/i.test(w.title)).map((w) => w.hWnd));
 Bun.spawn(['cmd', '/c', 'start', 'ms-settings:'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 40 && frame === 0n; attempt += 1) {
   await Bun.sleep(200);
-  frame = skry.windows().find((w) => w.className === 'ApplicationFrameWindow' && /settings/i.test(w.title) && !priorPids.has(w.hWnd))?.hWnd ?? 0n;
+  frame = umbriel.windows().find((w) => w.className === 'ApplicationFrameWindow' && /settings/i.test(w.title) && !priorPids.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 try {
   assert(frame !== 0n, 'launched the Settings UWP app');
   if (frame !== 0n) {
-    const win = skry.attach(frame);
+    const win = umbriel.attach(frame);
     // lazy tree: poll the snapshot until the XAML content builds (or give up)
     let refs = 0;
     let listItems = 0;
@@ -55,7 +55,7 @@ try {
   }
 } finally {
   if (frame !== 0n) closeWindow(frame);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a UWP/WinUI Store app is read via UIA, cursor-free (lazy tree polled until built).' : `\nFAILED — ${failures} assertion(s)`);

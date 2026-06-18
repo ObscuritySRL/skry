@@ -15,7 +15,7 @@
  * bun test is broken repo-wide — runnable script:
  * Run: bun run example/capped-window-change.integration.test.ts
  */
-import { capSnapshot } from 'skry';
+import { capSnapshot } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

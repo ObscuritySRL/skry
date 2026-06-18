@@ -1,6 +1,6 @@
 /**
  * attach-failure-keeps-attachment — the attach handler disposed + nulled the working attachment BEFORE calling the
- * fallible attach helpers (attachByTitle / skry.attach — each throws on not-found/ambiguous), so a failed/typo re-attach wiped the
+ * fallible attach helpers (attachByTitle / umbriel.attach — each throws on not-found/ambiguous), so a failed/typo re-attach wiped the
  * good attachment and the very next desktop_snapshot/ref-action errored with "no window attached" — breaking the core
  * attach→snapshot→act loop on a trivially-recoverable user error. attach now resolves the NEW window into a local first
  * and disposes+swaps only on success (mirrors launch_app), so a failed re-attach surfaces its error while the existing
@@ -19,7 +19,7 @@ const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
 const WS_VISIBLE = 0x1000_0000;
 const WS_CHILD = 0x4000_0000;
 const PM_REMOVE = 0x0001;
-const TITLE = 'skry-attach-keep-3194';
+const TITLE = 'umbriel-attach-keep-3194';
 const wide = (text: string): Buffer => Buffer.from(`${text}\0`, 'utf16le');
 const pumpMsg = Buffer.alloc(48);
 const pump = (): void => {

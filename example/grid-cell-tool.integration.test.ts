@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Explorer):
  * Run: bun run example/grid-cell-tool.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -56,16 +56,16 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const prior = new Set(
-  skry
+  umbriel
     .windows()
     .filter((w) => w.className === 'CabinetWClass')
     .map((w) => w.hWnd),
 );
 Bun.spawn(['explorer.exe', 'C:\\Windows\\System32'], { stdout: 'ignore', stderr: 'ignore' });
 await Bun.sleep(2800);
-const explorer = skry.windows().find((w) => w.className === 'CabinetWClass' && /System32/i.test(w.title) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+const explorer = umbriel.windows().find((w) => w.className === 'CabinetWClass' && /System32/i.test(w.title) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'grid-cell-tool', version: '1' } });
   if (explorer === 0n) console.log('  skip: could not open an Explorer details grid');
@@ -95,7 +95,7 @@ try {
 } finally {
   proc.kill();
   if (explorer !== 0n) closeWindow(explorer);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — grid_cell addresses + acts on a data-grid cell by (row, column).' : `\nFAILED — ${failures} assertion(s)`);

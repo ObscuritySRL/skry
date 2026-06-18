@@ -17,7 +17,7 @@
  * Run: bun run example/occluded-click.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { attach, ownerHwnd, postClickAt, postClickToHwnd, skry } from 'skry';
+import { attach, ownerHwnd, postClickAt, postClickToHwnd, umbriel } from 'umbriel';
 
 const WS_POPUP = 0x8000_0000;
 const WS_VISIBLE = 0x1000_0000;
@@ -47,7 +47,7 @@ function pump(): void {
 const packPoint = (x: number, y: number): bigint => (BigInt(y >>> 0) << 32n) | BigInt(x >>> 0);
 const isChecked = (hWnd: bigint): boolean => User32.SendMessageW(hWnd, BM_GETCHECK, 0n, 0n) === 1n;
 
-skry.initialize();
+umbriel.initialize();
 const staticClass = Buffer.from('Static\0', 'utf16le');
 const buttonClass = Buffer.from('BUTTON\0', 'utf16le');
 const WS_EX_TOPMOST = 0x0000_0008; // keep the synthetic windows above other desktop windows so B reliably occludes
@@ -87,7 +87,7 @@ try {
   User32.DestroyWindow(checkbox);
   User32.DestroyWindow(windowA);
   User32.DestroyWindow(windowB);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a cursor-free posted click reaches the occluded target via its own window, not the occluder.' : `\nFAILED — ${failures} assertion(s)`);

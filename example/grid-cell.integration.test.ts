@@ -10,7 +10,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/grid-cell.integration.test.ts
  */
-import { closeWindow, ControlType, type Element, skry } from 'skry';
+import { closeWindow, ControlType, type Element, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -29,20 +29,20 @@ function cellText(cell: Element, header = ''): string {
   return value.length > 0 ? value : name;
 }
 
-skry.initialize();
+umbriel.initialize();
 let explorer = 0n;
-const prior = new Set(skry.windows().filter((w) => w.className === 'CabinetWClass').map((w) => w.hWnd));
+const prior = new Set(umbriel.windows().filter((w) => w.className === 'CabinetWClass').map((w) => w.hWnd));
 Bun.spawn(['explorer.exe', 'C:\\Windows\\System32'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 50 && explorer === 0n; attempt += 1) {
   await Bun.sleep(200);
-  explorer = skry.windows().find((w) => w.className === 'CabinetWClass' && /System32/i.test(w.title) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  explorer = umbriel.windows().find((w) => w.className === 'CabinetWClass' && /System32/i.test(w.title) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 try {
   assert(explorer !== 0n, 'opened File Explorer on System32');
   if (explorer !== 0n) {
     await Bun.sleep(1200);
-    const win = skry.attach(explorer);
+    const win = umbriel.attach(explorer);
     // the details view is a Grid-supporting container (List/DataGrid/Table)
     let grid: Element | null = null;
     for (let attempt = 0; attempt < 15 && grid === null; attempt += 1) {
@@ -71,7 +71,7 @@ try {
   }
 } finally {
   if (explorer !== 0n) closeWindow(explorer);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — addressed Grid cells by (row, column) cursor-free; they compose with setValue/invoke/toggle.' : `\nFAILED — ${failures} assertion(s)`);

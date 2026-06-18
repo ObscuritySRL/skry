@@ -16,7 +16,7 @@
  */
 import { FFIType } from 'bun:ffi';
 import { numberOfDFGCompiles } from 'bun:jsc';
-import { automation, closeWindow, comRelease, compileCondition, ControlType, SLOT, trueCondition, skry, vcall } from 'skry';
+import { automation, closeWindow, comRelease, compileCondition, ControlType, SLOT, trueCondition, umbriel, vcall } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -33,8 +33,8 @@ function medianUs(run: () => void, iterations: number): number {
   return (Bun.nanoseconds() - start) / iterations / 1000;
 }
 
-skry.initialize();
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+umbriel.initialize();
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 try {
   // 1. memoization identity
   console.log('\n[1] TrueCondition singleton');
@@ -84,7 +84,7 @@ try {
 } finally {
   closeWindow(calc.hWnd);
   calc.dispose();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — condition memoization verified (cheaper reuse, compile-once waitFor, output unchanged).' : `\nFAILED — ${failures} assertion(s)`);

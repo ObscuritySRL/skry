@@ -21,7 +21,7 @@
  * bun test is broken repo-wide — runnable script:
  * Run: bun run example/type-cursorfree.integration.test.ts
  */
-import { dispatch, focused, ownerHwnd, skry } from 'skry';
+import { dispatch, focused, ownerHwnd, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const cursor = (): { x: number; y: number } => {
@@ -53,11 +53,11 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 // dispatch() needs a Window; the `type` action never reads it. Attach (read-only) to whatever is ALREADY foreground —
 // nothing is spawned, shown, or focus-stolen.
 const foreground = User32.GetForegroundWindow();
-const window = skry.attach(foreground !== 0n ? foreground : 'Program Manager');
+const window = umbriel.attach(foreground !== 0n ? foreground : 'Program Manager');
 try {
   const focusHandle = ambientFocusHandle();
   console.log(`  ambient focus owner -> 0x${focusHandle.toString(16)}`);
@@ -80,7 +80,7 @@ try {
   }
 } finally {
   window.release();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — type honors cursorless (posted-message routing when focus owns an HWND, SendInput fallback intact, real mouse unmoved).' : `\nFAILED — ${failures} assertion(s)`);

@@ -73,7 +73,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-scrolldir-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 240, 240, 300, 160, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-scrolldir-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 240, 240, 300, 160, 0n, 0n, BigInt(hInstance), null);
 const button = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Button').ptr!, wide('Target').ptr!, WS_CHILD | WS_VISIBLE, 20, 20, 160, 32, parent, 0n, BigInt(hInstance), null);
 pump();
 const ticker = setInterval(pump, 5);

@@ -11,7 +11,7 @@
  * Run: bun run example/cursor-free-undo.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { closeWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -60,8 +60,8 @@ function assert(condition: boolean, message: string): void {
 const EM_SETMODIFY = 0x00b9;
 const docRef = async (): Promise<string | undefined> => /(?:Document|Edit|Text)[^\n]*?\[ref=(e\d+(?:#\d+)?)\]/i.exec(textOf(await call('tools/call', { name: 'desktop_snapshot', arguments: {} })))?.[1];
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 const editor = notepad.find({ controlType: 50004 }) ?? notepad.find({ controlType: 50030 });
 const editHwnd = editor?.nativeWindowHandle ?? 0n;
 try {
@@ -89,7 +89,7 @@ try {
   editor?.release();
   notepad.dispose();
   closeWindow(notepad.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — press_key Control+Z undoes a minimized own-HWND Edit cursor-free via EM_UNDO.' : `\nFAILED — ${failures} assertion(s)`);

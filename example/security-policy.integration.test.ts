@@ -122,8 +122,8 @@ try {
   // 3a — the default-on audit emitted a mutating-category line for set_clipboard (masked args) to stderr.
   await Bun.sleep(150); // let the async stderr drain catch up
   const safeErr = safe.stderr();
-  const auditLine = safeErr.split('\n').find((line) => line.includes('[skry-audit]') && line.includes('"tool":"set_clipboard"'));
-  assert(auditLine !== undefined, 'a mutating call (set_clipboard) leaves a default-on [skry-audit] line on stderr');
+  const auditLine = safeErr.split('\n').find((line) => line.includes('[umbriel-audit]') && line.includes('"tool":"set_clipboard"'));
+  assert(auditLine !== undefined, 'a mutating call (set_clipboard) leaves a default-on [umbriel-audit] line on stderr');
   assert(auditLine !== undefined && /"category":"input"/.test(auditLine) && /"ok":true/.test(auditLine), 'the audit line carries category + ok');
   assert(auditLine !== undefined && !auditLine.includes('AKIAIOSFODNN7EXAMPLE') && /"text":"<\d+ chars>"/.test(auditLine), 'the audit line MASKS the secret-bearing text arg to a length');
   assert(/audit: on/.test(safeErr), 'startup reports the audit trail is on');
@@ -132,7 +132,7 @@ try {
   await optOut.call('tools/call', { name: 'set_clipboard', arguments: { text: 'plain' } });
   await Bun.sleep(150);
   const optErr = optOut.stderr();
-  assert(!optErr.includes('[skry-audit]'), 'SKRY_AUDIT=off emits NO audit lines');
+  assert(!optErr.includes('[umbriel-audit]'), 'SKRY_AUDIT=off emits NO audit lines');
   assert(/audit: DISABLED \(SKRY_AUDIT=off — explicit opt-out\)/.test(optErr), 'startup reports SKRY_AUDIT=off as the EXPLICIT opt-out (never silent)');
 
   // 4 — profile resolution is FAIL-CLOSED: a typo'd value drops to readonly (no acting tools) and warns loudly; a

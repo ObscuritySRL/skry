@@ -23,7 +23,7 @@ const WS_CHILD = 0x4000_0000;
 const ES_PASSWORD = 0x0020;
 const ES_AUTOHSCROLL = 0x0080;
 const PM_REMOVE = 0x0001;
-const SECRET = 'S3cret-skry-pw-9931';
+const SECRET = 'S3cret-umbriel-pw-9931';
 const wide = (text: string): Buffer => Buffer.from(`${text}\0`, 'utf16le');
 const pumpMsg = Buffer.alloc(48);
 const pump = (): void => {
@@ -79,7 +79,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-pw-leak-test').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 320, 160, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-pw-leak-test').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 320, 160, 0n, 0n, BigInt(hInstance), null);
 if (parent !== 0n) User32.CreateWindowExW(0, wide('Edit').ptr!, wide(SECRET).ptr!, WS_CHILD | WS_VISIBLE | ES_PASSWORD | ES_AUTOHSCROLL, 12, 12, 280, 28, parent, 0n, BigInt(hInstance), null);
 pump();
 const ticker = setInterval(pump, 5);

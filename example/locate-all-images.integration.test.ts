@@ -16,7 +16,7 @@
  * bun test is broken repo-wide — runnable script:
  * Run: bun run example/locate-all-images.integration.test.ts
  */
-import { type Bitmap, findAllImages, findImage } from 'skry';
+import { type Bitmap, findAllImages, findImage } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

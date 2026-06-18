@@ -15,7 +15,7 @@
  * Run: bun run example/inspect-clarity.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { attach, ControlType, renderSnapshot, skry } from 'skry';
+import { attach, ControlType, renderSnapshot, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -34,7 +34,7 @@ const SECRET = 'TopSecretValue4242';
 const PLAIN = 'PlainVisible1234';
 
 // Part A — password gate + value specificity, on synthetic native controls.
-skry.initialize();
+umbriel.initialize();
 const editClass = Buffer.from('EDIT\0', 'utf16le');
 const staticClass = Buffer.from('Static\0', 'utf16le');
 const parent = User32.CreateWindowExW(0, staticClass.ptr!, null, WS_POPUP | WS_VISIBLE, 120, 120, 360, 120, 0n, 0n, 0n, null);
@@ -47,21 +47,21 @@ try {
 
   const pwd = attach(passwordEdit);
   assert(pwd.isPassword === true, 'a native ES_PASSWORD edit reports isPassword=true');
-  const pwdRendered = renderSnapshot(skry.snapshot(pwd).tree);
+  const pwdRendered = renderSnapshot(umbriel.snapshot(pwd).tree);
   assert(!pwdRendered.includes(SECRET), 'the snapshot NEVER contains the password value');
   assert(/\(password\)/.test(pwdRendered), 'the password field is labelled "(password)" in the snapshot');
   pwd.release();
 
   const plain = attach(plainEdit);
   assert(plain.isPassword === false, 'a plain edit reports isPassword=false');
-  const plainRendered = renderSnapshot(skry.snapshot(plain).tree);
+  const plainRendered = renderSnapshot(umbriel.snapshot(plain).tree);
   assert(plainRendered.includes(PLAIN), 'a plain edit still shows its value (gate is specific — no over-redaction)');
   plain.release();
 } finally {
   User32.DestroyWindow(passwordEdit);
   User32.DestroyWindow(plainEdit);
   User32.DestroyWindow(parent);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 // Part B — inspect_element "can:" affordance line, via the real MCP server.

@@ -10,7 +10,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/visible-text.integration.test.ts
  */
-import { closeWindow, ControlType, type Element, skry, windowProcessId } from 'skry';
+import { closeWindow, ControlType, type Element, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -21,20 +21,20 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 let notepad = 0n;
-const prior = new Set(skry.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
+const prior = new Set(umbriel.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
 Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 40 && notepad === 0n; attempt += 1) {
   await Bun.sleep(150);
-  notepad = skry.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  notepad = umbriel.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 try {
   assert(notepad !== 0n, 'launched Notepad');
   if (notepad !== 0n) {
     await Bun.sleep(500);
-    const win = skry.attach(notepad);
+    const win = umbriel.attach(notepad);
     const editor: Element | null = win.find({ controlType: ControlType.Edit }) ?? win.find({ controlType: ControlType.Document });
     assert(editor !== null, 'found the editor');
     if (editor !== null) {
@@ -58,9 +58,9 @@ try {
   }
 
   // opportunistic: a live terminal's visible region is smaller than its scrollback
-  const term = skry.windows().find((w) => w.className === 'CASCADIA_HOSTING_WINDOW_CLASS');
+  const term = umbriel.windows().find((w) => w.className === 'CASCADIA_HOSTING_WINDOW_CLASS');
   if (term !== undefined) {
-    const win = skry.attach(term.hWnd);
+    const win = umbriel.attach(term.hWnd);
     const doc = win.find({ controlType: ControlType.Document }) ?? win.find({ controlType: ControlType.Text });
     if (doc !== null) {
       const v = doc.visibleText();
@@ -76,7 +76,7 @@ try {
   const notepadPid = notepad !== 0n ? windowProcessId(notepad) : 0;
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   if (notepad !== 0n) closeWindow(notepad);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — read only the on-screen TextPattern text (GetVisibleRanges), not the whole scrollback.' : `\nFAILED — ${failures} assertion(s)`);

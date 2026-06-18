@@ -12,16 +12,16 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned, UWP, Calculator):
  * Run: bun run example/capture-minimized-steer.integration.test.ts
  */
-import { closeWindow, isMinimized, minimizeWindow, restoreWindow, skry } from 'skry';
+import { closeWindow, isMinimized, minimizeWindow, restoreWindow, umbriel } from 'umbriel';
 
 import { assert, finish, spawnServer, type Rpc } from './_harness';
 
 const { call, kill, textOf } = spawnServer();
 const isImage = (m: Rpc): boolean => m.result?.content?.[0]?.type === 'image';
 
-skry.initialize();
+umbriel.initialize();
 const priorCalc = new Set(
-  skry
+  umbriel
     .windows({ includeUntitled: true })
     .filter((window) => /Calcul/i.test(window.title))
     .map((window) => window.hWnd),
@@ -29,12 +29,12 @@ const priorCalc = new Set(
 // Cold-start guard (finding/34): a wedged single-instance Calculator app model leaves `start calc` re-activating a
 // headless zombie that never gets a titled window, so `launch` throws. That throw happens BEFORE the try below, so
 // without this guard the `finally` never runs and the MCP subprocess (kill) leaks. SKIP clean instead, killing it.
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' }).catch(() => null);
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' }).catch(() => null);
 if (calc === null) {
   kill();
   console.log('SKIP — Calculator app model wedged/unavailable (single-instance); cannot prove the minimized capture steers here (finding/34).');
-  for (const window of skry.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd);
-  skry.uninitialize();
+  for (const window of umbriel.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd);
+  umbriel.uninitialize();
   process.exit(0);
 }
 const hx = `0x${calc.hWnd.toString(16)}`;
@@ -71,8 +71,8 @@ try {
   kill();
   closeWindow(calc.hWnd);
   calc.dispose();
-  for (const window of skry.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd);
-  skry.uninitialize();
+  for (const window of umbriel.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd);
+  umbriel.uninitialize();
 }
 
 finish('PASS — capture/OCR tools steer a minimized window to restore; the first capture of a fresh window warms past a cold frame.');

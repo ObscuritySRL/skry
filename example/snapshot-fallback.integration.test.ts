@@ -13,9 +13,9 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/snapshot-fallback.integration.test.ts
  */
-import { closeWindow, snapshot, skry, windowProcessId } from 'skry';
-import { createCacheRequest, AutomationElementMode, DEFAULT_CACHE_PROPERTIES } from 'skry';
-import { TreeScope } from 'skry';
+import { closeWindow, snapshot, umbriel, windowProcessId } from 'umbriel';
+import { createCacheRequest, AutomationElementMode, DEFAULT_CACHE_PROPERTIES } from 'umbriel';
+import { TreeScope } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -27,22 +27,22 @@ function assert(condition: boolean, message: string): void {
 }
 const namedCount = (marks: readonly { name: string }[]) => marks.filter((m) => m.name.trim().length > 0).length;
 
-skry.initialize();
+umbriel.initialize();
 
 // (A)+(B) deterministic: spawn Notepad (a real tree), compare cached vs forced-live snapshots.
 let notepad = 0n;
-const priorNotepad = new Set(skry.windows().filter((w) => w.className === 'Notepad' || /Notepad$/.test(w.className)).map((w) => w.hWnd));
+const priorNotepad = new Set(umbriel.windows().filter((w) => w.className === 'Notepad' || /Notepad$/.test(w.className)).map((w) => w.hWnd));
 Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 40 && notepad === 0n; attempt += 1) {
   await Bun.sleep(150);
-  notepad = skry.windows().find((w) => /Notepad/i.test(w.className) && !priorNotepad.has(w.hWnd))?.hWnd ?? skry.windows().find((w) => /Notepad/i.test(w.title) && !priorNotepad.has(w.hWnd))?.hWnd ?? 0n;
+  notepad = umbriel.windows().find((w) => /Notepad/i.test(w.className) && !priorNotepad.has(w.hWnd))?.hWnd ?? umbriel.windows().find((w) => /Notepad/i.test(w.title) && !priorNotepad.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 try {
   assert(notepad !== 0n, 'launched Notepad');
   if (notepad !== 0n) {
     await Bun.sleep(500);
-    const win = skry.attach(notepad);
+    const win = umbriel.attach(notepad);
     const cached = snapshot(win, { maxDepth: 25 });
     const live = snapshot(win, { maxDepth: 25, live: true });
     assert(live.marks.length > 0, `live walk produced actionable refs (${live.marks.length})`);
@@ -60,8 +60,8 @@ try {
 
   // (C) a cache-hostile Chromium (Opera), if present: snapshot returns a tree, never throws.
   let hostile = 0n;
-  for (const w of skry.windows().filter((x) => x.className === 'Chrome_WidgetWin_1')) {
-    const probe = skry.attach(w.hWnd);
+  for (const w of umbriel.windows().filter((x) => x.className === 'Chrome_WidgetWin_1')) {
+    const probe = umbriel.attach(w.hWnd);
     const request = createCacheRequest([...DEFAULT_CACHE_PROPERTIES], TreeScope.TreeScope_Subtree, AutomationElementMode.Full);
     const clone = probe.buildUpdatedCache(request);
     if (clone.ptr === probe.ptr) hostile = w.hWnd;
@@ -71,7 +71,7 @@ try {
     if (hostile !== 0n) break;
   }
   if (hostile !== 0n) {
-    const win = skry.attach(hostile);
+    const win = umbriel.attach(hostile);
     try {
       const snap = snapshot(win, { maxDepth: 20 });
       assert(snap.tree.children.length >= 0, `cache-hostile Chromium snapshots without throwing (recovered ${snap.marks.length} native refs; web DOM via webRoots)`);
@@ -88,7 +88,7 @@ try {
   const notepadPid = windowProcessId(notepad);
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   if (notepad !== 0n) closeWindow(notepad);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a cache-hostile provider snapshots via the live fallback; live ≡ cached on a normal window.' : `\nFAILED — ${failures} assertion(s)`);

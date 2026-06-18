@@ -7,19 +7,19 @@
  * a locked session.)
  *
  * APIs demonstrated:
- * - skry.attach / activate / waitFor / Element.focus / type / text (the Playwright-for-desktop core)
+ * - umbriel.attach / activate / waitFor / Element.focus / type / text (the Playwright-for-desktop core)
  * - windowProcessId + taskkill teardown: Win11 Notepad is a UWP app, so the spawned launcher is NOT
  *   the editor process, and a dirty buffer makes closeWindow() prompt — force-kill the owner by PID.
  *
- * Run: bun run example/hello-skry.ts
+ * Run: bun run example/hello-umbriel.ts
  */
-import { ControlType, skry, windowProcessId } from 'skry';
+import { ControlType, umbriel, windowProcessId } from 'umbriel';
 
 const proc = Bun.spawn(['notepad.exe']);
 let notepadPid = 0;
 try {
   await Bun.sleep(2000);
-  const app = skry.attach({ className: 'Notepad' }).activate();
+  const app = umbriel.attach({ className: 'Notepad' }).activate();
   notepadPid = windowProcessId(app.hWnd);
   const edit = await app.waitFor({ controlType: ControlType.Document });
   edit.focus().type('nothing native compiles, and it just works');
@@ -28,5 +28,5 @@ try {
 } finally {
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   proc.kill();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }

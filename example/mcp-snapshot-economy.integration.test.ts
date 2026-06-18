@@ -1,7 +1,7 @@
 /**
  * MCP snapshot economy — end-to-end proof over the REAL stdio JSON-RPC server (not the units).
  *
- * Drives packages/skry/mcp.ts as a child process and asserts the wired path:
+ * Drives packages/umbriel/mcp.ts as a child process and asserts the wired path:
  *  1. desktop_snapshot {maxDepth:1} returns a shallow tree vs the default — the agent's size lever, dead
  *     before this change (handler ignored the arg), now works end-to-end.
  *  2. An action whose change adds/removes an actionable control returns the FULL pruned tree (ref churn →

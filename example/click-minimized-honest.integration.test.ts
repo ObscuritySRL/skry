@@ -12,14 +12,14 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Notepad):
  * Run: bun run example/click-minimized-honest.integration.test.ts
  */
-import { closeWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 
 import { assert, finish, skip, spawnServer } from './_harness';
 
 const { call, kill, textOf } = spawnServer();
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'click-min', version: '1' } });
   await call('tools/call', { name: 'attach', arguments: { hWnd: `0x${notepad.hWnd.toString(16)}` } });
@@ -45,7 +45,7 @@ try {
   kill();
   closeWindow(notepad.hWnd);
   notepad.dispose();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 finish('PASS — a coordinate click on an off-screen/minimized no-Invoke control fails honestly, not silently.');

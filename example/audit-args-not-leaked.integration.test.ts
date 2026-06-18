@@ -2,7 +2,7 @@
  * audit-args-not-leaked — a credential carried in a COMMAND-LINE ARRAY arg must not land verbatim in either forensic sink.
  * maskArgs originally masked only string values under content/text/value keys; an ARRAY value (run_program.args,
  * copy_files.paths) fell through unmasked, so a secret in `args` (--password=…, -psecret, Authorization: Bearer …) — the
- * canonical home of credentials — was written in clear to BOTH the stderr [skry-audit] line AND the SKRY_TRACE
+ * canonical home of credentials — was written in clear to BOTH the stderr [umbriel-audit] line AND the SKRY_TRACE
  * JSONL the deployer treats as trusted forensic output. The fix collapses any array arg to its element count (<N args>),
  * preserving forensic signal (HOW MANY args/paths) without the values.
  *
@@ -20,7 +20,7 @@ import { join } from 'node:path';
 
 const ARGS_SECRET = '--password=SUPERSECRET123'; // a credential in run_program.args
 const PATH_SECRET = 'C:\\creds\\TOKENLEAK-9f2a.txt'; // a secret-bearing path in copy_files.paths
-const tracePath = join(tmpdir(), `skry-argmask-${process.pid}-${Date.now()}.jsonl`);
+const tracePath = join(tmpdir(), `umbriel-argmask-${process.pid}-${Date.now()}.jsonl`);
 await rm(tracePath, { force: true });
 
 let auditText = '';
@@ -79,7 +79,7 @@ try {
   await Bun.sleep(300); // let the trace appendFile + audit flush
 
   const trace = await Bun.file(tracePath).text().catch(() => '');
-  const auditLines = auditText.split('\n').filter((line) => line.includes('[skry-audit]'));
+  const auditLines = auditText.split('\n').filter((line) => line.includes('[umbriel-audit]'));
   const audit = auditLines.join('\n');
 
   assert(auditLines.length >= 2, `both array-arg calls were audited (saw ${auditLines.length} audit lines)`);

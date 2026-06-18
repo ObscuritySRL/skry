@@ -13,7 +13,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + spawned Settings):
  * Run: bun run example/click-winui-toggle.integration.test.ts
  */
-import { closeWindow, PropertyId, raiseWindow, skry } from 'skry';
+import { closeWindow, PropertyId, raiseWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -60,12 +60,12 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 Bun.spawn(['explorer.exe', 'ms-settings:easeofaccess-visualeffects'], { stdout: 'ignore', stderr: 'ignore' });
 let hWnd = 0n;
 for (let i = 0; i < 40 && hWnd === 0n; i++) {
   await Bun.sleep(250);
-  hWnd = skry.windows().find((w) => w.title === 'Settings')?.hWnd ?? 0n;
+  hWnd = umbriel.windows().find((w) => w.title === 'Settings')?.hWnd ?? 0n;
 }
 
 try {
@@ -78,7 +78,7 @@ try {
     await Bun.sleep(400);
 
     // in-process: find a Toggle-without-Invoke control with bounds (the false-success class), record name + state
-    const settings = skry.attach(hWnd);
+    const settings = umbriel.attach(hWnd);
     const scan = settings.findAll({});
     const toggle = scan.find((el) => el.getProperty(PropertyId.IsTogglePatternAvailable) === true && el.getProperty(PropertyId.IsInvokePatternAvailable) !== true && el.boundingRectangle.width > 0 && el.boundingRectangle.height > 0) ?? null;
     const name = toggle?.name ?? '';
@@ -96,7 +96,7 @@ try {
         const out = textOf(result);
         assert(result.result?.isError !== true && /toggled \(cursor-free/.test(out), `click reports a cursor-free TOGGLE, not a false posted-click (got: ${JSON.stringify(out.slice(0, 90))})`);
         await Bun.sleep(450);
-        const after = skry.attach(hWnd);
+        const after = umbriel.attach(hWnd);
         const allAfter = after.findAll({});
         const flipped = allAfter.find((el) => el.name === name && el.getProperty(PropertyId.IsTogglePatternAvailable) === true) ?? null;
         assert(flipped !== null && flipped.toggleState !== baseline, `the toggle ACTUALLY flipped (was ${baseline}, now ${flipped?.toggleState ?? 'gone'}) — not a false success`);
@@ -106,7 +106,7 @@ try {
         after.dispose();
 
         // act() path (find_and_act) must ALSO return clickElement's REAL outcome, not a hardcoded "clicked X"
-        const win2 = skry.attach(hWnd);
+        const win2 = umbriel.attach(hWnd);
         const all2 = win2.findAll({});
         const other = all2.find((el) => el.getProperty(PropertyId.IsTogglePatternAvailable) === true && el.getProperty(PropertyId.IsInvokePatternAvailable) !== true && el.boundingRectangle.width > 0 && el.name !== name) ?? null;
         if (other !== null) {
@@ -115,7 +115,7 @@ try {
           const fa = textOf(await call('tools/call', { name: 'find_and_act', arguments: { selector: { name: otherName, controlType: 'Button' }, do: 'click' } }));
           assert(/toggled \(cursor-free/.test(fa), `find_and_act{do:click} returns the REAL outcome, not "clicked X" (got: ${JSON.stringify(fa.slice(0, 80))})`);
           await Bun.sleep(400);
-          const win3 = skry.attach(hWnd);
+          const win3 = umbriel.attach(hWnd);
           const all3 = win3.findAll({});
           const reread = all3.find((el) => el.name === otherName && el.getProperty(PropertyId.IsTogglePatternAvailable) === true) ?? null;
           if (reread !== null && reread.toggleState !== otherBaseline) reread.toggle(); // restore the user's setting
@@ -126,19 +126,19 @@ try {
         win2.dispose();
       }
 
-      // computer-use lib path (skry.dispatch left_click → semanticClick) must ALSO fire the semantic activation when
+      // computer-use lib path (umbriel.dispatch left_click → semanticClick) must ALSO fire the semantic activation when
       // the pixel resolves a togglable control — not a false posted coordinate click. Same no-Invoke WinUI toggle.
       const point = toggle.clickablePoint;
       if (point !== null) {
         const dispBaseline = toggle.toggleState;
-        const disp = await skry.dispatch(settings, { action: 'left_click', coordinate: [point.x, point.y] }, { cursorless: true });
+        const disp = await umbriel.dispatch(settings, { action: 'left_click', coordinate: [point.x, point.y] }, { cursorless: true });
         await Bun.sleep(400);
         if (toggle.toggleState !== dispBaseline) {
-          assert(disp.ok && /toggled .*cursor-free/.test(disp.output ?? ''), `skry.dispatch left_click reports a cursor-free TOGGLE (got: ${JSON.stringify(disp.output ?? disp.error)})`);
+          assert(disp.ok && /toggled .*cursor-free/.test(disp.output ?? ''), `umbriel.dispatch left_click reports a cursor-free TOGGLE (got: ${JSON.stringify(disp.output ?? disp.error)})`);
           if (toggle.toggleState !== baseline) toggle.toggle(); // restore
         } else {
           console.log(
-            `  note: skry.dispatch at the toggle pixel resolved a non-togglable element (${JSON.stringify(disp.output ?? disp.error)}) — fromPoint did not land on the TogglePattern node; the semanticClick chain is still correct where the pixel resolves a togglable/selectable control`,
+            `  note: umbriel.dispatch at the toggle pixel resolved a non-togglable element (${JSON.stringify(disp.output ?? disp.error)}) — fromPoint did not land on the TogglePattern node; the semanticClick chain is still correct where the pixel resolves a togglable/selectable control`,
           );
         }
       }
@@ -149,7 +149,7 @@ try {
 } finally {
   proc.kill();
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — MCP click toggles a no-Invoke WinUI ToggleSwitch cursor-free (no false posted-click).' : `\nFAILED — ${failures} assertion(s)`);

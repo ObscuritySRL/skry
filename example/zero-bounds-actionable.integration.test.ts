@@ -15,7 +15,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + the live Settings app):
  * Run: bun run example/zero-bounds-actionable.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -61,10 +61,10 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const preexisting = skry.windows().some((window) => window.title === 'Settings');
+umbriel.initialize();
+const preexisting = umbriel.windows().some((window) => window.title === 'Settings');
 Bun.spawn(['cmd', '/c', 'start', '', 'ms-settings:developers']);
-const settings = await skry.waitForWindow({ title: 'Settings' }, { timeout: 8000 }).catch(() => null);
+const settings = await umbriel.waitForWindow({ title: 'Settings' }, { timeout: 8000 }).catch(() => null);
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'zerobounds', version: '1' } });
   if (settings === null) console.log('  skip: Settings did not open');
@@ -90,7 +90,7 @@ try {
 } finally {
   proc.kill();
   if (settings !== null && !preexisting) closeWindow(settings.hWnd); // close Settings only if THIS test opened it
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — 0-bounds WinUI controls are reffed + marked off-screen; a coordinate click on a location-less control errors instead of misfiring.' : `\nFAILED — ${failures} assertion(s)`);

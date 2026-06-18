@@ -13,7 +13,7 @@
  * bun test is broken repo-wide — runnable script (UIA init only, no window):
  * Run: bun run example/compile-needs-client-filter.integration.test.ts
  */
-import { automation, comRelease, compileCondition, ControlType, skry } from 'skry';
+import { automation, comRelease, compileCondition, ControlType, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -24,7 +24,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   const pAutomation = automation();
   const check = (label: string, selector: Parameters<typeof compileCondition>[1], wantClientFilter: boolean): void => {
@@ -47,7 +47,7 @@ try {
   // The ALREADY-OPTIMAL empty-selector fast path must stay (no failed parts → no client filter).
   check('empty selector', {}, false);
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — compileCondition preserves the fast path for buildable selectors; a dropped predicate forces the client re-check.' : `\nFAILED — ${failures} assertion(s)`);

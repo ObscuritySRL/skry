@@ -24,7 +24,7 @@
 import { JSCallback } from 'bun:ffi';
 
 import Gdi32 from '@bun-win32/gdi32';
-import { ocrAvailable, ocrBitmap, ocrWindow, postClickAt, postClickToHwnd, skry, wgcAvailable } from 'skry';
+import { ocrAvailable, ocrBitmap, ocrWindow, postClickAt, postClickToHwnd, umbriel, wgcAvailable } from 'umbriel';
 import User32 from '@bun-win32/user32';
 import { ShowWindowCommand, WindowStyles } from '@bun-win32/user32';
 
@@ -125,7 +125,7 @@ function paintLabel(hWnd: bigint): void {
   User32.ReleaseDC(hWnd, dc);
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   if (!ocrAvailable()) {
     console.log('  (no OCR language pack installed — skipping; install one via Settings → Language)');
@@ -249,7 +249,7 @@ try {
     }
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — read text out of raw pixels (Windows.Media.Ocr) AND closed the OCR→click_point loop with external verification.' : `\nFAILED — ${failures} assertion(s)`);

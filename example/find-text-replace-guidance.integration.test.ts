@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Character Map):
  * Run: bun run example/find-text-replace-guidance.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
 type Tool = { name: string; description?: string };
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[]; tools?: Tool[] } };
@@ -57,8 +57,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const charmap = await skry.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
+umbriel.initialize();
+const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'find-text-guide', version: '1' } });
   const tools = (await call('tools/list', {})).result?.tools ?? [];
@@ -86,7 +86,7 @@ try {
     closeWindow(charmap.hWnd);
     charmap.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — find_text guidance steers to type/paste (surgical) and warns set_value wipes the whole control.' : `\nFAILED — ${failures} assertion(s)`);

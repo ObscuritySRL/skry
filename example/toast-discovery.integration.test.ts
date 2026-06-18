@@ -59,7 +59,7 @@ function assert(condition: boolean, message: string): void {
 const ps = [
   '[void][Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime]',
   '$xml=[Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)',
-  "$t=$xml.GetElementsByTagName('text'); $t[0].AppendChild($xml.CreateTextNode('skry toast probe'))|Out-Null; $t[1].AppendChild($xml.CreateTextNode('discovery test'))|Out-Null",
+  "$t=$xml.GetElementsByTagName('text'); $t[0].AppendChild($xml.CreateTextNode('umbriel toast probe'))|Out-Null; $t[1].AppendChild($xml.CreateTextNode('discovery test'))|Out-Null",
   '$toast=[Windows.UI.Notifications.ToastNotification]::new($xml)',
   "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe').Show($toast)",
   'Start-Sleep -Seconds 6',
@@ -78,7 +78,7 @@ try {
     assert(hWnd !== undefined, `list_windows surfaced the toast as an attachable notification row (${hWnd})`);
     if (hWnd !== undefined) {
       const snap = textOf(await call('tools/call', { name: 'attach', arguments: { hWnd } }));
-      assert(/skry toast probe/.test(snap), 'attaching the toast by hWnd reads its message text');
+      assert(/umbriel toast probe/.test(snap), 'attaching the toast by hWnd reads its message text');
       const dismissRef = /Dismiss[^\n]*?\[ref=(e\d+(?:#\d+)?)\]/i.exec(snap)?.[1] ?? /Move this notification[^\n]*?\[ref=(e\d+(?:#\d+)?)\]/i.exec(snap)?.[1];
       assert(dismissRef !== undefined, 'the toast exposes a Dismiss button ref to invoke cursor-free');
       if (dismissRef !== undefined) {

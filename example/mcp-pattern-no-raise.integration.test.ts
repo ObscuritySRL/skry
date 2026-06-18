@@ -15,7 +15,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (drives the real MCP subprocess + spawns/kills its charmap):
  * Run: bun run example/mcp-pattern-no-raise.integration.test.ts
  */
-import { closeWindow, foregroundWindow, isMinimized, windowProcessId } from 'skry';
+import { closeWindow, foregroundWindow, isMinimized, windowProcessId } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });

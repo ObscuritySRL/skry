@@ -14,7 +14,7 @@
  * Run: bun run example/read-control-text-fenced-redacted.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { closeWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 import { assert, finish, skip, spawnServer } from './_harness';
 
 const EM_SETMODIFY = 0x00b9;
@@ -30,8 +30,8 @@ const editRef = async (): Promise<string | undefined> => {
   return /(?:Document|Edit|Text)[^\n]*?\[ref=(e\d+(?:#\d+)?)\]/i.exec(snap)?.[1];
 };
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 const editor = notepad.find({ controlType: 50004 /* Edit */ }) ?? notepad.find({ controlType: 50030 /* Document */ });
 const editHwnd = editor?.nativeWindowHandle ?? 0n;
 try {
@@ -76,7 +76,7 @@ try {
   editor?.release();
   notepad.dispose();
   closeWindow(notepad.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 finish('PASS — find_and_act do:read + inspect_element fence+redact control text identically to read_clipboard (uniform untrusted-data boundary).');

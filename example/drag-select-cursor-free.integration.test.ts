@@ -84,7 +84,7 @@ const sel = (hWnd: bigint): { start: number; end: number } => {
 };
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-dragsel-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 280, 280, 380, 140, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-dragsel-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 280, 280, 380, 140, 0n, 0n, BigInt(hInstance), null);
 const edit = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 10, 10, 340, 28, parent, 0n, BigInt(hInstance), null);
 if (edit !== 0n) {
   User32.SendMessageW(edit, WM_SETTEXT, 0n, BigInt(wide('the quick brown fox jumps over the lazy dog').ptr!));

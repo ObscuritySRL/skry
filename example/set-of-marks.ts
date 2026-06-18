@@ -8,16 +8,16 @@
  * analog) an agent acts on by ref.
  *
  * APIs demonstrated:
- * - skry.snapshot / renderSnapshot (ref-keyed tree, skry)
- * - screenshotWithMarks (Set-of-Marks overlay), skry.waitForIdle (settle)
+ * - umbriel.snapshot / renderSnapshot (ref-keyed tree, umbriel)
+ * - screenshotWithMarks (Set-of-Marks overlay), umbriel.waitForIdle (settle)
  *
  * Run: bun run example/set-of-marks.ts            (defaults to Calculator)
  *      bun run example/set-of-marks.ts "Settings" (any window title)
  */
-import { renderSnapshot, screenshotWithMarks, skry } from 'skry';
+import { renderSnapshot, screenshotWithMarks, umbriel } from 'umbriel';
 
 const title = Bun.argv[2] ?? 'Calculator';
-skry.initialize();
+umbriel.initialize();
 if (title === 'Calculator') {
   Bun.spawn(['cmd', '/c', 'start', 'calc'], { stdout: 'ignore', stderr: 'ignore' });
   await Bun.sleep(1500);
@@ -25,7 +25,7 @@ if (title === 'Calculator') {
 
 const app = (() => {
   try {
-    return skry.attach(title);
+    return umbriel.attach(title);
   } catch {
     return null;
   }
@@ -35,9 +35,9 @@ if (app === null) {
   process.exit(0);
 }
 app.activate();
-await skry.waitForIdle(app, { timeout: 4000, quietMs: 350 });
+await umbriel.waitForIdle(app, { timeout: 4000, quietMs: 350 });
 
-const shot = skry.snapshot(app);
+const shot = umbriel.snapshot(app);
 console.log(`\n\x1b[1m\x1b[95m  Set-of-Marks for "${app.name}"\x1b[0m — ${shot.marks.length} interactable controls\n`);
 console.log(
   renderSnapshot(shot.tree)
@@ -54,4 +54,4 @@ console.log(`\n  \x1b[92mwrote ${outputPath}\x1b[0m (${marked.png.length} bytes,
 
 shot.dispose();
 app.dispose();
-skry.uninitialize();
+umbriel.uninitialize();

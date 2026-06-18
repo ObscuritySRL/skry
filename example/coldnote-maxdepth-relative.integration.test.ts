@@ -9,7 +9,7 @@
  * bun test is broken repo-wide — runnable script:
  * Run: bun run example/coldnote-maxdepth-relative.integration.test.ts
  */
-import { coldTreeNote } from 'skry';
+import { coldTreeNote } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

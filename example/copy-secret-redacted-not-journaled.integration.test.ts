@@ -17,12 +17,12 @@ import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import User32 from '@bun-win32/user32';
-import { closeWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 import { assert, finish, skip, spawnServer } from './_harness';
 
 const EM_SETMODIFY = 0x00b9;
 const SECRET = 'AKIAIOSFODNN7EXAMPLE'; // an AWS access-key-id shape the default redaction masks
-const tracePath = join(tmpdir(), `skry-copyredact-${process.pid}-${Date.now()}.jsonl`);
+const tracePath = join(tmpdir(), `umbriel-copyredact-${process.pid}-${Date.now()}.jsonl`);
 await rm(tracePath, { force: true });
 
 const { call, kill, textOf } = spawnServer({ SKRY_PROFILE: 'safe', SKRY_TRACE: tracePath });
@@ -34,8 +34,8 @@ const editRef = async (): Promise<string | undefined> => {
   return /(?:Document|Edit|Text)[^\n]*?\[ref=(e\d+(?:#\d+)?)\]/i.exec(snap)?.[1];
 };
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 const editor = notepad.find({ controlType: 50004 /* Edit */ }) ?? notepad.find({ controlType: 50030 /* Document */ });
 const editHwnd = editor?.nativeWindowHandle ?? 0n;
 try {
@@ -90,7 +90,7 @@ try {
   editor?.release();
   notepad.dispose();
   closeWindow(notepad.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
   await rm(tracePath, { force: true });
 }
 

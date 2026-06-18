@@ -12,7 +12,7 @@
  * Run: bun run example/posted-clicks.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { postClickToHwnd, postDoubleClickToHwnd, skry } from 'skry';
+import { postClickToHwnd, postDoubleClickToHwnd, umbriel } from 'umbriel';
 
 const WS_POPUP = 0x8000_0000;
 const WS_VISIBLE = 0x1000_0000;
@@ -44,7 +44,7 @@ const reset = (hWnd: bigint): void => {
   pump();
 };
 
-skry.initialize();
+umbriel.initialize();
 const staticClass = Buffer.from('Static\0', 'utf16le');
 const buttonClass = Buffer.from('BUTTON\0', 'utf16le');
 const parent = User32.CreateWindowExW(0, staticClass.ptr!, null, WS_POPUP | WS_VISIBLE, 140, 140, 240, 80, 0n, 0n, 0n, null);
@@ -71,7 +71,7 @@ try {
 } finally {
   User32.DestroyWindow(checkbox);
   User32.DestroyWindow(parent);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — posted double-click and middle-click drive a control cursor-free.' : `\nFAILED — ${failures} assertion(s)`);

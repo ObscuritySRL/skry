@@ -11,7 +11,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + spawned Notepad):
  * Run: bun run example/accelerator-key.integration.test.ts
  */
-import { closeWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, umbriel, windowProcessId } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -57,8 +57,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { title: 'Untitled - Notepad' }, 6000).catch(() => skry.launch(['notepad.exe'], { className: 'Notepad' }, 6000).catch(() => null));
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { title: 'Untitled - Notepad' }, 6000).catch(() => umbriel.launch(['notepad.exe'], { className: 'Notepad' }, 6000).catch(() => null));
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'accel', version: '1' } });
   if (notepad === null) {
@@ -91,7 +91,7 @@ try {
     closeWindow(notepad.hWnd);
     notepad.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — inspect_element surfaces AcceleratorKey/AccessKey.' : `\nFAILED — ${failures} assertion(s)`);

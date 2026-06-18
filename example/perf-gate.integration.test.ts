@@ -17,7 +17,7 @@
  *
  * APIs demonstrated:
  * - vcall + SLOT.get_CurrentControlType (the cross-process read), createCacheRequest + buildUpdatedCache +
- *   cachedControlType (the in-proc cached read), skry.tree + estimateTokens (agent-grounding build)
+ *   cachedControlType (the in-proc cached read), umbriel.tree + estimateTokens (agent-grounding build)
  * - numberOfDFGCompiles (bun:jsc) — proves each hot closure JIT-optimized, not interpreted
  * - windowProcessId + taskkill teardown — Calculator is UWP, so force-kill the window owner by PID
  *
@@ -26,7 +26,7 @@
  */
 import { FFIType } from 'bun:ffi';
 import { numberOfDFGCompiles } from 'bun:jsc';
-import { AutomationElementMode, createCacheRequest, estimateTokens, SLOT, TreeScope, skry, vcall, windowProcessId } from 'skry';
+import { AutomationElementMode, createCacheRequest, estimateTokens, SLOT, TreeScope, umbriel, vcall, windowProcessId } from 'umbriel';
 
 // Ceilings are ~3× the measured-stable medians on this repo's pinned Bun (cross-process ~80–100 µs, cached
 // ~1.8 µs, tree build ~0.3 ms) — wide enough for jitter, tight enough to catch a 3–10× hot-path regression.
@@ -51,8 +51,8 @@ function perCallNs(run: () => void, iterations: number): number {
   return (Bun.nanoseconds() - start) / iterations;
 }
 
-skry.initialize();
-const window = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+umbriel.initialize();
+const window = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 const pid = windowProcessId(window.hWnd);
 try {
   // Wait until Calculator's UIA subtree is realized — measuring a half-built tree is meaningless.
@@ -87,7 +87,7 @@ try {
   // OSWorld). A macro op (run a handful of times), so it is timed but NOT DFG-asserted (it never gets hot).
   let treeTokens = 0;
   const treeBuild = (): void => {
-    treeTokens = estimateTokens(skry.tree(window, { agentProfile: true }));
+    treeTokens = estimateTokens(umbriel.tree(window, { agentProfile: true }));
   };
   const treeMs = perCallNs(treeBuild, 20) / 1e6;
   console.log(`[2] agent-grounding tree build: ${treeMs.toFixed(3)} ms, ~${treeTokens} tokens (ceiling ${TREE_CEILING_MS} ms)`);
@@ -109,7 +109,7 @@ try {
 } finally {
   if (pid) Bun.spawnSync(['taskkill', '/F', '/PID', String(pid)]);
   window.dispose();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — all hot paths within ceiling and DFG-compiled.' : `\nFAILED — ${failures} perf assertion(s) over ceiling`);

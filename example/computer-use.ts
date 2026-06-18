@@ -9,16 +9,16 @@
  * on failure).
  *
  * APIs demonstrated:
- * - dispatch (computer-use adapter, skry), cursorPosition, skry.waitForIdle
+ * - dispatch (computer-use adapter, umbriel), cursorPosition, umbriel.waitForIdle
  *
  * Run: bun run example/computer-use.ts
  */
-import { ControlType, cursorPosition, dispatch, skry } from 'skry';
+import { ControlType, cursorPosition, dispatch, umbriel } from 'umbriel';
 
-skry.initialize();
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+umbriel.initialize();
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 calc.activate();
-await skry.waitForIdle(calc, { timeout: 4000, quietMs: 350 });
+await umbriel.waitForIdle(calc, { timeout: 4000, quietMs: 350 });
 
 function center(name: string): [number, number] {
   const button = calc.find({ controlType: ControlType.Button, name });
@@ -49,5 +49,5 @@ try {
 } catch {
   calc.dispose();
 }
-skry.uninitialize();
+umbriel.uninitialize();
 process.exit(ok ? 0 : 1);

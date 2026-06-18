@@ -12,7 +12,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/reveal-offscreen.integration.test.ts
  */
-import { ControlType, closeWindow, skry } from 'skry';
+import { ControlType, closeWindow, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -29,23 +29,23 @@ function cursorPos(): { x: number; y: number } {
   return { x: buffer.readInt32LE(0), y: buffer.readInt32LE(4) };
 }
 
-skry.initialize();
-for (const window of skry.windows()) {
+umbriel.initialize();
+for (const window of umbriel.windows()) {
   if (window.className === 'CabinetWClass') closeWindow(window.hWnd);
 }
 await Bun.sleep(800);
-const priorExplorers = new Set(skry.windows().filter((w) => w.className === 'CabinetWClass').map((w) => w.hWnd));
+const priorExplorers = new Set(umbriel.windows().filter((w) => w.className === 'CabinetWClass').map((w) => w.hWnd));
 Bun.spawn(['explorer.exe', 'shell:MyComputerFolder'], { stdout: 'ignore', stderr: 'ignore' });
 let hWnd = 0n;
 for (let attempt = 0; attempt < 24 && hWnd === 0n; attempt += 1) {
   await Bun.sleep(250);
-  hWnd = skry.windows().find((w) => w.className === 'CabinetWClass' && !priorExplorers.has(w.hWnd) && /This PC/.test(w.title))?.hWnd ?? 0n;
+  hWnd = umbriel.windows().find((w) => w.className === 'CabinetWClass' && !priorExplorers.has(w.hWnd) && /This PC/.test(w.title))?.hWnd ?? 0n;
 }
 const cursorBefore = cursorPos();
 
 try {
   assert(hWnd !== 0n, 'opened This PC');
-  const explorer = skry.attach(hWnd);
+  const explorer = umbriel.attach(hWnd);
 
   // Navigate into C:\Windows cursor-free (invoke = activate/navigate), so we have a long, scrolling file list.
   const open = (name: RegExp): boolean => {
@@ -92,7 +92,7 @@ try {
   explorer.dispose();
 } finally {
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — reached and opened a folder that was scrolled out of view, entirely cursor-free.' : `\nFAILED — ${failures} assertion(s)`);

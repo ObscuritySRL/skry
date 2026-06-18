@@ -13,7 +13,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Calculator):
  * Run: bun run example/calc-delta-stable.integration.test.ts
  */
-import { closeWindow, skry } from 'skry';
+import { closeWindow, umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -59,8 +59,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const calc = await skry.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
+umbriel.initialize();
+const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'calc-delta', version: '1' } });
   await call('tools/call', { name: 'attach', arguments: { hWnd: `0x${calc.hWnd.toString(16)}` } });
@@ -85,7 +85,7 @@ try {
   proc.kill();
   closeWindow(calc.hWnd);
   calc.dispose();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a result-updating click keeps refs valid and returns a compact Δ (snapshot economy restored).' : `\nFAILED — ${failures} assertion(s)`);

@@ -1,7 +1,7 @@
 /**
  * MCP trace journal — proves SKRY_TRACE persists a replayable per-call JSONL over the REAL stdio server.
  *
- * Drives packages/skry/mcp.ts as a child process with SKRY_TRACE pointed at a temp file, runs two read-only
+ * Drives packages/umbriel/mcp.ts as a child process with SKRY_TRACE pointed at a temp file, runs two read-only
  * tool calls (list_monitors, list_processes — NO window launched, so no app to clean up), then reads the journal
  * and asserts one JSON line per call with the wired fields {ts, tool, args(masked), ok, observation}. Also asserts
  * a free-text arg is MASKED to its length (never echoed). Fails before the fix — the server wrote no trace file.
@@ -13,7 +13,7 @@ import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const tracePath = join(tmpdir(), `skry-trace-${process.pid}-${Date.now()}.jsonl`);
+const tracePath = join(tmpdir(), `umbriel-trace-${process.pid}-${Date.now()}.jsonl`);
 await rm(tracePath, { force: true });
 
 const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'inherit', env: { ...Bun.env, SKRY_PROFILE: 'safe', SKRY_TRACE: tracePath } });

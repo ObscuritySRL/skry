@@ -1,16 +1,16 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.ObscuritySRL/skry",
+  "name": "io.github.ObscuritySRL/umbriel",
   "description": "Playwright for the Windows desktop, from Bun — drive native GUIs via UI Automation + MCP.",
   "repository": {
-    "url": "https://github.com/ObscuritySRL/skry",
+    "url": "https://github.com/ObscuritySRL/umbriel",
     "source": "github"
   },
   "version": "1.9.0",
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "skry",
+      "identifier": "umbriel",
       "version": "1.9.0",
       "runtimeHint": "bunx",
       "transport": {

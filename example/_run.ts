@@ -1,5 +1,5 @@
 /**
- * Test runner for the skry integration suite (example/<name>.integration.test.ts).
+ * Test runner for the umbriel integration suite (example/<name>.integration.test.ts).
  *
  * `bun test` is broken repo-wide, so each test is a standalone `bun run` script. This orchestrates them
  * with a fast/slow split so the daily loop never pays the window-spawn cost it does not need:
@@ -7,7 +7,7 @@
  *   SLOW  — launches a real window and/or spawns the MCP server. Run strictly serially: many of these
  *           share the global cursor, foreground, or clipboard and would poison each other in parallel.
  *
- * Usage (from packages/skry):
+ * Usage (from packages/umbriel):
  *   bun run example/_run.ts            # all tests: fast tier concurrently, then slow tier serially
  *   bun run example/_run.ts --fast     # only the no-window tests — seconds, for the edit loop
  *   bun run example/_run.ts --slow     # only the window/subprocess tests
@@ -30,7 +30,7 @@ const packageDir = `${dir}/..`;
  * — no window, no subprocess, no shared-OS-state mutation — so the fast tier is genuinely safe to run in parallel.
  * The detector is intentionally biased toward SLOW: over-serializing only costs time; a false FAST flakes.
  */
-const isSlow = (source: string): boolean => /Bun\.spawn(Sync)?\(|spawnServer\(|spawnSync\(|skry\.launch\(|CreateWindowEx[AW]|CreateProcess|ShellExecute|AllocConsole|SendInput|SetForegroundWindow|SetCursorPos|keybd_event|mouse_event|writeClipboard|clipboardSequence/.test(source);
+const isSlow = (source: string): boolean => /Bun\.spawn(Sync)?\(|spawnServer\(|spawnSync\(|umbriel\.launch\(|CreateWindowEx[AW]|CreateProcess|ShellExecute|AllocConsole|SendInput|SetForegroundWindow|SetCursorPos|keybd_event|mouse_event|writeClipboard|clipboardSequence/.test(source);
 
 type Test = { name: string; path: string; slow: boolean };
 const tests: Test[] = [];

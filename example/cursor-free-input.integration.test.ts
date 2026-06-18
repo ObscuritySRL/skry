@@ -14,7 +14,7 @@
  * Run: bun run example/cursor-free-input.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { ControlType, closeWindow, foregroundWindow, minimizeWindow, pasteToControl, postKey, postText, setControlText, skry, windowProcessId, writeClipboard } from 'skry';
+import { ControlType, closeWindow, foregroundWindow, minimizeWindow, pasteToControl, postKey, postText, setControlText, umbriel, windowProcessId, writeClipboard } from 'umbriel';
 
 const EM_SETMODIFY = 0x00b9;
 
@@ -27,8 +27,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const window = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const window = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 const editor = window.find({ controlType: ControlType.Edit }) ?? window.find({ controlType: ControlType.Document });
 const editHwnd = editor?.nativeWindowHandle ?? 0n;
 try {
@@ -79,7 +79,7 @@ try {
   editor?.release();
   window.dispose();
   closeWindow(window.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — text + keys drive a minimized window cursor-free (posted window messages).' : `\nFAILED — ${failures} assertion(s)`);

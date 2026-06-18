@@ -15,7 +15,7 @@
  * Run: bun run example/wpf-hwndwrapper-input.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { ControlType, attach, closeWindow, pasteToControl, postKey, postText, setControlText, skry, windowProcessId, windowTree } from 'skry';
+import { ControlType, attach, closeWindow, pasteToControl, postKey, postText, setControlText, umbriel, windowProcessId, windowTree } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -39,7 +39,7 @@ const script =
   `$cb = New-Object System.Windows.Controls.CheckBox; $cb.Content = 'Enable Thing'; $cb.Name = 'theCheck';` +
   `$sp.AddChild($b); $sp.AddChild($tb); $sp.AddChild($cb); $w.Content = $sp; [void]$w.ShowDialog();`;
 
-skry.initialize();
+umbriel.initialize();
 let powershellProcess: ReturnType<typeof Bun.spawn> | null = null;
 let hWnd = 0n;
 try {
@@ -93,7 +93,7 @@ try {
   if (hWnd !== 0n) closeWindow(hWnd);
   if (powershellPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(powershellPid)]);
   powershellProcess?.kill();
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — WPF HwndWrapper no-own-HWND path proven: posted messages decline, ValuePattern drives.' : `\nFAILED — ${failures} assertion(s)`);

@@ -79,7 +79,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-hscroll-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 140, 140, 300, 160, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-hscroll-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 140, 140, 300, 160, 0n, 0n, BigInt(hInstance), null);
 const edit = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_HSCROLL | ES_MULTILINE | ES_AUTOHSCROLL, 8, 8, 180, 40, parent, 0n, BigInt(hInstance), null);
 if (edit !== 0n) User32.SendMessageW(edit, WM_SETTEXT, 0n, BigInt(wide('x'.repeat(600)).ptr!));
 pump();

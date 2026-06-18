@@ -79,7 +79,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 const hInstance = Kernel32.GetModuleHandleW(null);
-const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-variant-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 160, 160, 320, 180, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-variant-parent').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 160, 160, 320, 180, 0n, 0n, BigInt(hInstance), null);
 const checkedBox = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Button').ptr!, wide('Checked thing').ptr!, WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 10, 10, 200, 24, parent, 0n, BigInt(hInstance), null);
 const uncheckedBox = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Button').ptr!, wide('Unchecked thing').ptr!, WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 10, 40, 200, 24, parent, 0n, BigInt(hInstance), null);
 const edit = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('Edit').ptr!, null, WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 70, 280, 24, parent, 0n, BigInt(hInstance), null);

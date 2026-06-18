@@ -17,7 +17,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (spawns + taskkills its own charmap):
  * Run: bun run example/pattern-no-raise.integration.test.ts
  */
-import { ControlType, closeWindow, foregroundWindow, isMinimized, minimizeWindow, skry, windowProcessId } from 'skry';
+import { ControlType, closeWindow, foregroundWindow, isMinimized, minimizeWindow, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -28,8 +28,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const window = await skry.launch(['charmap.exe'], { title: 'Character Map' });
+umbriel.initialize();
+const window = await umbriel.launch(['charmap.exe'], { title: 'Character Map' });
 const edit = window.find({ controlType: ControlType.Edit });
 const checkbox = window.find({ name: 'Advanced view' });
 const button = window.find({ name: 'Select' });
@@ -72,7 +72,7 @@ try {
   button?.release();
   window.dispose();
   closeWindow(window.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — UIA pattern acts (setValue/toggle/invoke) never raise the app window; foreground stability is now guarded (OS-bridge control activation documented).' : `\nFAILED — ${failures} assertion(s)`);

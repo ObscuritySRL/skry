@@ -11,7 +11,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/snapshot-leak.integration.test.ts
  */
-import { closeWindow, Element, snapshot, skry, windowProcessId } from 'skry';
+import { closeWindow, Element, snapshot, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -22,13 +22,13 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 let notepad = 0n;
-const prior = new Set(skry.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
+const prior = new Set(umbriel.windows().filter((w) => /Notepad/i.test(w.className)).map((w) => w.hWnd));
 Bun.spawn(['notepad.exe'], { stdout: 'ignore', stderr: 'ignore' });
 for (let attempt = 0; attempt < 40 && notepad === 0n; attempt += 1) {
   await Bun.sleep(150);
-  notepad = skry.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
+  notepad = umbriel.windows().find((w) => /Notepad/i.test(w.className) && !prior.has(w.hWnd))?.hWnd ?? 0n;
 }
 
 // instrument Element.prototype: count releases + materialized children, and inject a throw mid-walk.
@@ -46,7 +46,7 @@ try {
   assert(notepad !== 0n, 'launched Notepad');
   if (notepad !== 0n) {
     await Bun.sleep(500);
-    const win = skry.attach(notepad);
+    const win = umbriel.attach(notepad);
     Object.defineProperty(proto, 'release', { configurable: true, value() { if (armed) releases += 1; return releaseDescriptor!.value.call(this); } });
     Object.defineProperty(proto, 'cachedChildren', { configurable: true, get() { const kids: Element[] = childrenDescriptor!.get!.call(this); if (armed) materialized += kids.length; return kids; } });
     Object.defineProperty(proto, 'cachedControlType', { configurable: true, get() { if (armed && ++controlTypeReads === THROW_AT) throw new Error('injected mid-walk fault'); return controlTypeDescriptor!.get!.call(this); } });
@@ -73,7 +73,7 @@ try {
   if (childrenDescriptor) Object.defineProperty(proto, 'cachedChildren', childrenDescriptor);
   if (controlTypeDescriptor) Object.defineProperty(proto, 'cachedControlType', controlTypeDescriptor);
   if (notepad !== 0n) closeWindow(notepad);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a fault mid-walk releases every materialized child (no COM leak).' : `\nFAILED — ${failures} assertion(s)`);

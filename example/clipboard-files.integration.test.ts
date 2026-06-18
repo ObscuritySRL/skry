@@ -11,7 +11,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + the OS clipboard):
  * Run: bun run example/clipboard-files.integration.test.ts
  */
-import { readClipboard, readClipboardFiles, writeClipboardFiles } from 'skry';
+import { readClipboard, readClipboardFiles, writeClipboardFiles } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });

@@ -10,7 +10,7 @@
  * Run: bun run example/close-modal-honest.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { closeWindow, isWindow, skry, windowProcessId } from 'skry';
+import { closeWindow, isWindow, umbriel, windowProcessId } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, SKRY_PROFILE: 'safe' } });
@@ -57,8 +57,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const notepad = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const notepad = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 const editor = notepad.find({ controlType: 50004 }) ?? notepad.find({ controlType: 50030 });
 const editHwnd = editor?.nativeWindowHandle ?? 0n;
 try {
@@ -90,7 +90,7 @@ try {
   editor?.release();
   notepad.dispose();
   if (isWindow(notepad.hWnd)) closeWindow(notepad.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — manage_window {close} detects a modal-blocked close and re-grounds instead of a false success.' : `\nFAILED — ${failures} assertion(s)`);

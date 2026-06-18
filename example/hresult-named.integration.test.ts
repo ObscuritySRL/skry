@@ -12,7 +12,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/hresult-named.integration.test.ts
  */
-import { hresult } from 'skry';
+import { hresult } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {

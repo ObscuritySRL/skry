@@ -1,6 +1,6 @@
 /**
  * wait-for-window-gone — there was no event-driven wait for a window to CLOSE: waitForWindow filters to appear/focus/
- * rename, so the close event the watcher already fires could never resolve a wait. New skry.waitForWindowGone + the
+ * rename, so the close event the watcher already fires could never resolve a wait. New umbriel.waitForWindowGone + the
  * wait_for_window {gone:true} param resolve when a matching top-level window disappears (a dialog dismissed, a splash/
  * progress window finishing, an app exiting) — resolving immediately if none is open, mirroring the appear path.
  *
@@ -16,7 +16,7 @@ import User32 from '@bun-win32/user32';
 const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
 const WS_VISIBLE = 0x1000_0000;
 const PM_REMOVE = 0x0001;
-const TITLE = 'skry-gone-probe-7731';
+const TITLE = 'umbriel-gone-probe-7731';
 const wide = (text: string): Buffer => Buffer.from(`${text}\0`, 'utf16le');
 const pumpMsg = Buffer.alloc(48);
 const pump = (): void => {

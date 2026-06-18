@@ -16,7 +16,7 @@
  * bun test is broken repo-wide — runnable harness (spawned PowerShell OpenFileDialog):
  * Run: bun run example/file-dialog-prune.integration.test.ts
  */
-import { capSnapshot, closeWindow, pruneRefTree, renderSnapshot, type Snapshot, skry, type Window } from 'skry';
+import { capSnapshot, closeWindow, pruneRefTree, renderSnapshot, type Snapshot, umbriel, type Window } from 'umbriel';
 
 const SNAPSHOT_MAX_CHARS = 8_000; // mirrors mcp.ts
 
@@ -29,8 +29,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const before = new Set(skry.windows({ includeUntitled: true }).map((w) => w.hWnd));
+umbriel.initialize();
+const before = new Set(umbriel.windows({ includeUntitled: true }).map((w) => w.hWnd));
 Bun.spawn(['powershell', '-NoProfile', '-Command', "Add-Type -AssemblyName System.Windows.Forms; $f=New-Object System.Windows.Forms.OpenFileDialog; $f.InitialDirectory='C:\\Windows\\System32'; [void]$f.ShowDialog()"], {
   stdout: 'ignore',
   stderr: 'ignore',
@@ -39,7 +39,7 @@ Bun.spawn(['powershell', '-NoProfile', '-Command', "Add-Type -AssemblyName Syste
 let hWnd = 0n;
 for (let i = 0; i < 40 && hWnd === 0n; i++) {
   await Bun.sleep(250);
-  hWnd = skry.windows({ includeUntitled: true }).find((w) => !before.has(w.hWnd) && (w.className === '#32770' || w.title === 'Open'))?.hWnd ?? 0n;
+  hWnd = umbriel.windows({ includeUntitled: true }).find((w) => !before.has(w.hWnd) && (w.className === '#32770' || w.title === 'Open'))?.hWnd ?? 0n;
 }
 
 let dialog: Window | null = null;
@@ -49,8 +49,8 @@ try {
     console.log('  skip(live): no Open dialog appeared');
   } else {
     await Bun.sleep(1500); // let the file list populate
-    dialog = skry.attach(hWnd);
-    snap = skry.snapshot(dialog);
+    dialog = umbriel.attach(hWnd);
+    snap = umbriel.snapshot(dialog);
 
     // pre-fix shape (no prune): the raw render is large enough that the cap truncates Open/Cancel
     const raw = capSnapshot(renderSnapshot(snap.tree), SNAPSHOT_MAX_CHARS);
@@ -74,7 +74,7 @@ try {
   snap?.dispose();
   dialog?.dispose();
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — file-dialog Details-view cell echo pruned; Open/Cancel survive the snapshot cap.' : `\nFAILED — ${failures} assertion(s)`);

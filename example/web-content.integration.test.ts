@@ -15,7 +15,7 @@
  */
 import { tmpdir } from 'node:os';
 
-import { ControlType, closeWindow, skry } from 'skry';
+import { ControlType, closeWindow, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -36,24 +36,24 @@ function nameContains(tree: { name: string; children: { name: string; children: 
   return tree.children.some((child) => nameContains(child as typeof tree, needle));
 }
 
-const html = `<!doctype html><html><head><meta charset="utf-8"><title>skry web content test</title></head>
-<body><h1>skry web content test</h1>
+const html = `<!doctype html><html><head><meta charset="utf-8"><title>umbriel web content test</title></head>
+<body><h1>umbriel web content test</h1>
 <button id="go" aria-label="Run It Button">Run It</button>
 <input id="field" aria-label="Name Field" type="text" value="initial">
 <p id="out">ready</p>
 <script>document.getElementById('go').onclick=()=>{document.getElementById('out').textContent='clicked';};</script>
 </body></html>`;
-const path = `${tmpdir()}\\skry-web-content-test.html`;
+const path = `${tmpdir()}\\umbriel-web-content-test.html`;
 await Bun.write(path, html);
 const fileUrl = `file:///${path.replace(/\\/g, '/')}`;
 
-skry.initialize();
-const priorEdge = new Set(skry.windows().filter((w) => w.className === 'Chrome_WidgetWin_1').map((w) => w.hWnd));
+umbriel.initialize();
+const priorEdge = new Set(umbriel.windows().filter((w) => w.className === 'Chrome_WidgetWin_1').map((w) => w.hWnd));
 Bun.spawn(['cmd', '/c', 'start', 'msedge', '--inprivate', '--new-window', fileUrl], { stdout: 'ignore', stderr: 'ignore' });
 let hWnd = 0n;
 for (let attempt = 0; attempt < 40 && hWnd === 0n; attempt += 1) {
   await Bun.sleep(300);
-  hWnd = skry.windows().find((w) => w.className === 'Chrome_WidgetWin_1' && !priorEdge.has(w.hWnd) && /web content test/.test(w.title))?.hWnd ?? 0n;
+  hWnd = umbriel.windows().find((w) => w.className === 'Chrome_WidgetWin_1' && !priorEdge.has(w.hWnd) && /web content test/.test(w.title))?.hWnd ?? 0n;
 }
 const cursorBefore = cursorPos();
 
@@ -61,7 +61,7 @@ try {
   assert(hWnd !== 0n, 'launched Edge to the local page');
   if (hWnd === 0n) throw new Error('Edge window not found — is Microsoft Edge installed?');
   await Bun.sleep(1500); // let the renderer build its accessibility tree
-  const edge = skry.attach(hWnd);
+  const edge = umbriel.attach(hWnd);
 
   const webRoots = edge.webRoots();
   assert(webRoots.length >= 1, `detected ${webRoots.length} Chromium render-widget web root(s) (top-level alone exposes none)`);
@@ -80,9 +80,9 @@ try {
 
     if (edit !== null) {
       assert(edit.value === 'initial', `read the input's value from the live DOM ("${edit.value}")`);
-      edit.setValue('typed-by-skry');
+      edit.setValue('typed-by-umbriel');
       Bun.sleepSync(300);
-      assert(edit.value === 'typed-by-skry', 'set the web input cursor-free (ValuePattern) and read it back');
+      assert(edit.value === 'typed-by-umbriel', 'set the web input cursor-free (ValuePattern) and read it back');
       edit.release();
     }
     if (button !== null) {
@@ -96,7 +96,7 @@ try {
   }
 
   // The merged snapshot (what the MCP desktop_snapshot returns) contains the page DOM, not just the chrome.
-  const snapshot = skry.snapshot(edge, { extraRoots: webRoots });
+  const snapshot = umbriel.snapshot(edge, { extraRoots: webRoots });
   assert(nameContains(snapshot.tree, 'Run It Button'), 'a merged snapshot splices the web DOM into the tree (agent sees the page)');
   snapshot.dispose();
 
@@ -107,7 +107,7 @@ try {
   edge.dispose();
 } finally {
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
   await Bun.file(path)
     .unlink()
     .catch(() => {});

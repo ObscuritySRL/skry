@@ -15,7 +15,7 @@
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 
-import { ControlType, closeWindow, postWheel, skry } from 'skry';
+import { ControlType, closeWindow, postWheel, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -34,12 +34,12 @@ function cursorPos(): { x: number; y: number } {
 }
 
 const html = `<!doctype html><html><head><meta charset=utf-8><title>SCROLL_0 chromium-scroll-test</title></head><body><script>window.onscroll=()=>{document.title='SCROLL_'+Math.round(window.scrollY)+' chromium-scroll-test';};</script><button aria-label="TopBtn">Top</button><div style="height:6000px;background:linear-gradient(red,blue)">tall</div><p>bottom</p></body></html>`;
-const path = `${tmpdir()}/skry-chromium-scroll-test.html`;
+const path = `${tmpdir()}/umbriel-chromium-scroll-test.html`;
 await Bun.write(path, html);
 
-skry.initialize();
+umbriel.initialize();
 const prior = new Set(
-  skry
+  umbriel
     .windows()
     .filter((w) => w.className === 'Chrome_WidgetWin_1')
     .map((w) => w.hWnd),
@@ -48,7 +48,7 @@ Bun.spawn(['cmd', '/c', 'start', 'msedge', '--inprivate', '--new-window', pathTo
 let hWnd = 0n;
 for (let attempt = 0; attempt < 40 && hWnd === 0n; attempt += 1) {
   await Bun.sleep(300);
-  hWnd = skry.windows().find((w) => w.className === 'Chrome_WidgetWin_1' && !prior.has(w.hWnd) && /chromium-scroll-test/.test(w.title))?.hWnd ?? 0n;
+  hWnd = umbriel.windows().find((w) => w.className === 'Chrome_WidgetWin_1' && !prior.has(w.hWnd) && /chromium-scroll-test/.test(w.title))?.hWnd ?? 0n;
 }
 const title = (): string => {
   const buffer = Buffer.allocUnsafe(1024);
@@ -67,7 +67,7 @@ try {
     console.log('  skip(live): Edge window did not appear — is Microsoft Edge installed?');
   } else {
     await Bun.sleep(2000); // let the renderer build its accessibility tree
-    const edge = skry.attach(hWnd);
+    const edge = umbriel.attach(hWnd);
     const webRoots = edge.webRoots();
     assert(webRoots.length >= 1, `detected ${webRoots.length} Chromium web root(s)`);
     const web = webRoots[0] ?? null;
@@ -109,7 +109,7 @@ try {
   }
 } finally {
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
   await Bun.file(path)
     .unlink()
     .catch(() => {});

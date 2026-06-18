@@ -11,7 +11,7 @@
  * Run: bun run example/cursor-free-wheel.integration.test.ts
  */
 import User32 from '@bun-win32/user32';
-import { ControlType, closeWindow, minimizeWindow, postWheel, setControlText, skry, windowProcessId } from 'skry';
+import { ControlType, closeWindow, minimizeWindow, postWheel, setControlText, umbriel, windowProcessId } from 'umbriel';
 
 const EM_GETFIRSTVISIBLELINE = 0x00ce;
 const EM_SETMODIFY = 0x00b9;
@@ -25,8 +25,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
-const window = await skry.launch(['notepad.exe'], { className: 'Notepad' });
+umbriel.initialize();
+const window = await umbriel.launch(['notepad.exe'], { className: 'Notepad' });
 const editor = window.find({ controlType: ControlType.Edit }) ?? window.find({ controlType: ControlType.Document });
 const editHwnd = editor?.nativeWindowHandle ?? 0n;
 try {
@@ -54,7 +54,7 @@ try {
   editor?.release();
   window.dispose();
   closeWindow(window.hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — a posted WM_MOUSEWHEEL scrolls a classic control cursor-free on a minimized window.' : `\nFAILED — ${failures} assertion(s)`);

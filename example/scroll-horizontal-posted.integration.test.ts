@@ -11,7 +11,7 @@
  * Run: bun run example/scroll-horizontal-posted.integration.test.ts
  */
 import Kernel32 from '@bun-win32/kernel32';
-import { closeWindow, postHWheel, skry } from 'skry';
+import { closeWindow, postHWheel, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
@@ -61,14 +61,14 @@ function assert(condition: boolean, message: string): void {
 // Part A — unit: postHWheel posts WM_MOUSEHWHEEL to a real HWND.
 const wide = (text: string): Buffer => Buffer.from(`${text}\0`, 'utf16le');
 const hInstance = Kernel32.GetModuleHandleW(null);
-const win = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('skry-hwheel').ptr!, 0x00cf_0000 | 0x1000_0000, 100, 100, 300, 200, 0n, 0n, BigInt(hInstance), null);
+const win = User32.CreateWindowExW(0, wide('#32770').ptr!, wide('umbriel-hwheel').ptr!, 0x00cf_0000 | 0x1000_0000, 100, 100, 300, 200, 0n, 0n, BigInt(hInstance), null);
 assert(win !== 0n && postHWheel(win, 150, 150, 3) === true, 'postHWheel posts WM_MOUSEHWHEEL to a real HWND (returns true)');
 assert(postHWheel(0n, 0, 0, 3) === false, 'postHWheel returns false for a 0 handle');
 if (win !== 0n) User32.DestroyWindow(win);
 
 // Part B — wire: the scroll handler routes left/right through the posted hwheel for an own-HWND no-ScrollPattern control.
-skry.initialize();
-const charmap = await skry.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
+umbriel.initialize();
+const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'hscroll', version: '1' } });
   if (charmap === null) console.log('  skip: Character Map did not launch');
@@ -89,7 +89,7 @@ try {
     closeWindow(charmap.hWnd);
     charmap.dispose();
   }
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — horizontal scroll on a ScrollPattern-less own-HWND control has a cursor-free posted WM_MOUSEHWHEEL path.' : `\nFAILED — ${failures} assertion(s)`);

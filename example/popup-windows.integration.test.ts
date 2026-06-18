@@ -11,7 +11,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (no windows spawned):
  * Run: bun run example/popup-windows.integration.test.ts
  */
-import { ControlType, type Element, skry } from 'skry';
+import { ControlType, type Element, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -22,10 +22,10 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
-  const titled = skry.windows();
-  const all = skry.windows({ includeUntitled: true });
+  const titled = umbriel.windows();
+  const all = umbriel.windows({ includeUntitled: true });
   const titledSet = new Set(titled.map((w) => w.hWnd));
   assert(all.length >= titled.length, `includeUntitled is a superset (${titled.length} titled → ${all.length} with untitled)`);
   assert(titled.every((w) => all.some((a) => a.hWnd === w.hWnd)), 'every titled window is still present with includeUntitled');
@@ -36,7 +36,7 @@ try {
   let combo: Element | null = null;
   let comboWin = 0n;
   for (const w of titled) {
-    const win = skry.attach(w.hWnd);
+    const win = umbriel.attach(w.hWnd);
     const found = win.find({ controlType: ControlType.ComboBox });
     if (found !== null) {
       combo = found;
@@ -47,15 +47,15 @@ try {
     win.dispose();
   }
   if (combo !== null) {
-    const beforeDefault = new Set(skry.windows().map((w) => w.hWnd));
+    const beforeDefault = new Set(umbriel.windows().map((w) => w.hWnd));
     try {
       combo.expand();
     } catch {
       /* some comboboxes use invoke */
     }
     await Bun.sleep(400);
-    const popupsNow = skry.windows({ includeUntitled: true }).filter((w) => !beforeDefault.has(w.hWnd));
-    const stillHidden = skry.windows().filter((w) => !beforeDefault.has(w.hWnd));
+    const popupsNow = umbriel.windows({ includeUntitled: true }).filter((w) => !beforeDefault.has(w.hWnd));
+    const stillHidden = umbriel.windows().filter((w) => !beforeDefault.has(w.hWnd));
     assert(popupsNow.length > 0, `expanding a ComboBox surfaced a popup window via includeUntitled (${popupsNow.map((w) => w.className).join(',')})`);
     assert(popupsNow.length > stillHidden.length, 'the dropdown popup is discoverable ONLY with includeUntitled (the default list still hides it)');
     try {
@@ -68,7 +68,7 @@ try {
     console.log('  skip: no ComboBox in any running app to open a live dropdown');
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — owned/untitled popup windows are discoverable (listWindows includeUntitled).' : `\nFAILED — ${failures} assertion(s)`);

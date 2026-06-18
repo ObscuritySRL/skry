@@ -16,7 +16,7 @@
  */
 import Gdi32 from '@bun-win32/gdi32';
 import Kernel32 from '@bun-win32/kernel32';
-import { ocrAvailable, skry } from 'skry';
+import { ocrAvailable, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 const WS_OVERLAPPEDWINDOW = 0x00cf_0000;
@@ -87,10 +87,10 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 const hInstance = Kernel32.GetModuleHandleW(null);
 // A topmost host so WindowFromPoint (the postClickAt path) resolves the OCR'd pixel to OUR toggle, not an overlapping window.
-const parent = User32.CreateWindowExW(WS_EX_TOPMOST, wide('#32770').ptr!, wide('skry-clicktext-host').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 620, 220, 0n, 0n, BigInt(hInstance), null);
+const parent = User32.CreateWindowExW(WS_EX_TOPMOST, wide('#32770').ptr!, wide('umbriel-clicktext-host').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 200, 200, 620, 220, 0n, 0n, BigInt(hInstance), null);
 // BS_PUSHLIKE → the caption renders centred on a big toggle face (OCR-friendly); BS_AUTOCHECKBOX → a single click flips
 // BM_GETCHECK 0→1 with no parent WndProc, so a LANDED posted click is observable. Caption "CLICK TARGET" OCRs reliably.
 const toggle = parent === 0n ? 0n : User32.CreateWindowExW(0, wide('BUTTON').ptr!, wide('CLICK TARGET').ptr!, WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE, 30, 30, 560, 140, parent, 0n, BigInt(hInstance), null);
@@ -131,7 +131,7 @@ try {
   if (toggle !== 0n) User32.DestroyWindow(toggle);
   if (bigFont !== 0n) Gdi32.DeleteObject(bigFont);
   if (parent !== 0n) User32.DestroyWindow(parent);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — click_text OCRs a window, matches the text, and posts a cursor-free click that lands on it.' : `\nFAILED — ${failures} assertion(s)`);

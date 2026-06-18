@@ -70,7 +70,7 @@ wndClass.writeBigUInt64LE(BigInt(wndProc.ptr!), 8);
 wndClass.writeBigUInt64LE(BigInt(hInstance), 24);
 wndClass.writeBigUInt64LE(BigInt(className.ptr!), 64);
 const registered = User32.RegisterClassW(wndClass.ptr!) !== 0;
-const dummy = registered ? User32.CreateWindowExW(0, className.ptr!, wide('skry-uac-dummy').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 120, 120, 300, 200, 0n, 0n, BigInt(hInstance), null) : 0n;
+const dummy = registered ? User32.CreateWindowExW(0, className.ptr!, wide('umbriel-uac-dummy').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 120, 120, 300, 200, 0n, 0n, BigInt(hInstance), null) : 0n;
 // The live variant: the class is often "$$$Secure UAP Dummy Window Class For Interim Dialog", not the bare name.
 const className2 = wide(`${CLASS} For Interim Dialog`);
 const wndClass2 = Buffer.alloc(72);
@@ -78,7 +78,7 @@ wndClass2.writeBigUInt64LE(BigInt(wndProc.ptr!), 8);
 wndClass2.writeBigUInt64LE(BigInt(hInstance), 24);
 wndClass2.writeBigUInt64LE(BigInt(className2.ptr!), 64);
 const registered2 = User32.RegisterClassW(wndClass2.ptr!) !== 0;
-const variant = registered2 ? User32.CreateWindowExW(0, className2.ptr!, wide('skry-uac-interim').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 140, 140, 300, 200, 0n, 0n, BigInt(hInstance), null) : 0n;
+const variant = registered2 ? User32.CreateWindowExW(0, className2.ptr!, wide('umbriel-uac-interim').ptr!, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 140, 140, 300, 200, 0n, 0n, BigInt(hInstance), null) : 0n;
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'uac-dummy', version: '1' } });
   if (!registered || dummy === 0n) console.log('  skip: could not synthesize the placeholder window');

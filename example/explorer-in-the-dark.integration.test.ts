@@ -12,7 +12,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/explorer-in-the-dark.integration.test.ts
  */
-import { captureWindowLive, closeWindow, ControlType, encodePNG, ScrollAmount, skry } from 'skry';
+import { captureWindowLive, closeWindow, ControlType, encodePNG, ScrollAmount, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -29,26 +29,26 @@ function cursorPos(): { x: number; y: number } {
   return { x: buffer.readInt32LE(0), y: buffer.readInt32LE(4) };
 }
 
-skry.initialize();
+umbriel.initialize();
 // Close every pre-existing Explorer first: a leftover CabinetWClass window would let the hWnd-diff
 // below attach to the wrong (stale) window, so the fresh "This PC" view is unambiguous.
-for (const window of skry.windows()) {
+for (const window of umbriel.windows()) {
   if (window.className === 'CabinetWClass') closeWindow(window.hWnd);
 }
 await Bun.sleep(800);
-const priorExplorers = new Set(skry.windows().filter((w) => w.className === 'CabinetWClass').map((w) => w.hWnd));
+const priorExplorers = new Set(umbriel.windows().filter((w) => w.className === 'CabinetWClass').map((w) => w.hWnd));
 Bun.spawn(['explorer.exe', 'shell:MyComputerFolder'], { stdout: 'ignore', stderr: 'ignore' });
 // Wait for the NEW Explorer whose title is the "This PC" view (not just any CabinetWClass).
 let hWnd = 0n;
 for (let attempt = 0; attempt < 24 && hWnd === 0n; attempt += 1) {
   await Bun.sleep(250);
-  hWnd = skry.windows().find((w) => w.className === 'CabinetWClass' && !priorExplorers.has(w.hWnd) && /This PC/.test(w.title))?.hWnd ?? 0n;
+  hWnd = umbriel.windows().find((w) => w.className === 'CabinetWClass' && !priorExplorers.has(w.hWnd) && /This PC/.test(w.title))?.hWnd ?? 0n;
 }
 const cursorBefore = cursorPos();
 
 try {
   assert(hWnd !== 0n, 'opened This PC');
-  const explorer = skry.attach(hWnd);
+  const explorer = umbriel.attach(hWnd);
 
   // Open a folder/drive by name — cursor-free, no focus, no keystroke. Invoke is the semantic "activate"
   // that navigates an Explorer item (LegacyIAccessible.DoDefaultAction is a no-op on these items, so it is
@@ -104,13 +104,13 @@ try {
   // SEE it: WGC captures the window even when it's occluded/background (no foregrounding needed).
   const shot = await captureWindowLive(hWnd);
   if (shot !== null) {
-    await Bun.write('D:/Projects/bun-win32/packages/skry/.scratch/explorer-in-the-dark.png', encodePNG(shot.rgb, shot.width, shot.height));
+    await Bun.write('D:/Projects/bun-win32/packages/umbriel/.scratch/explorer-in-the-dark.png', encodePNG(shot.rgb, shot.width, shot.height));
     console.log(`  captured the window via WGC → ${shot.width}x${shot.height} (.scratch/explorer-in-the-dark.png)`);
   }
   explorer.dispose();
 } finally {
   if (hWnd !== 0n) closeWindow(hWnd);
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — drove File Explorer entirely cursor-free / input-free (open, scroll, sidebar-select).' : `\nFAILED — ${failures} assertion(s)`);

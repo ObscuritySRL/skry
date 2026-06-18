@@ -8,7 +8,7 @@
  * bun test is broken repo-wide for FFI; runnable harness (no windows spawned):
  * Run: bun run example/integrity-level.integration.test.ts
  */
-import { integrityLevel, skry } from 'skry';
+import { integrityLevel, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -19,7 +19,7 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-skry.initialize();
+umbriel.initialize();
 try {
   const self = integrityLevel(process.pid);
   console.log(`  self (pid ${process.pid}) = ${JSON.stringify(self)}`);
@@ -28,7 +28,7 @@ try {
   assert(integrityLevel(0) === '', 'an invalid pid reads "" (no access), not a crash');
 
   // every running process reads a valid level or '' — never throws.
-  const processes = skry.listProcesses();
+  const processes = umbriel.listProcesses();
   const levels = new Set<string>();
   let threw = false;
   for (const process of processes) {
@@ -51,7 +51,7 @@ try {
     console.log('  skip: no well-known System process found to cross-check');
   }
 } finally {
-  skry.uninitialize();
+  umbriel.uninitialize();
 }
 
 console.log(failures === 0 ? '\nPASS — integrity level reads correctly (self Medium; System cross-checked); UIPI wall is diagnosable.' : `\nFAILED — ${failures} assertion(s)`);
