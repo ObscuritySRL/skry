@@ -159,6 +159,7 @@
     "example:visible-text": "bun ./example/visible-text.integration.test.ts",
     "example:wait-for-process-gone": "bun ./example/wait-for-process-gone.integration.test.ts",
     "example:wait-for-ref": "bun ./example/wait-for-ref.integration.test.ts",
+    "example:wait-for-ref-liveness": "bun ./example/wait-for-ref-liveness.integration.test.ts",
     "example:wait-for-state": "bun ./example/wait-for-state.integration.test.ts",
     "example:web-content": "bun ./example/web-content.integration.test.ts",
     "example:wgc-occluded": "bun ./example/wgc-occluded.integration.test.ts",
