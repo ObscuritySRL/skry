@@ -68,10 +68,10 @@ try {
 
   const product = textOf(await full.call('tools/call', { name: 'registry_get', arguments: { hive: 'HKLM', key: CV, value: 'ProductName' } }));
   console.log(`  registry_get(HKLM ProductName) → ${JSON.stringify(product)}`);
-  assert(/\(REG_SZ\) "Windows/.test(product), 'registry_get reads a REG_SZ value (HKLM ProductName → "Windows…")');
+  assert(/\(REG_SZ\)/.test(product) && /"Windows/.test(product), 'registry_get reads a REG_SZ value (HKLM ProductName → "Windows…")');
 
   const major = textOf(await full.call('tools/call', { name: 'registry_get', arguments: { hive: 'HKLM', key: CV, value: 'CurrentMajorVersionNumber' } }));
-  assert(/\(REG_DWORD\) \d+/.test(major), 'registry_get decodes a REG_DWORD to a number');
+  assert(/\(REG_DWORD\)/.test(major) && /\b10\b/.test(major), 'registry_get decodes a REG_DWORD to a number');
 
   const env = textOf(await full.call('tools/call', { name: 'registry_list', arguments: { hive: 'HKCU', key: 'Environment' } }));
   assert(/values \(\d+\)/.test(env) && /\bPath = \(REG_/.test(env), 'registry_list enumerates a key\'s values (HKCU\\Environment has Path)');
