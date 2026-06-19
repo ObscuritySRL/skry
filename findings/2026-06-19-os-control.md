@@ -45,11 +45,10 @@ snapshot instead. (Benchmarks: .scratch/bench-resources.ts, bench-fs.ts, probe-k
    RegQueryValueExW + RegEnumKeyExW/RegEnumValueW, decoded by RegType. **registry_set (write) is the remaining half**
    — RegCreateKeyExW + RegSetValueExW (bound); gate carefully (write is more sensitive — likely HKCU-confined or an
    explicit allow), with the kill_process security lesson. Build registry_set next or fold into the env_var work.
-3. **manage_process + process_info** (os / read) — suspend/resume via the thread-snapshot freeze
-   (CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD)→OpenThread(THREAD_SUSPEND_RESUME)→Suspend/ResumeThread), priority via
-   OpenProcess(PROCESS_SET_INFORMATION)→SetPriorityClass; process_info via GetProcessTimes/GetProcessHandleCount/
-   K32GetProcessMemoryInfo + th32ParentProcessID tree. All bound + proven. Mirror kill_process's self/host exclude +
-   denied mapping. FFI-only (no ntdll pkg — NtSuspendProcess NOT needed). Fills the kill-but-can't-pause asymmetry.
+3. **manage_process** (os) — SHIPPED (448f384). suspend/resume via the thread-snapshot freeze, priority via
+   SetPriorityClass; self/host-excluded; denied/not-found mapping. Verified live (froze 6 threads, process stayed
+   alive). **process_info (read) is the remaining companion** — GetProcessTimes/GetProcessHandleCount/
+   K32GetProcessMemoryInfo + th32ParentProcessID tree (tells the AI WHICH child to freeze). Optional follow-up.
 4. **list_services + control_service** (read / os) — Advapi32 OpenSCManagerW/OpenServiceW/EnumServicesStatusExW/
    QueryServiceStatusEx/StartServiceW/ControlService/CloseServiceHandle, all bound + proven (opened Dnscache, RUNNING;
    enumerated 301 services). control half usually needs admin → clean 'denied' like kill_process. FFI-only.
