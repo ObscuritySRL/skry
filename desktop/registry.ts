@@ -97,7 +97,20 @@ export function registryList(hive: RegistryHive, key: string): { subkeys: string
       dataLength.writeUInt32LE(LIST_DATA_CAP, 0);
       const status = Advapi32.RegEnumValueW(handle, index, valueName.ptr!, nameLength.ptr!, null, typeOut.ptr!, valueData.ptr!, dataLength.ptr!);
       if (status === ERROR_NO_MORE_ITEMS) break;
-      if (status !== ERROR_SUCCESS && status !== ERROR_MORE_DATA) break; // MORE_DATA = a value bigger than the cap; keep the truncated bytes
+      if (status === ERROR_MORE_DATA) {
+        // The value's data exceeds LIST_DATA_CAP. On MORE_DATA RegEnumValueW leaves the NAME buffer + lpcchValueName
+        // STALE (the PRIOR value's), so decoding here would emit a corrupt duplicate and LOSE this value's real name
+        // (HKLM\…\Session Manager\Environment\Path is commonly > the cap). Re-query name+type ONLY (lpData/lpcbData =
+        // null → no MORE_DATA) to recover the true name, and mark it oversized — read it whole with registry_get.
+        const requiredBytes = dataLength.readUInt32LE(0);
+        nameLength.writeUInt32LE(16_384, 0);
+        if (Advapi32.RegEnumValueW(handle, index, valueName.ptr!, nameLength.ptr!, null, typeOut.ptr!, null, null) !== ERROR_SUCCESS) continue;
+        const oversizedType = typeOut.readUInt32LE(0);
+        const oversizedName = valueName.toString('utf16le', 0, nameLength.readUInt32LE(0) * 2);
+        values.push({ name: oversizedName.length > 0 ? oversizedName : '(default)', type: RegType[oversizedType] ?? `0x${oversizedType.toString(16)}`, value: `(${requiredBytes} bytes — too large to list; read it by name with registry_get)` });
+        continue;
+      }
+      if (status !== ERROR_SUCCESS) break;
       const name = valueName.toString('utf16le', 0, nameLength.readUInt32LE(0) * 2);
       const type = typeOut.readUInt32LE(0);
       const data = valueData.subarray(0, Math.min(dataLength.readUInt32LE(0), LIST_DATA_CAP));
