@@ -27,7 +27,7 @@ RichEditD2DPT (foreground AND minimized), proven across cycles 2-5. The earlier 
 tests to synthetic controls (owner decision)" conclusion was largely WRONG; 4 were ordinary fixable test bugs
 (a stale import path + the delta-reground ref pattern). Investigate live before classifying.
 
-## Genuinely open (the only 2 left from the original 20 sweep failures)
+## Genuinely open (the only 1 left from the original 20 sweep failures)
 
 - **copy-secret-redacted-not-journaled — OWNER DECISION (security-surface format), NOT a leak.** Verified the
   security floor HOLDS: `redactSecrets` is applied on every copy/cut path; the copied AKIA secret never appears
@@ -40,19 +40,18 @@ tests to synthetic controls (owner decision)" conclusion was largely WRONG; 4 we
   security-critical `!includes(SECRET)`. I will not change the security-surface output format or weaken a
   security test autonomously.
 
-- **snapshot-leak — needs deeper investigation (not a clean fix).** Instruments `Element.prototype.cachedChildren`
-  / `cachedControlType` to inject a throw at controlType-read #6 and assert `materialized > 0`. It failed with
-  `materialized = 0` (6 controlType reads, ZERO `cachedChildren` getter calls) → the `snapshot()` walk accesses
-  children via a different path than the instrumented getter, so the instrumentation no longer measures what it
-  assumes; also TMO'd in isolation (a deep maxDepth:25 walk timing issue on Win11 Notepad). The CORE safety
-  property (a mid-walk fault releases every materialized child) still holds (`releases >= materialized` passes).
-  Fixing it means re-architecting the fault trigger to fire on the FIRST controlType read AFTER children
-  actually materialize via the real access path (read refmap.ts walk()/walkLive() to find it), and resolving the
-  deep-walk timing. A focused next-cycle task, not a one-line fix.
+- **snapshot-leak — FIXED (was stale instrumentation; I over-cautiously called this "deeper investigation").**
+  The test hooked `Element.prototype.cachedChildren` to count materialized children, but `walk()` (refmap.ts)
+  materializes children via the cached control-view walker — `firstChildCached` / `nextSiblingCached` — not that
+  getter, so `materialized` counted 0 (and the broken hook on cold state TMO'd). Re-anchored the instrumentation
+  to the methods `walk()` actually uses. Verified live: 5 children materialized, 6 released (no leak), fault
+  fires at controlType read #6, 1s. The leak-safety property was always correct — the instrumentation was stale
+  after the per-child-navigation refactor.
 
 ## Tally
 
 Session: deterministic sweep failures resolved — selector-controltype, text-cap, find-and-act-popup,
-safety-floor, mcp-snapshot-economy, vcall-safety, cursor-free-mcp-input, cursor-free-undo, cursor-free-copy-cut
-(9 fixed). Remaining: copy-secret (owner security-format decision), snapshot-leak (deeper investigation), and
-the owner-only items (SERVER_INFO version sync; Dock/TableItem capability candidates). Still zero product bugs.
+safety-floor, mcp-snapshot-economy, vcall-safety, cursor-free-mcp-input, cursor-free-undo, cursor-free-copy-cut,
+snapshot-leak (10 fixed). The ONLY remaining sweep failure is copy-secret (owner security-format decision — the
+redaction floor HOLDS, not a leak). Owner-only items: SERVER_INFO version sync (1.9.0→1.9.3, unblocks the two
+version tests); Dock / TableItem-Spreadsheet capability candidates. Still zero product bugs across the session.
