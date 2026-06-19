@@ -56,7 +56,10 @@ function assert(condition: boolean, message: string): void {
 
 try {
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'text-cap', version: '1' } });
-  const huge = 'X'.repeat(9000);
+  // Prose-shaped (words + spaces), NOT a long high-entropy run: a 9000-char run of one charset matches the
+  // base64/hex secret-shape redactor and read_clipboard would return «redacted» BEFORE the cap ever applies.
+  // This corpus has no 40+ char alnum run, so only the LENGTH cap is exercised — which is what this test asserts.
+  const huge = 'the quick brown fox jumps over the lazy dog '.repeat(220);
   await call('tools/call', { name: 'set_clipboard', arguments: { text: huge } });
   const read = textOf(await call('tools/call', { name: 'read_clipboard', arguments: {} }));
   assert(read.length < huge.length, `read_clipboard caps a 9000-char payload (returned ${read.length} chars)`);
