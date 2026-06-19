@@ -1113,7 +1113,7 @@ const ACTIONABILITY_GATED = new Set(['click', 'invoke', 'set_value', 'toggle', '
 function assertActionable(element: Element, verb: string): void {
   if (element.isEnabled) return;
   throw new Error(
-    `cannot ${verb} ${named(element)} — the control is DISABLED (greyed out / not accepting input), so ${verb} would no-op with a false success. Wait for it to enable first: wait_for {selector, state:{enabled:true}} (it auto-retries up to the timeout), then ${verb}; or target a control that is enabled.`,
+    `cannot ${verb} ${named(element)} — the control is DISABLED (greyed out / not accepting input), so ${verb} would no-op with a false success. find_and_act auto-waits for it to enable up to its {timeout} (pass a larger one); or wait_for {selector, state:{enabled:true}} then ${verb}; or target a control that is enabled.`,
   );
 }
 
@@ -1460,7 +1460,7 @@ const TOOLS: McpTool[] = [
     name: 'find_and_act',
     category: 'input',
     description:
-      'Find a control and act in one call. Target by ref (from the latest snapshot) OR selector. A selector acts on the FIRST match — if it could be ambiguous, pass a ref or a tighter selector (add automationId/controlType). Action is invoke|click|focus|type|set_value|toggle|expand|collapse|select|read (select = cursor-free SelectionItem for a tab/radio/list-item; focus = UIA SetFocus). Playwright-style AUTO-WAIT: a selector that matches nothing YET is re-queried for up to 2s (override with timeout, set timeout:0 to fail immediately) before reporting no match — so acting on a control that has not painted yet just waits instead of flaking. The mutating verbs (invoke/click/type/set_value/toggle) also refuse a DISABLED target rather than no-op with a false success — wait_for {state:{enabled:true}} first.',
+      'Find a control and act in one call. Target by ref (from the latest snapshot) OR selector. A selector acts on the FIRST match — if it could be ambiguous, pass a ref or a tighter selector (add automationId/controlType). Action is invoke|click|focus|type|set_value|toggle|expand|collapse|select|read (select = cursor-free SelectionItem for a tab/radio/list-item; focus = UIA SetFocus). Playwright-style AUTO-WAIT for ACTIONABILITY: a selector that matches nothing YET, OR a single mutating-verb target that is present-but-DISABLED (a Save-until-dirty / Next-until-valid button), is re-queried for up to 2s (override with timeout, set timeout:0 to fail immediately) until it is present AND enabled, then acted on — so you rarely need a separate wait_for. If it never enables within the budget, the mutating verbs (invoke/click/type/set_value/toggle) still refuse rather than no-op with a false success.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1470,7 +1470,7 @@ const TOOLS: McpTool[] = [
         do: { type: 'string', enum: ['invoke', 'click', 'type', 'set_value', 'toggle', 'expand', 'collapse', 'select', 'focus', 'read'] },
         text: { type: 'string', description: 'Text for type / set_value' },
         submit: { type: 'boolean', description: 'Press Enter after a type' },
-        timeout: { type: 'number', description: 'Auto-wait budget in ms for a not-yet-present selector (default 2000; 0 = no wait, fail immediately). Ignored when targeting by ref.' },
+        timeout: { type: 'number', description: 'Auto-wait budget in ms for a not-yet-present OR (for a mutating verb) not-yet-enabled target (default 2000; 0 = no wait, fail immediately). Ignored when targeting by ref.' },
       },
       required: ['do'],
     },
@@ -2179,11 +2179,18 @@ const HANDLERS: Record<string, ToolHandler> = {
     // re-query on the wait cadence until it appears or the budget (default ACT_WAIT_DEFAULT_MS, overridable {timeout},
     // {timeout:0} disables it) elapses, THEN throw describeNoMatch. A first-poll match (the common case) costs nothing.
     const waitBudget = typeof args.timeout === 'number' ? Math.max(0, args.timeout) : ACT_WAIT_DEFAULT_MS;
+    // Playwright-style actionability auto-wait: within the budget, wait for the target to be PRESENT and — for a
+    // mutating verb (click/invoke/type/set_value/toggle) — ENABLED, before acting, so the agent never hand-rolls a
+    // separate wait_for. A present-but-DISABLED single match (Save-until-dirty / Next-until-valid) keeps waiting
+    // instead of an instant refusal; absence and ambiguity are settled after the loop. {timeout:0} disables the wait.
+    const gated = action !== 'read' && ACTIONABILITY_GATED.has(action);
     let matches = window.findAll(selector); // findAll, not find — so an AMBIGUOUS selector is caught, not silently acted on
-    if (matches.length === 0 && waitBudget > 0) {
+    const ready = (): boolean => matches.length > 0 && (!gated || matches.length > 1 || matches[0]!.isEnabled); // length 0 → wait for existence; gated single disabled → wait for enable; ambiguous → exit (refused below)
+    if (!ready() && waitBudget > 0) {
       const start = Bun.nanoseconds();
-      while (matches.length === 0 && (Bun.nanoseconds() - start) / 1e6 < waitBudget) {
+      while (!ready() && (Bun.nanoseconds() - start) / 1e6 < waitBudget) {
         await Bun.sleep(ACT_WAIT_INTERVAL_MS);
+        for (const match of matches) match.release(); // release the prior resolution before re-querying (each findAll AddRefs)
         matches = requireAttached().findAll(selector); // re-resolve the window each poll: a re-render can swap the attached Element out from under a held reference
       }
     }

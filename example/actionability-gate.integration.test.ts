@@ -1,8 +1,9 @@
 /**
- * actionability-gate — Playwright's #1 differentiator at the verb the agent calls: the act path now (a) AUTO-WAITS for a
- * not-yet-present selector before reporting no match, and (b) REFUSES a mutating verb (invoke/click/type/set_value/toggle)
- * on a DISABLED control with an actionable steer instead of a confident no-op "success". Before this fix find_and_act threw
- * describeNoMatch on the first empty findAll (no retry), and invoke/click on a greyed-out control acted with a false success.
+ * actionability-gate — Playwright's #1 differentiator at the verb the agent calls: the act path AUTO-WAITS for the target to
+ * be ACTIONABLE — present AND (for a mutating verb) enabled — within the {timeout} budget before acting, and if it never
+ * enables, REFUSES with an actionable steer instead of a confident no-op "success". Before this, find_and_act threw on the
+ * first empty findAll (no retry) and threw INSTANTLY on a present-but-disabled control (forcing the agent to hand-roll a
+ * separate wait_for); {timeout:0} still fails fast on both (present-but-disabled and not-yet-present).
  *
  * Proof over the REAL stdio MCP server against a spawned Calculator (its memory buttons — MC/MR/M+/M-/MS — are rendered but
  * DISABLED until something is in memory, a locale-free always-present disabled control):
@@ -82,6 +83,14 @@ try {
     const t = textOf(refused);
     assert(refused.result?.isError === true, `find_and_act {do:invoke} on the disabled "${name}" is an isError, not a confident success`);
     assert(/DISABLED/.test(t) && /wait_for/.test(t), `the refusal names the control as DISABLED and steers to wait_for {state:{enabled:true}} (got: ${JSON.stringify(t.slice(0, 120))})`);
+
+    // (1b) The ENABLED auto-wait is real + bounded: the SAME disabled control with a {timeout} budget WAITS (re-polling
+    //      isEnabled) before refusing — vs the instant throw at timeout:0 above. The memory button never enables, so it
+    //      waits ~the budget then throws the DISABLED steer (Playwright actionability = present AND enabled).
+    const enWaitStart = Bun.nanoseconds();
+    const enWaited = await call('tools/call', { name: 'find_and_act', arguments: { selector: { name }, do: 'invoke', timeout: 1200 } });
+    const enWaitedMs = (Bun.nanoseconds() - enWaitStart) / 1e6;
+    assert(enWaited.result?.isError === true && /DISABLED/.test(textOf(enWaited)) && enWaitedMs >= 1000, `find_and_act {do:invoke, timeout:1200} on a still-disabled control AUTO-WAITS for it to enable before refusing — waited ${Math.round(enWaitedMs)}ms (vs instant at timeout:0)`);
   }
 
   // (2) An ENABLED digit must still act — the gate must not over-refuse. Five is enabled on every Calculator.
