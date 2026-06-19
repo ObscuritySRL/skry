@@ -862,7 +862,7 @@ async function traceCall(tool: string, args: Record<string, unknown>, result: ob
     args: maskArgs(args),
     ok: (result as { isError?: unknown }).isError !== true,
     diff: diffMatch !== null ? Number(diffMatch[1]) : undefined,
-    observation: text.split('\n', 1)[0]?.slice(0, 200) ?? '',
+    observation: redactSecrets(text.split('\n', 1)[0]?.slice(0, 200) ?? ''), // redact secret-shaped tokens before journaling (defense-in-depth; handlers also keep values off line 1)
     snapshot: artifacts.snapshot,
     screenshot: artifacts.screenshot,
   };
@@ -3501,11 +3501,11 @@ const HANDLERS: Record<string, ToolHandler> = {
     if (scope === null) return errorResult('get_env: scope must be process | user | machine');
     if (typeof args.name === 'string') {
       const value = getEnv(scope, args.name);
-      return value === null ? errorResult(`get_env: ${scope} env var ${args.name} is not set`) : textResult(`${args.name}=${value}`);
+      return value === null ? errorResult(`get_env: ${scope} env var ${args.name} is not set`) : textResult(`${args.name}:\n${value}`); // value on line 2 — keeps it off the trace journal's line-1 sample (a value may be a secret)
     }
     const all = listEnv(scope);
     const names = Object.keys(all).sort();
-    return textResult(names.length === 0 ? `(no ${scope} env vars)` : names.map((name) => `${name}=${all[name]}`).join('\n'));
+    return textResult(names.length === 0 ? `(no ${scope} env vars)` : `${scope} environment (${names.length}):\n${names.map((name) => `  ${name}=${all[name]}`).join('\n')}`); // header on line 1 keeps the first var's value off the journal sample
   },
   set_env: (args) => {
     const scope = parseScope(args.scope);
@@ -3515,7 +3515,7 @@ const HANDLERS: Record<string, ToolHandler> = {
       return setEnv(scope, name, null) ? textResult(`deleted ${scope} env var ${name}`) : errorResult(`set_env: could not delete ${scope} env var ${name} (not set, or access-denied — machine scope needs elevation; see current_user)`);
     }
     if (typeof args.value !== 'string') return errorResult('set_env: provide {value} to set, or {delete:true} to remove');
-    return setEnv(scope, name, args.value) ? textResult(`set ${scope} ${name}=${args.value}${scope === 'process' ? ' (this process + its children)' : ' (persisted + broadcast)'}`) : errorResult(`set_env: could not set ${scope} env var ${name} (access-denied — machine scope needs elevation; see current_user)`);
+    return setEnv(scope, name, args.value) ? textResult(`set ${scope} ${name}${scope === 'process' ? ' (this process + its children)' : ' (persisted + broadcast)'}`) : errorResult(`set_env: could not set ${scope} env var ${name} (access-denied — machine scope needs elevation; see current_user)`); // the value is NOT echoed — the caller supplied it, and echoing it would land a possible secret in the trace journal
   },
   registry_get: (args) => {
     const hive = parseHive(requireString(args, 'hive'));
@@ -3524,7 +3524,7 @@ const HANDLERS: Record<string, ToolHandler> = {
     const valueName = typeof args.value === 'string' ? args.value : '';
     const result = registryGet(hive, key, valueName);
     if (result === null) return errorResult(`registry_get: ${hive}\\${key}\\${valueName || '(default)'} not found or inaccessible`);
-    return textResult(`${hive}\\${key}\\${result.name} = (${result.type}) ${formatRegistryValue(result.value)}`);
+    return textResult(`${hive}\\${key}\\${result.name} (${result.type})\n${formatRegistryValue(result.value)}`); // value on line 2 — keeps it off the trace journal's line-1 sample
   },
   registry_list: (args) => {
     const hive = parseHive(requireString(args, 'hive'));

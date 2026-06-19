@@ -68,14 +68,14 @@ try {
   await full.call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'env', version: '1' } });
 
   const procPath = textOf(await full.call('tools/call', { name: 'get_env', arguments: { scope: 'process', name: 'PATH' } }));
-  assert(/^PATH=.+/.test(procPath), 'get_env reads a process-scope variable (PATH)');
+  assert(procPath.startsWith('PATH:\n') && procPath.split('\n')[1].length > 0, 'get_env reads a process-scope variable (PATH, value on line 2)');
 
   // USER persistent roundtrip — set, read back, delete
   const setUser = textOf(await full.call('tools/call', { name: 'set_env', arguments: { scope: 'user', name: VAR, value: 'umbriel-roundtrip' } }));
   assert(/persisted \+ broadcast/.test(setUser), 'set_env user persists + broadcasts WM_SETTINGCHANGE');
   const readUser = textOf(await full.call('tools/call', { name: 'get_env', arguments: { scope: 'user', name: VAR } }));
   console.log(`  user roundtrip → ${JSON.stringify(readUser)}`);
-  assert(readUser === `${VAR}=umbriel-roundtrip`, 'get_env user reads back exactly what set_env wrote (persisted in HKCU)');
+  assert(readUser.startsWith(`${VAR}:`) && readUser.split('\n')[1] === 'umbriel-roundtrip', 'get_env user reads back exactly what set_env wrote (value on line 2, persisted in HKCU)');
   const del = textOf(await full.call('tools/call', { name: 'set_env', arguments: { scope: 'user', name: VAR, delete: true } }));
   assert(/deleted/.test(del), 'set_env {delete:true} removes the persistent variable');
   assert(isErr(await full.call('tools/call', { name: 'get_env', arguments: { scope: 'user', name: VAR } })), 'get_env reports the deleted variable as not set');
