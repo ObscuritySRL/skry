@@ -295,7 +295,7 @@ export async function systemResources(sampleMs = 200): Promise<SystemResources> 
   memory.writeUInt32LE(64, 0); // dwLength MUST be set before the call
   Kernel32.GlobalMemoryStatusEx(memory.ptr!);
   const before = cpuTimes();
-  await Bun.sleep(Math.max(1, sampleMs));
+  await Bun.sleep(Math.max(50, sampleMs)); // floor to span several ~15.6ms scheduler ticks — a sub-tick window collapses both deltas to 0 and would report a misleading cpuPercent:0
   const after = cpuTimes();
   const idleDelta = after.idle - before.idle;
   const busyDelta = after.busy - before.busy;

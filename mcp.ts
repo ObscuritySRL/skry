@@ -1714,7 +1714,7 @@ const TOOLS: McpTool[] = [
     name: 'system_resources',
     category: 'read',
     description: 'System resource usage — total/available RAM + memory-load %, system-wide CPU % (sampled over a short interval), uptime, and the running-process count. Answer "how much memory / CPU are we using?" natively, no shell. Read-only; works on a background/locked desktop.',
-    inputSchema: { type: 'object', properties: { sampleMs: { type: 'number', description: 'CPU sampling window in ms (default 200; larger = steadier reading)' } } },
+    inputSchema: { type: 'object', properties: { sampleMs: { type: 'number', description: 'CPU sampling window in ms (default 200; floored to 50 so a sub-tick window is not a misleading 0%; larger = steadier)' } } },
   },
   {
     name: 'current_user',
