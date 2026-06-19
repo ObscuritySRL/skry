@@ -4,8 +4,9 @@
  * wait_for_process only waited for a process to APPEAR. So "wait until this installer/build/conversion/launched-app
  * FINISHES" forced a hand-rolled poll over list_processes (a full toolhelp32 enumeration of 400+ processes) each
  * tick — and wait_for_window {gone} is NOT a substitute: a windowless process owns no visible window, so it resolves
- * IMMEDIATELY (a false "done"). Now waitForProcessGone opens a SYNCHRONIZE handle to each match and polls the
- * OS-signaled handle (WaitForSingleObject(h,0)) O(1) per tick until the process actually exits.
+ * IMMEDIATELY (a false "done"). waitForProcessGone re-polls the toolhelp snapshot (listProcesses) each tick — image-name
+ * presence is observable across EVERY integrity level, so it honestly confirms an elevated/protected job (an installer)
+ * is gone where an OpenProcess(SYNCHRONIZE) handle gets ACCESS_DENIED — and it excludes the host's own pid.
  *
  * Proof, fully self-contained (spawns a windowless ~3s `ping -n 4`, which exits on its own — nothing to close):
  *   (1) waitForWindowGone on the windowless process returns ≈immediately — the false-positive being fixed;
@@ -48,10 +49,23 @@ try {
   const idempotentMs = (Bun.nanoseconds() - idempotentStart) / 1e6;
   assert(idempotentMs < 800, `waitForProcessGone returns ≈immediately when nothing matches is running — ${Math.round(idempotentMs)}ms`);
 
+  // (4) An ELEVATED/protected process (lsass.exe — always running, ACCESS_DENIED to OpenProcess from a medium-integrity
+  // host) must NOT be falsely reported "gone". The original handle approach treated access-denied (OpenProcess→0n) as
+  // exited and resolved immediately — a false success on the headline installer use case. The toolhelp poll sees it
+  // still listed across integrity levels and keeps waiting (times out) instead of lying.
+  let falselyGone = false;
+  try {
+    await waitForProcessGone('lsass.exe', { timeout: 1000 });
+    falselyGone = true; // resolved = WRONG (lsass is still running, just unopenable)
+  } catch {
+    // timed out = correct (it kept waiting for a process it can see but cannot open)
+  }
+  assert(!falselyGone, 'a still-running ELEVATED/access-denied process (lsass.exe) is NOT falsely reported gone — it times out, the old OpenProcess-handle bug would have resolved instantly');
+
   void child;
 } finally {
   umbriel.uninitialize();
 }
 
-console.log(failures === 0 ? '\nPASS — wait_for_process {gone} waits for a windowless process to actually exit (OS-signaled, O(1) per tick).' : `\nFAILED — ${failures} assertion(s)`);
+console.log(failures === 0 ? '\nPASS — wait_for_process {gone} waits for a windowless process to actually exit; an elevated/access-denied process is never falsely reported gone.' : `\nFAILED — ${failures} assertion(s)`);
 process.exit(failures === 0 ? 0 : 1);
