@@ -33,5 +33,6 @@ coverage
 *.stackdump
 
 # Local-only dev docs — never publish
+ARTICLE.md
 CLAUDE-FABLE-5.md
-UIA_PROMPT_4.md
+DISCORD_POST.md
