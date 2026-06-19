@@ -251,6 +251,21 @@ function describeState(element: Element): string {
   return `enabled=${element.isEnabled} toggle=${element.toggleState} selected=${element.isSelected} expand=${element.expandCollapseState} value=${JSON.stringify(element.value)}`;
 }
 
+/** A CHECKED liveness read — get_CurrentControlType (a cheap PROVEN getter) returns S_OK on a live element and
+ *  UIA_E_ELEMENTNOTAVAILABLE on a control torn down IN-PROCESS (a removed dialog field, a virtualized row scrolled out)
+ *  even while its window stays open. The swallowing getLong/getBstr would instead read 0/'' for a dead element, so a
+ *  negative/empty by-ref state expectation ({enabled:false}/{value:''}/{toggle:false}) would falsely "match" the
+ *  defaults — a by-ref state wait must gate on this rather than trust a default read. */
+function isElementLive(ptr: bigint): boolean {
+  return vcall(ptr, SLOT.get_CurrentControlType, [FFIType.ptr], [scratch4.ptr!]) === S_OK;
+}
+
+/** The state-PREDICATE fields of an expectation (drop the wait knobs timeout/interval) — so a timeout error echoes only
+ *  the control state the agent asked for, not the internal wait timing. JSON.stringify omits the undefined keys. */
+function predicateOf(expectation: StateExpectation): Partial<StateExpectation> {
+  return { enabled: expectation.enabled, expanded: expectation.expanded, selected: expectation.selected, toggle: expectation.toggle, value: expectation.value, valueContains: expectation.valueContains };
+}
+
 export class Element {
   #ptr: bigint;
 
@@ -518,7 +533,7 @@ export class Element {
           found.release(); // not yet in the wanted state — drop the handle so the poll cannot leak Elements
         }
         const elapsed = (Bun.nanoseconds() - start) / 1e6;
-        if (elapsed >= timeout) throw new Error(`timed out after ${Math.round(elapsed)} ms — ${selectorToString(selector)} in ${JSON.stringify(this.name)} never reached ${JSON.stringify(expectation)} (last seen: ${lastSeen})`);
+        if (elapsed >= timeout) throw new Error(`timed out after ${Math.round(elapsed)} ms — ${selectorToString(selector)} in ${JSON.stringify(this.name)} never reached ${JSON.stringify(predicateOf(expectation))} (last seen: ${lastSeen})`);
         await Bun.sleep(interval);
       }
     } finally {
@@ -534,9 +549,13 @@ export class Element {
     const interval = expectation.interval ?? 100;
     const start = Bun.nanoseconds();
     for (;;) {
+      // A same-generation ref can still point at a control destroyed IN-PROCESS without a re-render that bumps the
+      // generation; reading its dead provider returns swallowed 0/'' defaults, which would falsely satisfy a
+      // {enabled:false}/{value:''} expectation. Verify the control still exists before trusting stateMatches.
+      if (!isElementLive(this.ptr)) throw new Error('the control this ref points to no longer exists (its window is still open, but the control itself was destroyed) — re-snapshot with desktop_snapshot and use the new ref');
       if (stateMatches(this, expectation)) return;
       const elapsed = (Bun.nanoseconds() - start) / 1e6;
-      if (elapsed >= timeout) throw new Error(`timed out after ${Math.round(elapsed)} ms — ${JSON.stringify(this.name)} never reached ${JSON.stringify(expectation)} (last seen: ${describeState(this)})`);
+      if (elapsed >= timeout) throw new Error(`timed out after ${Math.round(elapsed)} ms — ${JSON.stringify(this.name)} never reached ${JSON.stringify(predicateOf(expectation))} (last seen: ${describeState(this)})`);
       await Bun.sleep(interval);
     }
   }
