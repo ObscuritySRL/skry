@@ -106,6 +106,7 @@ export { parseHive, registryDeleteValue, registryGet, registryList, registrySetS
 export { controlService, listServices, type ServiceAction, type ServiceEntry } from './desktop/services';
 export { type EnvScope, getEnv, listEnv, parseScope, setEnv } from './desktop/env';
 export { type EventLogLevel, type EventLogRecord, readEventLog } from './desktop/eventlog';
+export { type DisplayInfo, getDisplays } from './desktop/display';
 export { type IdleOptions, waitForIdle } from './desktop/idle';
 export { isJavaWindow, javaInvoke, type JavaNode, javaSetText, type JavaTarget, javaTree, renderJavaTree } from './element/jab';
 export {

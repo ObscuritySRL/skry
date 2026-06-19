@@ -25,6 +25,7 @@ import {
   closeWindow,
   controlService,
   listServices,
+  getDisplays,
   getEnv,
   listEnv,
   setEnv,
@@ -2124,6 +2125,12 @@ const TOOLS: McpTool[] = [
     inputSchema: { type: 'object', properties: { log: { type: 'string', enum: ['System', 'Application', 'Security', 'Setup'], description: 'Log name (default System)' }, count: { type: 'number', description: 'Newest N records (default 20, max 100)' }, level: { type: 'string', enum: ['error', 'warning', 'all'], description: 'Filter by severity (default all)' } } },
   },
   {
+    name: 'get_displays',
+    category: 'read',
+    description: 'Enumerate the live display configuration natively (no WMI/PowerShell): each attached monitor\'s device + adapter name, current resolution (W×H), refresh rate (Hz), color depth (bpp), and which is primary. Useful before moving/sizing a window (does it fit on its monitor?), choosing which monitor to screenshot, or reasoning about a multi-monitor layout.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
     name: 'list_services',
     category: 'read',
     description: 'List every Windows service (name, display name, current state: running/stopped/start-pending/…) natively — no sc query / Get-Service shell. The discovery half of service control; use control_service for a specific service\'s owning pid and to start/stop it.',
@@ -3496,6 +3503,11 @@ const HANDLERS: Record<string, ToolHandler> = {
     const records = readEventLog(log, count, level);
     if (records.length === 0) return errorResult(`read_event_log: no ${level === 'all' ? '' : `${level} `}records in the "${log}" log (or it could not be opened — Security needs elevation; see current_user)`);
     return textResult(records.map((record) => `[${record.time}] ${record.type.toUpperCase()} ${record.source} (id ${record.eventId}, rec#${record.recordNumber})${record.message !== '' ? `: ${record.message.slice(0, 300)}` : ''}`).join('\n'));
+  },
+  get_displays: () => {
+    const displays = getDisplays();
+    if (displays.length === 0) return errorResult('get_displays: no attached displays could be enumerated');
+    return textResult(displays.map((display) => `${display.device}${display.primary ? ' (primary)' : ''}: ${display.width}×${display.height} @ ${display.refreshHz}Hz, ${display.bitsPerPixel}-bit — ${display.adapter}`).join('\n'));
   },
   list_services: () => {
     const services = listServices();

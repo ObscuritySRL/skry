@@ -113,6 +113,7 @@
     "example:filter-not": "bun ./example/filter-not.integration.test.ts",
     "example:find-cached": "bun ./example/find-cached.integration.test.ts",
     "example:find-text": "bun ./example/find-text.integration.test.ts",
+    "example:get-displays": "bun ./example/get-displays.integration.test.ts",
     "example:get-variant": "bun ./example/get-variant.integration.test.ts",
     "example:grid-cell": "bun ./example/grid-cell.integration.test.ts",
     "example:harness-asserted-guard": "bun ./example/harness-asserted-guard.integration.test.ts",
