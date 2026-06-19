@@ -1401,9 +1401,12 @@ function resolveFsPath(path: string): string {
   }
 }
 
-const ELEMENT_DESC = 'A human-readable LABEL for the permission prompt + intent ONLY — it does NOT select the control. You must still target with `ref` (from the latest snapshot) or `selector`.';
-const REF_DESC =
-  'Exact target element reference from the LATEST snapshot, passed verbatim including its #generation tag (e.g. e49#3). A ref from before a re-render is rejected (so you never act on the wrong control) — re-read the latest snapshot and use its refs.';
+// These per-property descriptions are inlined into many tool schemas (REF_DESC ×29, ELEMENT_DESC ×23), so every
+// extra char is paid N times on the fixed tools/list payload the model reads each session. Keep only the
+// load-bearing point-of-use directive; the full ref contract lives ONCE in INSTRUCTIONS (and stale refs are
+// rejected in code regardless), so the verbose restatement is redundant. (Shortened: ~9% off tools/list.)
+const ELEMENT_DESC = 'Human-readable LABEL for the permission prompt only; does NOT select the control — target with `ref` or `selector`.';
+const REF_DESC = 'Target element ref from the LATEST snapshot, verbatim with its #generation tag (e.g. e49#3); a stale ref is rejected.';
 const HWND_DESC = 'Target window handle — a decimal/0x-hex string or a JSON number; omit to use the attached window.';
 const SELECTOR_SCHEMA = {
   type: 'object',
