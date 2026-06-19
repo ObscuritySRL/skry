@@ -1,17 +1,18 @@
 /**
- * snapshot-leak — a fault mid-walk must not leak COM refs. walk()/walkLive() materialize a node's WHOLE child
- * array (each child a new AddRef'd Element) then recurse; if a child's property read throws partway (now possible
- * since the v1.5.0 vcall guards turn a torn-down-tree use-after-free into a catchable THROW), the not-yet-walked
- * siblings must still be released. The fix pushes every child to `owned` BEFORE recursing, so the snapshot's
- * error path frees all of them.
+ * snapshot-leak — a fault mid-walk must not leak COM refs. walk() materializes each child (a new AddRef'd
+ * Element) one at a time via the cached control-view walker (firstChildCached / nextSiblingCached) and recurses;
+ * if a child's property read throws partway (possible since the vcall guards turn a torn-down-tree
+ * use-after-free into a catchable THROW), the already-materialized children must still be released. The fix
+ * pushes every child to `owned` the instant it is materialized, so the snapshot's error path frees all of them.
  *
- * Proof: instrument Element — count release() calls and materialized children, inject a throw mid-walk, then
- * assert releases >= materialized (every AddRef'd child was released). Closes Notepad.
+ * Proof: instrument Element — count release() calls and children materialized (via firstChildCached /
+ * nextSiblingCached, the path walk() actually uses — NOT the cachedChildren getter, which the walk no longer
+ * calls), inject a throw mid-walk, then assert releases >= materialized (every AddRef'd child was released).
  *
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/snapshot-leak.integration.test.ts
  */
-import { closeWindow, Element, snapshot, umbriel, windowProcessId } from 'umbriel';
+import { CacheRequest, closeWindow, Element, snapshot, umbriel, windowProcessId } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -34,7 +35,8 @@ for (let attempt = 0; attempt < 40 && notepad === 0n; attempt += 1) {
 // instrument Element.prototype: count releases + materialized children, and inject a throw mid-walk.
 const proto = Element.prototype;
 const releaseDescriptor = Object.getOwnPropertyDescriptor(proto, 'release');
-const childrenDescriptor = Object.getOwnPropertyDescriptor(proto, 'cachedChildren');
+const firstChildDescriptor = Object.getOwnPropertyDescriptor(proto, 'firstChildCached');
+const nextSiblingDescriptor = Object.getOwnPropertyDescriptor(proto, 'nextSiblingCached');
 const controlTypeDescriptor = Object.getOwnPropertyDescriptor(proto, 'cachedControlType');
 let releases = 0;
 let materialized = 0;
@@ -48,7 +50,10 @@ try {
     await Bun.sleep(500);
     const win = umbriel.attach(notepad);
     Object.defineProperty(proto, 'release', { configurable: true, value() { if (armed) releases += 1; return releaseDescriptor!.value.call(this); } });
-    Object.defineProperty(proto, 'cachedChildren', { configurable: true, get() { const kids: Element[] = childrenDescriptor!.get!.call(this); if (armed) materialized += kids.length; return kids; } });
+    // Count children via the cached control-view walker — the materialization path walk() actually uses (each
+    // returns one new AddRef'd Element, owned by the walk). The old cachedChildren-getter hook counted 0.
+    Object.defineProperty(proto, 'firstChildCached', { configurable: true, value(request: CacheRequest) { const child: Element | null = firstChildDescriptor!.value.call(this, request); if (armed && child !== null) materialized += 1; return child; } });
+    Object.defineProperty(proto, 'nextSiblingCached', { configurable: true, value(request: CacheRequest) { const child: Element | null = nextSiblingDescriptor!.value.call(this, request); if (armed && child !== null) materialized += 1; return child; } });
     Object.defineProperty(proto, 'cachedControlType', { configurable: true, get() { if (armed && ++controlTypeReads === THROW_AT) throw new Error('injected mid-walk fault'); return controlTypeDescriptor!.get!.call(this); } });
 
     armed = true;
@@ -70,7 +75,8 @@ try {
   const notepadPid = notepad !== 0n ? windowProcessId(notepad) : 0;
   if (notepadPid) Bun.spawnSync(['taskkill', '/F', '/PID', String(notepadPid)]);
   if (releaseDescriptor) Object.defineProperty(proto, 'release', releaseDescriptor);
-  if (childrenDescriptor) Object.defineProperty(proto, 'cachedChildren', childrenDescriptor);
+  if (firstChildDescriptor) Object.defineProperty(proto, 'firstChildCached', firstChildDescriptor);
+  if (nextSiblingDescriptor) Object.defineProperty(proto, 'nextSiblingCached', nextSiblingDescriptor);
   if (controlTypeDescriptor) Object.defineProperty(proto, 'cachedControlType', controlTypeDescriptor);
   if (notepad !== 0n) closeWindow(notepad);
   umbriel.uninitialize();
