@@ -147,3 +147,57 @@ export function registryDeleteValue(hive: RegistryHive, key: string, valueName: 
     Advapi32.RegCloseKey(handle);
   }
 }
+
+export type RegistryWriteType = 'REG_SZ' | 'REG_EXPAND_SZ' | 'REG_DWORD' | 'REG_QWORD' | 'REG_MULTI_SZ';
+
+/** Encode `data` for a registry write per `type`, or null if the data does not match the type (the validation gate —
+ *  a DWORD must be a 0..2^32-1 integer, a MULTI_SZ a string[], etc.). REG_QWORD accepts a number or a numeric string. */
+function encodeRegistryWrite(type: RegistryWriteType, data: unknown): { buffer: Buffer; regType: number } | null {
+  switch (type) {
+    case 'REG_SZ':
+    case 'REG_EXPAND_SZ':
+      return typeof data === 'string' ? { buffer: Buffer.from(`${data}\0`, 'utf16le'), regType: type === 'REG_EXPAND_SZ' ? RegType.REG_EXPAND_SZ : RegType.REG_SZ } : null;
+    case 'REG_DWORD': {
+      if (typeof data !== 'number' || !Number.isInteger(data) || data < 0 || data > 0xffff_ffff) return null;
+      const buffer = Buffer.alloc(4);
+      buffer.writeUInt32LE(data, 0);
+      return { buffer, regType: RegType.REG_DWORD };
+    }
+    case 'REG_QWORD': {
+      if (typeof data !== 'number' && typeof data !== 'string') return null;
+      let value: bigint;
+      try {
+        value = BigInt(data); // throws on a non-integer number / non-numeric string → caught
+      } catch {
+        return null;
+      }
+      if (value < 0n || value > 0xffff_ffff_ffff_ffffn) return null;
+      const buffer = Buffer.alloc(8);
+      buffer.writeBigUInt64LE(value, 0);
+      return { buffer, regType: RegType.REG_QWORD };
+    }
+    case 'REG_MULTI_SZ': {
+      if (!Array.isArray(data) || data.some((entry) => typeof entry !== 'string')) return null;
+      const block = `${data.map((entry) => `${String(entry)}\0`).join('')}\0`; // each string NUL-terminated, the block double-NUL-terminated
+      return { buffer: Buffer.from(block, 'utf16le'), regType: RegType.REG_MULTI_SZ };
+    }
+    default:
+      return null;
+  }
+}
+
+/** Write a typed value to an EXISTING key (set_env's scoped writes are the REG_SZ special case; this is the general
+ *  writer behind registry_set). true on success; false if the key doesn't exist, the data fails type validation, or
+ *  the write is access-denied (HKLM / protected keys need elevation). */
+export function registrySet(hive: RegistryHive, key: string, valueName: string, type: RegistryWriteType, data: unknown): boolean {
+  const encoded = encodeRegistryWrite(type, data);
+  if (encoded === null) return false;
+  const handle = openKey(hive, key, RegKeyAccessRights.KEY_SET_VALUE);
+  if (handle === 0n) return false;
+  try {
+    const name = Buffer.from(`${valueName}\0`, 'utf16le');
+    return Advapi32.RegSetValueExW(handle, name.ptr!, 0, encoded.regType, encoded.buffer.ptr!, encoded.buffer.length) === ERROR_SUCCESS;
+  } finally {
+    Advapi32.RegCloseKey(handle);
+  }
+}

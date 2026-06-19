@@ -92,8 +92,10 @@ import {
   renderWindowTree,
   parseHive,
   readEventLog,
+  registryDeleteValue,
   registryGet,
   registryList,
+  registrySet,
   type RegistryData,
   restoreWindow,
   rightClickAt,
@@ -2167,6 +2169,12 @@ const TOOLS: McpTool[] = [
     inputSchema: { type: 'object', properties: { hive: { type: 'string', description: 'HKLM | HKCU | HKCR | HKU' }, key: { type: 'string', description: 'Subkey path' } }, required: ['hive', 'key'] },
   },
   {
+    name: 'registry_set',
+    category: 'os',
+    description: 'Write or delete ONE registry value on an EXISTING key (no reg add/Set-ItemProperty shell) — configure an app/policy/preference outside env vars (e.g. show file extensions, seed an app setting). {hive} ∈ HKLM|HKCU|HKCR|HKU, {key} the subkey path, {value} the value name (omit for the key default), {type} ∈ REG_SZ|REG_EXPAND_SZ|REG_DWORD|REG_QWORD|REG_MULTI_SZ, {data} (string for SZ, integer for DWORD/QWORD, string[] for MULTI_SZ), or {delete:true}. REQUIRES {confirm:true} — a wrong write can corrupt the machine or an app. The key must already exist; HKLM/protected keys need elevation (clean access-denied). Gated behind the "os" policy category; destructive.',
+    inputSchema: { type: 'object', properties: { hive: { type: 'string', enum: ['HKLM', 'HKCU', 'HKCR', 'HKU'] }, key: { type: 'string', description: 'Subkey path (must already exist)' }, value: { type: 'string', description: 'Value name (omit for the key default)' }, type: { type: 'string', enum: ['REG_SZ', 'REG_EXPAND_SZ', 'REG_DWORD', 'REG_QWORD', 'REG_MULTI_SZ'] }, data: { description: 'string | integer | string[] matching {type}' }, delete: { type: 'boolean', description: 'Delete the value instead of writing' }, confirm: { type: 'boolean', description: 'MUST be true to perform the write (safety gate)' } }, required: ['hive', 'key', 'confirm'] },
+  },
+  {
     name: 'open_path',
     category: 'os',
     description: 'Open a file, folder, or URL with its default handler (Explorer/browser). Gated behind the "os" policy category.',
@@ -3562,6 +3570,21 @@ const HANDLERS: Record<string, ToolHandler> = {
     const subkeyLines = result.subkeys.length > 0 ? `subkeys (${result.subkeys.length}):\n${result.subkeys.map((name) => `  [${name}]`).join('\n')}` : '(no subkeys)';
     const valueLines = result.values.length > 0 ? `values (${result.values.length}):\n${result.values.map((entry) => `  ${entry.name} = (${entry.type}) ${formatRegistryValue(entry.value)}`).join('\n')}` : '(no values)';
     return textResult(`${hive}\\${key}\n${subkeyLines}\n${valueLines}`);
+  },
+  registry_set: (args) => {
+    const hive = parseHive(requireString(args, 'hive'));
+    if (hive === null) return errorResult('registry_set: hive must be HKLM, HKCU, HKCR, or HKU');
+    const key = requireString(args, 'key');
+    const valueName = typeof args.value === 'string' ? args.value : '';
+    if (args.confirm !== true) return errorResult('registry_set: refusing to write the registry without {confirm:true} — a wrong write can corrupt the machine or an app; pass confirm:true once you are sure of the key/value/type/data');
+    if (args.delete === true) {
+      return registryDeleteValue(hive, key, valueName) ? textResult(`deleted ${hive}\\${key}\\${valueName || '(default)'}`) : errorResult(`registry_set: could not delete ${hive}\\${key}\\${valueName || '(default)'} (not found, or access-denied — HKLM/protected keys need elevation; see current_user)`);
+    }
+    const type = args.type;
+    if (type !== 'REG_SZ' && type !== 'REG_EXPAND_SZ' && type !== 'REG_DWORD' && type !== 'REG_QWORD' && type !== 'REG_MULTI_SZ') return errorResult('registry_set: {type} must be REG_SZ | REG_EXPAND_SZ | REG_DWORD | REG_QWORD | REG_MULTI_SZ (or pass {delete:true})');
+    if (!('data' in args)) return errorResult('registry_set: provide {data} — a string for SZ/EXPAND_SZ, an integer for DWORD/QWORD, a string[] for MULTI_SZ');
+    if (!registrySet(hive, key, valueName, type, args.data)) return errorResult(`registry_set: could not set ${hive}\\${key}\\${valueName || '(default)'} — the key must already exist, {data} must match ${type}, and HKLM/protected keys need elevation (see current_user)`);
+    return textResult(`set ${hive}\\${key}\\${valueName || '(default)'} = (${type})`);
   },
   run_program: async (args) => {
     const command = requireString(args, 'command');
