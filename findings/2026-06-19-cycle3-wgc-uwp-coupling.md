@@ -22,9 +22,16 @@ button isn't present in the snapshot. Calculator is single-instance UWP with col
 tree isn't reliably warmed when the test snapshots (the failure point even varies run-to-run: the sweep
 reached `e49#3`, the probe fails at step one). The product is fine: the re-ground correctly returned a
 compact `(no UI change since the last snapshot — refs unchanged)` delta — the economy under test works, and
-refs survive value deltas as documented. Robust fix (deferred — see below): retry desktop_snapshot until the
-"Five" ref appears (cold-WinUI warmup), and reuse the surviving `fiveRef` for the 2nd press instead of the
-fragile re-ground regex.
+refs survive value deltas as documented.
+
+VERIFIED DEAD-END (do not retry this approach): a warm-wait fix — retry desktop_snapshot until the "Five"
+ref appears — was tested live (`.scratch/probe-snapshot2.ts`) with a CLEAN Calculator restart + 25 retries
+(7.5s). `fiveRef` stayed `undefined` the whole time. So the keypad is NOT merely slow to warm: Win11
+Calculator's UWP content tree (the buttons) is not populated in the snapshot when the app is not the
+foreground/active window (UWP virtualizes/suspends the CoreWindow content tree in the background). A warm-wait
+CANNOT fix this. The test would have to raise Calculator to the foreground (defeating the background-driving
+premise) or retarget to a non-UWP target — i.e. this is the SAME strategic retargeting decision as the
+Notepad-coupled tests below, not a low-risk hygiene fix. Folded into the systematic finding.
 
 ## SYSTEMATIC FINDING — Win11 single-instance UWP app coupling (one root cause, ~6 tests)
 
