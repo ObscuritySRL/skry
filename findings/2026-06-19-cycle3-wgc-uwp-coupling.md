@@ -59,9 +59,11 @@ autonomous agent should not unilaterally rewrite these 5 intentional real-app in
 
 ## Other open
 
-- `vcall-safety [A]` — subprocess expected a specific clean-crash signature; got exit=1/no-signal/empty under
-  Bun 1.4-canary. com.ts documents that unmapped (non-null garbage) pointers segfault UNCATCHABLY, so this is
-  runtime-version-sensitive crash behavior, not an umbriel defect. Re-confirm on a stable Bun release.
+- `vcall-safety [A]` — FIXED (and my earlier "Bun-canary crash signature" guess was WRONG). The subprocess
+  imported `vcall` from `${import.meta.dir}/../com.ts`, but after the monorepo→folders refactor `vcall` lives
+  at `com/com.ts` (root `com.ts` is absent). The child failed to IMPORT (Cannot find module) → exit 1, empty
+  stdout — so the catchability proof never ran. Pointed it at `../com/com.ts`; verified the child now catches
+  the zeroed-interface fault and exits 0 (out="CAUGHT"). A stale path, not a runtime issue.
 
 ## Bottom line after 3 cycles
 
