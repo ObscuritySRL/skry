@@ -77,10 +77,13 @@ console.log('\n[2] action observation: Δ delta on a pure-rename step (vs a full
 const fullBody = textOf(deep);
 const fiveRef = textOf(deep).match(/"Five" \[ref=(e\d+(?:#\d+)?)\]/)?.[1];
 assert(fiveRef !== undefined, `located the Five button ref (${fiveRef})`);
-await call('tools/call', { name: 'invoke', arguments: { element: 'Five', ref: fiveRef } });
-
-const reground = await call('tools/call', { name: 'desktop_snapshot', arguments: {} });
-const fiveRef2 = textOf(reground).match(/"Five" \[ref=(e\d+(?:#\d+)?)\]/)?.[1];
+// The 1st press routes through the WinUI button's InvokePattern (no own HWND), which the MSAA bridge services
+// by RAISING the window (foreground steal — findings/32) → the tree re-grounds and the invoke's OWN appended
+// snapshot carries a FRESH "Five" ref. Take the ref from THERE: a separate desktop_snapshot here would diff
+// against that re-ground and come back "(no UI change — refs unchanged)", with no [ref=] line to parse.
+const firstPress = await call('tools/call', { name: 'invoke', arguments: { element: 'Five', ref: fiveRef } });
+const fiveRef2 = textOf(firstPress).match(/"Five" \[ref=(e\d+(?:#\d+)?)\]/)?.[1];
+assert(fiveRef2 !== undefined, `the 1st press re-grounded and surfaced a fresh Five ref (${fiveRef2})`);
 const press = await call('tools/call', { name: 'invoke', arguments: { element: 'Five', ref: fiveRef2 } });
 const pressText = textOf(press);
 console.log(`  pure-rename invoke → ${pressText.split('\n').length} lines:\n${pressText.split('\n').map((line) => `    ${line}`).join('\n')}`);
