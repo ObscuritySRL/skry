@@ -92,7 +92,15 @@ snapshot instead. (Benchmarks: .scratch/bench-resources.ts, bench-fs.ts, probe-k
    SZ/EXPAND_SZ/DWORD/QWORD/MULTI_SZ validation). Layered gating: os category + {confirm:true} + per-type validation +
    no-implicit-key-create + HKLM elevation wall + result echoes key+type only (not data, the trace-journal lesson).
    Verified live (typed round-trips, confirm/type/no-key refusals, os-gated).
-5. **list_scheduled_tasks** (read, value 7) — STILL PENDING — the one item needing a DEDICATED slot-verified COM pass
+5. **list_scheduled_tasks** (read) — SHIPPED (c3e53f9). desktop/tasks.ts: CLSID_TaskScheduler → ITaskService →
+   ITaskFolder → IRegisteredTask via umbriel's OWN vcall/guid/comRelease (no taskschd pkg). Slots verified LIVE +
+   against taskschd.h (slot-gate.test.ts). The off-by-one the live pass caught: IRegisteredTask::Enabled is get+PUT →
+   put_Enabled@11 shifts get_LastRunTime to 15/16/18 (not 14/15/17). 201 tasks / 98 folders decoded correctly.
+   **GOAL COMPLETE this session: 61 → 83 tools; Panel-B's entire new-gaps queue (process_info, read_event_log,
+   get_displays, registry_set, list_scheduled_tasks) shipped + both round-1 + round-2 Panel-A findings fixed.**
+
+--- ORIGINAL slot plan (kept for reference) ---
+- the one item that had needed a DEDICATED slot-verified COM pass
    (a wrong vtable slot SEGFAULTS; the goal mandates proving each slot LIVE + extending slot-gate.test.ts). Buildable on
    combase + umbriel's OWN vcall/guid/comRelease (no taskschd pkg). Panel-B PROVED the foundation:
    CoCreateInstance(CLSID_TaskScheduler {0f87369f-a4e5-4cfc-bd3e-73e6154572dd}, IID_ITaskService
