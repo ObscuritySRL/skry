@@ -355,10 +355,6 @@ function requireNumber(args: Record<string, unknown>, key: string): number {
   return value;
 }
 
-function quote(value: unknown): string {
-  return typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value ?? 'element');
-}
-
 // The RESOLVED control's identity for an action result — so the agent gets target confirmation grounded in what the
 // ref actually resolved to, NOT an echo of its own (possibly hallucinated) `element` description. Matches the named
 // results act()/find_and_act/reveal already return. A ref-path element comes from the snapshot's BuildUpdatedCache (Full

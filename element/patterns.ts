@@ -3,7 +3,7 @@
 // the exported enums. Patterns the element does not support throw (actions) or return null/-1 (reads),
 // pointing the caller at the SendInput fallbacks (.click()/.type()) where one exists.
 
-import { FFIType, type Pointer } from 'bun:ffi';
+import { FFIType } from 'bun:ffi';
 
 import Oleaut32 from '@bun-win32/oleaut32';
 
