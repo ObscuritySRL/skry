@@ -2092,7 +2092,7 @@ const TOOLS: McpTool[] = [
     name: 'run_program',
     category: 'os',
     description:
-      'Run a console command and return its exit code, stdout, and stderr. For programs that exit on their own (CLI tools). NOT for GUI apps or servers that keep running — those are killed after timeoutMs (default 30000) and you get partial output; launch GUI apps with launch_app instead. Gated behind the "os" policy category.',
+      'Run a console command and return its exit code, stdout, and stderr. For programs that exit on their own (CLI tools). NOT for GUI apps or servers that keep running — those are killed after timeoutMs (default 30000) and you get partial output; launch GUI apps with launch_app instead. Gated behind the "os" category.',
     inputSchema: {
       type: 'object',
       properties: { command: { type: 'string' }, args: { type: 'array', items: { type: 'string' } }, timeoutMs: { type: 'number', description: 'Kill the process and return partial output after this many ms (default 30000, max 300000).' } },
@@ -2102,13 +2102,13 @@ const TOOLS: McpTool[] = [
   {
     name: 'kill_process',
     category: 'os',
-    description: 'Terminate a process by {pid} (precise) or {name} — an EXACT case-insensitive image name that terminates EVERY process with that exact name (e.g. "chrome.exe" kills all Chrome). A substring is NOT accepted, so a stray short name cannot mass-kill; this server and its host process are never targeted. Reports killed / access-denied (elevated/protected — see current_user) / not-found. No taskkill/Stop-Process. Gated behind the "os" policy category; destructive.',
+    description: 'Terminate a process by {pid} (precise) or {name} — an EXACT case-insensitive image name that terminates EVERY process with that exact name (e.g. "chrome.exe" kills all Chrome). A substring is NOT accepted, so a stray short name cannot mass-kill; this server and its host process are never targeted. Reports killed / access-denied (elevated/protected — see current_user) / not-found. No taskkill/Stop-Process. Gated behind the "os" category; destructive.',
     inputSchema: { type: 'object', properties: { pid: { type: 'number', description: 'Exact process id to terminate' }, name: { type: 'string', minLength: 1, description: 'EXACT image name (case-insensitive, e.g. "notepad.exe") — terminates ALL processes with that exact name' } } },
   },
   {
     name: 'manage_process',
     category: 'os',
-    description: 'Control a live process by {pid} WITHOUT killing it (no pssuspend/PowerShell): {action:"suspend"} freezes EVERY thread (pause a runaway/installer to inspect, or let the foreground recover), {action:"resume"} thaws it, {action:"priority", priority} renices it (drop a CPU hog to idle, or raise a stalled job). Never targets this server or its host. Reports the threads acted on / access-denied (elevated/protected — see current_user) / not-found. Gated behind the "os" policy category; destructive.',
+    description: 'Control a live process by {pid} WITHOUT killing it (no pssuspend/PowerShell): {action:"suspend"} freezes EVERY thread (pause a runaway/installer to inspect, or let the foreground recover), {action:"resume"} thaws it, {action:"priority", priority} renices it (drop a CPU hog to idle, or raise a stalled job). Never targets this server or its host. Reports the threads acted on / access-denied (elevated/protected — see current_user) / not-found. Gated behind the "os" category; destructive.',
     inputSchema: { type: 'object', properties: { pid: { type: 'number', description: 'Process id to control' }, action: { type: 'string', enum: ['suspend', 'resume', 'priority'], description: 'suspend/resume freeze-thaw every thread; priority renices' }, priority: { type: 'string', enum: ['idle', 'below', 'normal', 'above', 'high'], description: 'Required for action:"priority"' } }, required: ['pid', 'action'] },
   },
   {
@@ -2144,7 +2144,7 @@ const TOOLS: McpTool[] = [
   {
     name: 'control_service',
     category: 'os',
-    description: 'Query / start / stop a Windows service by {name} natively (no sc / Start-Service / Stop-Service shell). {action:"query"} returns its state + owning pid; "start"/"stop" change it (usually need elevation → reports access-denied cleanly). Reports the resulting state / denied / not-found. Gated behind the "os" policy category; destructive on start/stop.',
+    description: 'Query / start / stop a Windows service by {name} natively (no sc / Start-Service / Stop-Service shell). {action:"query"} returns its state + owning pid; "start"/"stop" change it (usually need elevation → reports access-denied cleanly). Reports the resulting state / denied / not-found. Gated behind the "os" category; destructive on start/stop.',
     inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Service short name (e.g. "Spooler", not the display name)' }, action: { type: 'string', enum: ['query', 'start', 'stop'], description: 'default query' } }, required: ['name'] },
   },
   {
@@ -2156,79 +2156,79 @@ const TOOLS: McpTool[] = [
   {
     name: 'set_env',
     category: 'os',
-    description: 'Set or delete an environment variable in a scope (no setx/reg/PowerShell). {scope:"user"} writes HKCU\\Environment + broadcasts WM_SETTINGCHANGE so it PERSISTS across reboots and new processes inherit it (set JAVA_HOME, add to PATH); "machine" writes HKLM (needs elevation → clean access-denied); "process" is transient (this server + its children). Pass {value} to set, or {delete:true} to remove. Gated behind the "os" policy category; destructive.',
+    description: 'Set or delete an environment variable in a scope (no setx/reg/PowerShell). {scope:"user"} writes HKCU\\Environment + broadcasts WM_SETTINGCHANGE so it PERSISTS across reboots and new processes inherit it (set JAVA_HOME, add to PATH); "machine" writes HKLM (needs elevation → clean access-denied); "process" is transient (this server + its children). Pass {value} to set, or {delete:true} to remove. Gated behind the "os" category; destructive.',
     inputSchema: { type: 'object', properties: { scope: { type: 'string', enum: ['process', 'user', 'machine'] }, name: { type: 'string' }, value: { type: 'string', description: 'The value to set (omit and pass delete:true to remove)' }, delete: { type: 'boolean', description: 'Remove the variable instead of setting it' } }, required: ['scope', 'name'] },
   },
   {
     name: 'registry_get',
     category: 'os',
-    description: 'Read ONE Windows registry value natively (no reg query / Get-ItemProperty shell): an install path, an OS/app version, a policy or HKCU preference. {hive} ∈ HKLM|HKCU|HKCR|HKU, {key} the backslash-separated subkey path, {value} the value name (omit for the key default). Returns the typed value (REG_SZ/DWORD/QWORD/MULTI_SZ/BINARY decoded). Gated behind the "os" policy category.',
+    description: 'Read ONE Windows registry value natively (no reg query / Get-ItemProperty shell): an install path, an OS/app version, a policy or HKCU preference. {hive} ∈ HKLM|HKCU|HKCR|HKU, {key} the backslash-separated subkey path, {value} the value name (omit for the key default). Returns the typed value (REG_SZ/DWORD/QWORD/MULTI_SZ/BINARY decoded). Gated behind the "os" category.',
     inputSchema: { type: 'object', properties: { hive: { type: 'string', description: 'HKLM | HKCU | HKCR | HKU' }, key: { type: 'string', description: 'Subkey path, e.g. "SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion"' }, value: { type: 'string', description: 'Value name (omit for the key default)' } }, required: ['hive', 'key'] },
   },
   {
     name: 'registry_list',
     category: 'os',
-    description: 'Enumerate a Windows registry key natively (no reg query shell): its immediate subkeys and its values (name / type / decoded data). {hive} ∈ HKLM|HKCU|HKCR|HKU, {key} the backslash-separated subkey path. Gated behind the "os" policy category.',
+    description: 'Enumerate a Windows registry key natively (no reg query shell): its immediate subkeys and its values (name / type / decoded data). {hive} ∈ HKLM|HKCU|HKCR|HKU, {key} the backslash-separated subkey path. Gated behind the "os" category.',
     inputSchema: { type: 'object', properties: { hive: { type: 'string', description: 'HKLM | HKCU | HKCR | HKU' }, key: { type: 'string', description: 'Subkey path' } }, required: ['hive', 'key'] },
   },
   {
     name: 'registry_set',
     category: 'os',
-    description: 'Write or delete ONE registry value on an EXISTING key (no reg add/Set-ItemProperty shell) — configure an app/policy/preference outside env vars (e.g. show file extensions, seed an app setting). {hive} ∈ HKLM|HKCU|HKCR|HKU, {key} the subkey path, {value} the value name (omit for the key default), {type} ∈ REG_SZ|REG_EXPAND_SZ|REG_DWORD|REG_QWORD|REG_MULTI_SZ, {data} (string for SZ, integer for DWORD/QWORD, string[] for MULTI_SZ), or {delete:true}. REQUIRES {confirm:true} — a wrong write can corrupt the machine or an app. The key must already exist; HKLM/protected keys need elevation (clean access-denied). Gated behind the "os" policy category; destructive.',
+    description: 'Write or delete ONE registry value on an EXISTING key (no reg add/Set-ItemProperty shell) — configure an app/policy/preference outside env vars (e.g. show file extensions, seed an app setting). {hive} ∈ HKLM|HKCU|HKCR|HKU, {key} the subkey path, {value} the value name (omit for the key default), {type} ∈ REG_SZ|REG_EXPAND_SZ|REG_DWORD|REG_QWORD|REG_MULTI_SZ, {data} (string for SZ, integer for DWORD/QWORD, string[] for MULTI_SZ), or {delete:true}. REQUIRES {confirm:true} — a wrong write can corrupt the machine or an app. The key must already exist; HKLM/protected keys need elevation (clean access-denied). Gated behind the "os" category; destructive.',
     inputSchema: { type: 'object', properties: { hive: { type: 'string', enum: ['HKLM', 'HKCU', 'HKCR', 'HKU'] }, key: { type: 'string', description: 'Subkey path (must already exist)' }, value: { type: 'string', description: 'Value name (omit for the key default)' }, type: { type: 'string', enum: ['REG_SZ', 'REG_EXPAND_SZ', 'REG_DWORD', 'REG_QWORD', 'REG_MULTI_SZ'] }, data: { description: 'string | integer | string[] matching {type}' }, delete: { type: 'boolean', description: 'Delete the value instead of writing' }, confirm: { type: 'boolean', description: 'MUST be true to perform the write (safety gate)' } }, required: ['hive', 'key', 'confirm'] },
   },
   {
     name: 'open_path',
     category: 'os',
-    description: 'Open a file, folder, or URL with its default handler (Explorer/browser). Gated behind the "os" policy category.',
+    description: 'Open a file, folder, or URL with its default handler (Explorer/browser). Gated behind the "os" category.',
     inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
   },
   {
     name: 'read_file',
     category: 'fs',
-    description: 'Read a text file (first 20k chars). Gated behind the "fs" policy category; restricted to UMBRIEL_FS_ROOT when set.',
+    description: 'Read a text file (first 20k chars). Gated behind the "fs" category; restricted to UMBRIEL_FS_ROOT when set.',
     inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
   },
   {
     name: 'write_file',
     category: 'fs',
-    description: 'Write a text file (overwrites). Gated behind the "fs" policy category; restricted to UMBRIEL_FS_ROOT when set.',
+    description: 'Write a text file (overwrites). Gated behind the "fs" category; restricted to UMBRIEL_FS_ROOT when set.',
     inputSchema: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } }, required: ['path', 'content'] },
   },
   {
     name: 'list_dir',
     category: 'fs',
-    description: 'List a directory (names + dir/file kind). Gated behind the "fs" policy category; restricted to UMBRIEL_FS_ROOT when set.',
+    description: 'List a directory (names + dir/file kind). Gated behind the "fs" category; restricted to UMBRIEL_FS_ROOT when set.',
     inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
   },
   {
     name: 'stat_path',
     category: 'fs',
-    description: 'Stat a path natively (no dir/Get-Item shell): whether it exists, file vs directory, byte size, modified + created times, and the Windows attribute flags (read-only / hidden / system / reparse-point). Check a file\'s size BEFORE read_file (which caps at 20k chars). Gated behind the "fs" policy category; restricted to UMBRIEL_FS_ROOT when set.',
+    description: 'Stat a path natively (no dir/Get-Item shell): whether it exists, file vs directory, byte size, modified + created times, and the Windows attribute flags (read-only / hidden / system / reparse-point). Check a file\'s size BEFORE read_file (which caps at 20k chars). Gated behind the "fs" category; restricted to UMBRIEL_FS_ROOT when set.',
     inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
   },
   {
     name: 'make_dir',
     category: 'fs',
-    description: 'Create a directory (and any missing parents) natively, no mkdir shell. Gated behind the "fs" policy category; restricted to UMBRIEL_FS_ROOT when set.',
+    description: 'Create a directory (and any missing parents) natively, no mkdir shell. Gated behind the "fs" category; restricted to UMBRIEL_FS_ROOT when set.',
     inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
   },
   {
     name: 'copy_file',
     category: 'fs',
-    description: 'Copy a file or a directory tree from {from} to {to} natively, no copy/xcopy shell. Refuses if {to} already exists unless {overwrite:true}. Gated behind the "fs" policy category; both paths restricted to UMBRIEL_FS_ROOT when set.',
+    description: 'Copy a file or a directory tree from {from} to {to} natively, no copy/xcopy shell. Refuses if {to} already exists unless {overwrite:true}. Gated behind the "fs" category; both paths restricted to UMBRIEL_FS_ROOT when set.',
     inputSchema: { type: 'object', properties: { from: { type: 'string' }, to: { type: 'string' }, overwrite: { type: 'boolean', description: 'Replace the destination if it already exists (default false)' } }, required: ['from', 'to'] },
   },
   {
     name: 'move_file',
     category: 'fs',
-    description: 'Move/rename a file or directory from {from} to {to} natively (rename, or copy+delete across volumes), no move shell. Refuses if {to} already exists unless {overwrite:true}. Gated behind the "fs" policy category; both paths restricted to UMBRIEL_FS_ROOT when set.',
+    description: 'Move/rename a file or directory from {from} to {to} natively (rename, or copy+delete across volumes), no move shell. Refuses if {to} already exists unless {overwrite:true}. Gated behind the "fs" category; both paths restricted to UMBRIEL_FS_ROOT when set.',
     inputSchema: { type: 'object', properties: { from: { type: 'string' }, to: { type: 'string' }, overwrite: { type: 'boolean', description: 'Replace the destination if it already exists (default false)' } }, required: ['from', 'to'] },
   },
   {
     name: 'delete_file',
     category: 'fs',
-    description: 'Delete a file, or an EMPTY directory; pass {recursive:true} to delete a directory tree. Natively, no del/rmdir shell. DESTRUCTIVE — gated behind the "fs" policy category; restricted to UMBRIEL_FS_ROOT when set.',
+    description: 'Delete a file, or an EMPTY directory; pass {recursive:true} to delete a directory tree. Natively, no del/rmdir shell. DESTRUCTIVE — gated behind the "fs" category; restricted to UMBRIEL_FS_ROOT when set.',
     inputSchema: { type: 'object', properties: { path: { type: 'string' }, recursive: { type: 'boolean', description: 'Delete a non-empty directory tree (default false — an empty dir or a file only)' } }, required: ['path'] },
   },
 ];
@@ -2236,7 +2236,7 @@ const TOOLS: McpTool[] = [
 // Annotation policy: read tools are read-only; the rest mutate state (destructive); os tools reach beyond the
 // local desktop (open-world); setters/copies are idempotent. Hosts use these to drive their permission UI.
 const IDEMPOTENT = new Set(['copy', 'java_set_text', 'manage_element', 'set_clipboard', 'set_value']);
-// Tools that READ state without mutating it but are NOT in the 'read' policy category (read_clipboard is gated as
+// Tools that READ state without mutating it but are NOT in the 'read' category (read_clipboard is gated as
 // 'input' so readonly does not auto-expose the secret-bearing clipboard) — they still earn readOnlyHint, not destructive.
 const READ_ONLY_NATURE = new Set(['read_clipboard']);
 for (const tool of TOOLS) {
