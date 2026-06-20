@@ -20,22 +20,27 @@ export interface WindowInfo {
   processId: number;
 }
 
+// Hoisted, reused out-param scratch (the reads.ts pattern): each decode reads its bytes out to a JS string/number
+// before returning, window.ts is fully synchronous, and the three readers fire on every window of the EnumWindows
+// hot loop (popupSnapshot/newPopup per invoke/expand) — so a per-window alloc was pure GC churn. Distinct sizes so a
+// read*'s buffer is never aliased by a sibling read* within one callback; `.ptr` is read inline at each call site.
+const windowTextScratch = Buffer.alloc(1024);
+const classNameScratch = Buffer.alloc(512);
+const processIdScratch = Buffer.alloc(4);
+
 function readWindowText(hWnd: bigint): string {
-  const buffer = Buffer.alloc(1024);
-  const length = User32.GetWindowTextW(hWnd, buffer.ptr!, 512);
-  return length > 0 ? buffer.subarray(0, length * 2).toString('utf16le') : '';
+  const length = User32.GetWindowTextW(hWnd, windowTextScratch.ptr!, 512);
+  return length > 0 ? windowTextScratch.subarray(0, length * 2).toString('utf16le') : '';
 }
 
 function readClassName(hWnd: bigint): string {
-  const buffer = Buffer.alloc(512);
-  const length = User32.GetClassNameW(hWnd, buffer.ptr!, 256);
-  return length > 0 ? buffer.subarray(0, length * 2).toString('utf16le') : '';
+  const length = User32.GetClassNameW(hWnd, classNameScratch.ptr!, 256);
+  return length > 0 ? classNameScratch.subarray(0, length * 2).toString('utf16le') : '';
 }
 
 function readProcessId(hWnd: bigint): number {
-  const out = Buffer.alloc(4);
-  User32.GetWindowThreadProcessId(hWnd, out.ptr!);
-  return out.readUInt32LE(0);
+  User32.GetWindowThreadProcessId(hWnd, processIdScratch.ptr!);
+  return processIdScratch.readUInt32LE(0);
 }
 
 /** Find a top-level window by exact title and/or class name. Returns 0n if none. */
