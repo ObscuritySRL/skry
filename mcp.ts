@@ -1075,14 +1075,22 @@ function setValueSmart(element: Element, value: string): string {
  *  the steal at the agent-facing result — so the agent can distinguish a truly focus-clean act (BM_CLICK / WM_SETTEXT)
  *  from one that hit the parity wall. foregroundWindow() is the GetForegroundWindow() the wall was measured with.
  *  `suffix` is read AFTER the act (toggle reports its SETTLED state) and lands before the steal note. */
-function disclosingPatternAct(message: string, run: () => void, suffix?: () => string): string {
+function disclosingPatternAct(message: string, run: () => void, suffix?: () => string, stealNote?: (before: bigint, after: bigint) => string): string {
   const before = foregroundWindow();
   run();
   const after = foregroundWindow();
   const body = suffix !== undefined ? `${message}${suffix()}` : message;
   if (after === before) return body;
+  if (stealNote !== undefined) return `${body}${stealNote(before, after)}`;
   return `${body} — ⚠ raised/focused the window (UIA pattern on a no-own-HWND control routes through the MSAA bridge, which steals foreground + un-minimizes; before=0x${before.toString(16)} → after=0x${after.toString(16)}; findings/32 — there is NO cursor-free path for this control type)`;
 }
+
+/** The foreground-steal note for SelectionItem.Select on a CLASSIC own-HWND item (radio/list-item/tab/cell): unlike a
+ *  classic Button (which selects focus-clean via BM_CLICK) there is no cursor-free selection path — the UIA provider
+ *  bridge routes Select through SetFocus, activating the control's own window. Passed to disclosingPatternAct so a
+ *  select that moved foreground discloses it; a no-own-HWND WinUI/WPF/Chromium SelectionItem does not steal → no note. */
+const SELECT_STEAL_NOTE = (before: bigint, after: bigint): string =>
+  ` — ⚠ raised/focused the window (SelectionItem.Select on a classic MSAA-bridged own-HWND item — radio/list-item/tab/cell — routes through the provider bridge's SetFocus, which moves foreground to the control's own window + un-minimizes it; before=0x${before.toString(16)} → after=0x${after.toString(16)}; an own-HWND SelectionItem has no cursor-free path, unlike a classic Button's BM_CLICK)`;
 
 /** A classic Win32 push button / checkbox / radio: own HWND + window class exactly "Button". For these, the UIA
  *  Invoke/Toggle pattern is MSAA-bridged and STEALS FOREGROUND to the control's HWND (proven live on minimized charmap
@@ -1183,7 +1191,7 @@ function act(element: Element, action: string, text: string | undefined, submit 
   if (action === 'toggle') return patternAction('toggle', () => `${toggleSmart(element)} ${target}`);
   if (action === 'expand') return withPopupNote(() => patternAction('expand', () => (element.expand(), `expanded ${target}`)));
   if (action === 'collapse') return patternAction('collapse', () => (element.collapse(), `collapsed ${target}`));
-  if (action === 'select') return patternAction('select', () => (element.select(), `selected ${target}`)); // cursor-free SelectionItem.Select — select a tab/radio/list-item/cell by name in one call (grid_cell{do:select} advertised this)
+  if (action === 'select') return patternAction('select', () => disclosingPatternAct(`selected ${target}`, () => element.select(), undefined, SELECT_STEAL_NOTE)); // SelectionItem.Select by name in one call (grid_cell{do:select} advertised this); own-HWND classic items route through the bridge (foreground move disclosed), WinUI/WPF/Chromium stay cursor-free
   throw new Error(`unknown action ${JSON.stringify(action)} — valid "do" verbs are: read, invoke, click, focus, type, set_value, toggle, expand, collapse, select.`);
 }
 
@@ -1628,7 +1636,7 @@ const TOOLS: McpTool[] = [
     name: 'select',
     category: 'input',
     description:
-      'Select a list/grid/tree item via the UIA SelectionItem pattern — cursor-free. mode: replace (default, clears other selections), add (multi-select — keeps the others), remove (deselect). The returned snapshot marks selected refs (selected).',
+      'Select a list/grid/tree item via the UIA SelectionItem pattern — cursor-free on WinUI/WPF/Chromium items; a classic MSAA-bridged own-HWND item (radio/list-item/tab/cell) routes through the provider bridge and moves foreground to that control’s window (disclosed in the result). mode: replace (default, clears other selections), add (multi-select — keeps the others), remove (deselect). The returned snapshot marks selected refs (selected).',
     inputSchema: {
       type: 'object',
       properties: { element: { type: 'string', description: ELEMENT_DESC }, ref: { type: 'string', description: REF_DESC }, mode: { type: 'string', enum: ['replace', 'add', 'remove'] } },
@@ -2540,8 +2548,9 @@ const HANDLERS: Record<string, ToolHandler> = {
     const element = resolveRef(requireString(args, 'ref'));
     const target = named(element);
     const mode = args.mode === 'add' ? 'add' : args.mode === 'remove' ? 'remove' : 'replace';
-    patternAction('select', () => (mode === 'add' ? element.addToSelection() : mode === 'remove' ? element.removeFromSelection() : element.select()));
-    return withSnapshot(`${mode === 'add' ? 'added to selection' : mode === 'remove' ? 'removed from selection' : 'selected'} ${target}`);
+    const label = mode === 'add' ? 'added to selection' : mode === 'remove' ? 'removed from selection' : 'selected';
+    const message = patternAction('select', () => disclosingPatternAct(`${label} ${target}`, () => (mode === 'add' ? element.addToSelection() : mode === 'remove' ? element.removeFromSelection() : element.select()), undefined, SELECT_STEAL_NOTE));
+    return withSnapshot(message);
   },
   select_option: (args) => {
     const element = resolveRef(requireString(args, 'ref'));

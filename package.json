@@ -155,6 +155,7 @@
     "example:reveal-offscreen": "bun ./example/reveal-offscreen.integration.test.ts",
     "example:safety-floor": "bun ./example/safety-floor.integration.test.ts",
     "example:scheduled-tasks": "bun ./example/scheduled-tasks.integration.test.ts",
+    "example:select-no-raise": "bun ./example/select-no-raise.integration.test.ts",
     "example:select-option": "bun ./example/select-option.integration.test.ts",
     "example:selftest": "bun ./example/umbriel.selftest.ts",
     "example:services": "bun ./example/services.integration.test.ts",
