@@ -84,16 +84,20 @@ Doc-Fidelity (AI.md, doc-only, zero runtime):
   gridItemPosition, needsSubtreeFilter, postButtonClick) + ~21 minor type exports not enumerated; index.ts absent from
   the "which one file to open" map.
 
-## Declined — flagged for owner, NOT shipped (out of scope for a byte-identical HARDEN pass)
+## Owner-decided post-convergence — control_service already-state, SHIPPED (`6ffb59e`)
 
-- **AI-Digestion: control_service mislabels ERROR_SERVICE_ALREADY_RUNNING / ERROR_SERVICE_NOT_ACTIVE as
-  "access-denied"** (services.ts:104-108). A genuine denied-vs-not-denied message inversion, BUT (a) the fix CHANGES
-  tool output (violates the byte-identical bar — this is a correctness bug fix, not a hardening optimization), and
-  (b) the proposed fix reads `GetLastError()` after the failed control call — and this codebase already established
-  (os-control findings; kill/services) that GetLastError is UNRELIABLE across the bun:ffi trampoline (returned 0 for a
-  bad pid), which is exactly why control_service decides denied-vs-not-found via an SCM re-probe instead. Shipping an
-  output change resting on an unreliable mechanism is the unproven change this goal cuts. OWNER DECISION: if desired,
-  distinguish via QueryServiceStatusEx state (current vs target) rather than GetLastError, and accept the output change.
+- **AI-Digestion: control_service mislabeled an already-in-state service as "access-denied"** (services.ts). During
+  the autonomous pass this was DECLINED/flagged: the fix changes tool output (outside the byte-identical bar) and the
+  originally-proposed mechanism (`GetLastError` after the failed control call) is UNRELIABLE across the bun:ffi
+  trampoline (returns 0 for a bad call — exactly why kill_process and the denied-vs-not-found probe avoid it). The
+  OWNER then made the call: fix it, properly. Shipped via a new `alreadyInState()` reading live state through the
+  EXISTING `QueryServiceStatusEx` (reliable; same path queryServiceState uses) — start-on-running → "already running
+  (pid X)", stop-on-stopped → "already stopped" (success), every other path (query / not-found / genuine-denied /
+  successful transition / *-pending) byte-identical (proven by before/after capture). Strict state equality → no
+  false positive on pending/paused; QueryServiceStatusEx==0 → null → 'denied' (safe direction); probe handle now
+  closed in finally. Adversarially verified (4 skeptics + judge, all safe-to-ship); live + 2 new regression tests.
+  LESSON: an out-of-byte-identical-scope correctness bug is the owner's call, not the autonomous pass's — and when
+  taken, the mechanism must be the codebase's proven-reliable one (QueryServiceStatusEx state), never GetLastError.
 
 ## Method note
 
