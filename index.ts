@@ -185,6 +185,8 @@ export {
   raiseWindow,
   restoreWindow,
   screenshot,
+  setOpacity,
+  setTopmost,
   snapWindow,
   systemStatus,
   type SystemStatus,

@@ -200,9 +200,14 @@ const SW_MAXIMIZE = 0x0000_0003;
 const SW_MINIMIZE = 0x0000_0006;
 const SW_RESTORE = 0x0000_0009;
 const HWND_TOP = 0x0000_0000n;
+const HWND_TOPMOST = 0xffff_ffff_ffff_ffffn; // (HWND)-1
+const HWND_NOTOPMOST = 0xffff_ffff_ffff_fffen; // (HWND)-2
 const SWP_NOSIZE = 0x0000_0001;
 const SWP_NOMOVE = 0x0000_0002;
 const SWP_NOACTIVATE = 0x0000_0010;
+const GWL_EXSTYLE = -20;
+const WS_EX_LAYERED = 0x0008_0000n;
+const LWA_ALPHA = 0x0000_0002;
 
 /** The full image path of the process behind a window's pid (e.g. `C:\Windows\System32\notepad.exe`), or '' for a protected/system process. */
 export function processImagePath(processId: number): string {
@@ -476,6 +481,21 @@ export function restoreWindow(hWnd: bigint): void {
  *  only — NOT a true bring-to-front, which the foreground lock denies a background process. */
 export function raiseWindow(hWnd: bigint): boolean {
   return User32.SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, (SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE) >>> 0) !== 0;
+}
+
+/** Pin a window into the ALWAYS-ON-TOP band (or release it) WITHOUT activating it — the persistent topmost z-order that
+ *  raise() (a one-shot restack the foreground lock can undo) cannot give. Works on a background window, cursor-free. */
+export function setTopmost(hWnd: bigint, on: boolean): boolean {
+  return User32.SetWindowPos(hWnd, on ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, (SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE) >>> 0) !== 0;
+}
+
+/** Set a window's opacity (alpha 0 transparent … 255 opaque) via a layered window — fade an overlay to read beneath it,
+ *  dim a distracting app, visually confirm a window-target — cursor-free, on a background window. Adds WS_EX_LAYERED if absent. */
+export function setOpacity(hWnd: bigint, alpha: number): boolean {
+  const clamped = Math.max(0, Math.min(255, Math.round(alpha)));
+  const exStyle = User32.GetWindowLongPtrW(hWnd, GWL_EXSTYLE);
+  if ((exStyle & WS_EX_LAYERED) === 0n) User32.SetWindowLongPtrW(hWnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
+  return User32.SetLayeredWindowAttributes(hWnd, 0, clamped, LWA_ALPHA) !== 0;
 }
 
 /** Snap a window to half/quadrant/centre of its monitor's work area, cursor-free (no Win+arrow, no activation) —

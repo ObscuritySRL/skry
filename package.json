@@ -187,6 +187,7 @@
     "example:wgc-capture-no-leak": "bun ./example/wgc-capture-no-leak.integration.test.ts",
     "example:wgc-occluded": "bun ./example/wgc-occluded.integration.test.ts",
     "example:window-events": "bun ./example/window-events.integration.test.ts",
+    "example:window-topmost-opacity": "bun ./example/window-topmost-opacity.integration.test.ts",
     "example:window-spy": "bun ./example/window-spy.ts",
     "example:wpf-hwndwrapper-input": "bun ./example/wpf-hwndwrapper-input.integration.test.ts"
   }
