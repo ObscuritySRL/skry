@@ -26,7 +26,6 @@ const D3D11_USAGE_STAGING = 3;
 const D3D11_CPU_ACCESS_READ = 0x0002_0000;
 const D3D11_MAP_READ = 1;
 const DXGI_FORMAT_B8G8R8A8_UNORM = 87;
-const RPC_E_CHANGED_MODE = 0x8001_0106 | 0;
 
 // WinRT runtime-class names + interface IIDs (header-confirmed, 10.0.22000.0).
 const RC_GraphicsCaptureItem = 'Windows.Graphics.Capture.GraphicsCaptureItem';
