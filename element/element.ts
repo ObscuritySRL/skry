@@ -846,17 +846,21 @@ export class Element {
     return expandCollapseState(this.ptr);
   }
 
-  /** Select via SelectionItemPattern, replacing the selection. Throws if unsupported. */
+  /** Select via SelectionItemPattern, replacing the selection. Throws if unsupported. On a classic MSAA-bridged
+   *  own-HWND item (radio/list-item/tab/cell) this routes through the provider bridge's SetFocus and moves foreground to
+   *  the control's window (the MCP select tool discloses it); a no-own-HWND WinUI/WPF/Chromium item stays cursor-free. */
   select(): void {
     select(this.ptr);
   }
 
-  /** Add to the current selection via SelectionItemPattern (multi-select, keeps the others). Throws if unsupported. */
+  /** Add to the current selection via SelectionItemPattern (multi-select, keeps the others). Throws if unsupported.
+   *  Same own-HWND foreground-move caveat as select(). */
   addToSelection(): void {
     addToSelection(this.ptr);
   }
 
-  /** Remove from the current selection via SelectionItemPattern (deselect). Throws if unsupported. */
+  /** Remove from the current selection via SelectionItemPattern (deselect). Throws if unsupported. Same own-HWND
+   *  foreground-move caveat as select(). */
   removeFromSelection(): void {
     removeFromSelection(this.ptr);
   }
