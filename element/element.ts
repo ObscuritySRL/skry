@@ -415,10 +415,39 @@ export class Element {
    * cross-process marshaling proxy faults), so it is not bound.
    */
   reveal(selector: Selector, options: { container?: Element; maxSteps?: number; fromTop?: boolean } = {}): Element | null {
+    // A WinUI/XAML virtualized list keeps an off-screen item in the UIA tree by NAME but UNREALIZED (isOffscreen, a
+    // {0,0,0,0} rect, no actionable pattern), so find() "succeeds" on a ghost the caller can't click. Treat such a find
+    // as not-yet-realized and keep scrolling until the item has a real on-screen rect.
+    const realized = (element: Element): boolean => {
+      const rect = element.boundingRectangle;
+      return !element.isOffscreen && rect.width > 0 && rect.height > 0;
+    };
     const direct = this.find(selector);
-    if (direct !== null) return direct;
-    const container = options.container ?? this.find({ controlType: ControlType.List }) ?? this.find({ controlType: ControlType.DataGrid }) ?? this.find({ controlType: ControlType.Tree }) ?? this.find({ controlType: ControlType.Table });
-    if (container === null) return null;
+    if (direct !== null) {
+      if (realized(direct)) return direct;
+      direct.release(); // found-but-unrealized virtualized ghost — fall through to scroll it into existence
+    }
+    let container = options.container ?? this.find({ controlType: ControlType.List }) ?? this.find({ controlType: ControlType.DataGrid }) ?? this.find({ controlType: ControlType.Tree }) ?? this.find({ controlType: ControlType.Table });
+    // A WinUI ListView/GridView reports verticallyScrollable=false on the List itself — the real scroll lives on its
+    // ScrollViewer (surfaced as a Pane). When the auto-picked container can't scroll vertically, fall back to the
+    // MOST-SPECIFIC scrollable Pane (smallest viewport) under this element. Skipped when the caller pinned a container.
+    if (options.container === undefined && !(container?.scrollInfo?.verticallyScrollable ?? false)) {
+      let best: Element | null = null;
+      let bestView = Number.POSITIVE_INFINITY;
+      for (const pane of this.findAll({ controlType: ControlType.Pane })) {
+        const paneInfo = pane.scrollInfo;
+        if (paneInfo !== null && paneInfo.verticallyScrollable && paneInfo.verticalViewSize > 0 && paneInfo.verticalViewSize < bestView) {
+          best?.release();
+          best = pane;
+          bestView = paneInfo.verticalViewSize;
+        } else pane.release();
+      }
+      if (best !== null) {
+        container?.release();
+        container = best;
+      }
+    }
+    if (container === null) return this.find(selector);
     try {
       const info = container.scrollInfo;
       if (info === null) return this.find(selector);
@@ -434,7 +463,10 @@ export class Element {
         }
         for (let count = 0; count < maxSteps; count += 1) {
           const found = this.find(selector);
-          if (found !== null) return found;
+          if (found !== null) {
+            if (realized(found)) return found;
+            found.release(); // in the tree but not yet on-screen-realized — keep paging until it has a real rect
+          }
           const before = percent();
           if (before >= 100) break;
           step();
