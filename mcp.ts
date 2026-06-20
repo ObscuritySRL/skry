@@ -1470,12 +1470,12 @@ function formatRegistryValue(value: RegistryData): string {
 // extra char is paid N times on the fixed tools/list payload the model reads each session. Keep only the
 // load-bearing point-of-use directive; the full ref contract lives ONCE in INSTRUCTIONS (and stale refs are
 // rejected in code regardless), so the verbose restatement is redundant. (Shortened: ~9% off tools/list.)
-const ELEMENT_DESC = 'Human-readable LABEL for the permission prompt only; does NOT select the control — target with `ref` or `selector`.';
-const REF_DESC = 'Target element ref from the LATEST snapshot, verbatim with its #generation tag (e.g. e49#3); a stale ref is rejected.';
-const HWND_DESC = 'Target window handle — a decimal/0x-hex string or a JSON number; omit to use the attached window.';
+const ELEMENT_DESC = 'LABEL for the permission prompt only; does NOT select the control — target with `ref` or `selector`.';
+const REF_DESC = 'Element ref from the LATEST snapshot, verbatim incl. its #generation tag (e.g. e49#3); a stale ref is rejected.';
+const HWND_DESC = 'Window handle — a decimal/0x-hex string or JSON number; omit to use the attached window.';
 const SELECTOR_SCHEMA = {
   type: 'object',
-  description: 'Match a control by one or more fields (AND-ed). Aliases are accepted and folded onto these keys: role/type → controlType; id → automationId; label/accessibleName/title → name.',
+  description: 'Match a control by one or more fields (AND-ed). Aliases fold onto these keys: role/type → controlType; id → automationId; label/accessibleName/title → name.',
   properties: {
     name: { type: 'string' },
     nameContains: { type: 'string' },
