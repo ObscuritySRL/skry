@@ -153,6 +153,7 @@
     "example:registry-large-value": "bun ./example/registry-large-value.integration.test.ts",
     "example:registry-set": "bun ./example/registry-set.integration.test.ts",
     "example:reveal-offscreen": "bun ./example/reveal-offscreen.integration.test.ts",
+    "example:reveal-winui-virtualized": "bun ./example/reveal-winui-virtualized.integration.test.ts",
     "example:safety-floor": "bun ./example/safety-floor.integration.test.ts",
     "example:scheduled-tasks": "bun ./example/scheduled-tasks.integration.test.ts",
     "example:select-no-raise": "bun ./example/select-no-raise.integration.test.ts",
