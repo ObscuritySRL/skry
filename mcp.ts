@@ -106,7 +106,9 @@ import {
   selectAllInControl,
   selectorToString,
   setControlText,
+  setOpacity,
   setProcessPriority,
+  setTopmost,
   suspendProcess,
   type Selector,
   snapWindow,
@@ -1997,18 +1999,19 @@ const TOOLS: McpTool[] = [
     name: 'manage_window',
     category: 'window',
     description:
-      'Move/resize/minimize/maximize/restore/raise/snap/close a window WITHOUT activating it (works on a background window; raise is a best-effort z-order restack, not a true bring-to-front). move needs x,y,width,height. snap needs edge (left/right/top/bottom half, or center) — tiles the window on its monitor cursor-free, no Win+arrow.',
+      'Move/minimize/maximize/restore/raise/snap/topmost/untopmost/set_opacity/close a window WITHOUT activating it (works on a background window; raise is a best-effort z-order restack, not a true bring-to-front). move repositions AND resizes in one call (needs x,y,width,height — there is no separate resize action). snap needs edge (left/right/top/bottom half, or center) — tiles the window on its monitor cursor-free, no Win+arrow. topmost pins the window into the always-on-top band (untopmost releases it) — a persistent z-order a one-shot raise cannot give. set_opacity needs alpha 0–255 (layered-window transparency: fade an overlay, dim a distracting app).',
     inputSchema: {
       type: 'object',
       properties: {
         hWnd: { type: ['string', 'number'], description: HWND_DESC },
         ref: { type: 'string', description: REF_DESC },
-        action: { type: 'string', enum: ['move', 'minimize', 'maximize', 'restore', 'raise', 'snap', 'close'] },
+        action: { type: 'string', enum: ['move', 'minimize', 'maximize', 'restore', 'raise', 'snap', 'topmost', 'untopmost', 'set_opacity', 'close'] },
         edge: { type: 'string', enum: ['left', 'right', 'top', 'bottom', 'center'], description: 'Target for snap' },
         x: { type: 'number' },
         y: { type: 'number' },
         width: { type: 'number' },
         height: { type: 'number' },
+        alpha: { type: 'number', description: 'set_opacity: 0 (transparent) – 255 (opaque)' },
       },
       required: ['action'],
     },
@@ -3271,13 +3274,16 @@ const HANDLERS: Record<string, ToolHandler> = {
     else if (action === 'maximize') maximizeWindow(hWnd);
     else if (action === 'restore') restoreWindow(hWnd);
     else if (action === 'raise') raiseWindow(hWnd);
+    else if (action === 'topmost') setTopmost(hWnd, true);
+    else if (action === 'untopmost') setTopmost(hWnd, false);
+    else if (action === 'set_opacity') setOpacity(hWnd, requireNumber(args, 'alpha'));
     else if (action === 'move') moveWindow(hWnd, requireNumber(args, 'x'), requireNumber(args, 'y'), requireNumber(args, 'width'), requireNumber(args, 'height'));
     else if (action === 'snap') {
       const edge = requireString(args, 'edge');
       if (edge !== 'left' && edge !== 'right' && edge !== 'top' && edge !== 'bottom' && edge !== 'center') throw new Error(`snap edge must be left/right/top/bottom/center, got ${JSON.stringify(edge)}`);
       snapWindow(hWnd, edge);
-    } else throw new Error(`unknown manage_window action ${JSON.stringify(action)} — valid actions are: close, minimize, maximize, restore, raise, move, snap.`);
-    return textResult(`window ${action}${action === 'snap' ? ` ${args.edge}` : ''} (hWnd=0x${hWnd.toString(16)})`);
+    } else throw new Error(`unknown manage_window action ${JSON.stringify(action)} — valid actions are: close, minimize, maximize, restore, raise, move, snap, topmost, untopmost, set_opacity.`);
+    return textResult(`window ${action}${action === 'snap' ? ` ${args.edge}` : action === 'set_opacity' ? ` ${requireNumber(args, 'alpha')}` : ''} (hWnd=0x${hWnd.toString(16)})`);
   },
   read_clipboard: () => {
     const text = umbriel.readClipboard();
