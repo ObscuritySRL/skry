@@ -33,6 +33,7 @@ import {
   listScheduledTasks,
   listServices,
   getDisplays,
+  listVolumes,
   getEnv,
   listEnv,
   setEnv,
@@ -2152,6 +2153,12 @@ const TOOLS: McpTool[] = [
     inputSchema: { type: 'object', properties: {} },
   },
   {
+    name: 'list_volumes',
+    category: 'read',
+    description: 'List the mounted drives natively (no wmic logicaldisk / Get-Volume / Get-PSDrive shell): each drive root with its type (fixed/removable/network/cd-rom/ram-disk), volume label, filesystem (NTFS/FAT32/exFAT), and total + free space. Answer "will this install fit", "why is the disk full", or "what drives are mounted" before a copy/write/cleanup. An empty optical/card reader reports its type only (not ready). Read-only.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
     name: 'list_services',
     category: 'read',
     description: 'List every Windows service (name, display name, current state: running/stopped/start-pending/…) natively — no sc query / Get-Service shell. The discovery half of service control; use control_service for a specific service\'s owning pid and to start/stop it.',
@@ -3615,6 +3622,12 @@ const HANDLERS: Record<string, ToolHandler> = {
     const displays = getDisplays();
     if (displays.length === 0) return errorResult('get_displays: no attached displays could be enumerated');
     return textResult(displays.map((display) => `${display.device}${display.primary ? ' (primary)' : ''}: ${display.width}×${display.height} @ ${display.refreshHz}Hz, ${display.bitsPerPixel}-bit — ${display.adapter}`).join('\n'));
+  },
+  list_volumes: () => {
+    const volumes = listVolumes();
+    if (volumes.length === 0) return errorResult('list_volumes: no drives could be enumerated');
+    const gib = (bytes: bigint): string => `${(Number(bytes) / 1_073_741_824).toFixed(1)} GB`;
+    return textResult(volumes.map((volume) => (volume.ready ? `${volume.drive} (${volume.type})${volume.label ? ` "${volume.label}"` : ''}${volume.filesystem ? ` ${volume.filesystem}` : ''}: ${gib(volume.freeBytes)} free of ${gib(volume.totalBytes)}` : `${volume.drive} (${volume.type}) — not ready (no media)`)).join('\n'));
   },
   list_services: () => {
     const services = listServices();
