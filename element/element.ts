@@ -92,13 +92,18 @@ const scratch4 = Buffer.alloc(4);
 // them in ONE FindAllBuildCache round-trip, so each candidate is matched from cache instead of 4 live reads.
 const MATCHER_PROPERTIES: readonly number[] = [PropertyId.AutomationId, PropertyId.ClassName, PropertyId.ControlType, PropertyId.Name];
 
-/** Read the matcher's four properties from the prefetched cache (zero further round-trips). */
-function readCachedProperties(ptr: bigint): ElementProperties {
+/** Read ONLY the matcher properties this selector actually compares, from the prefetched cache (zero further
+ *  round-trips). `matches()` inspects a field only when the corresponding selector field is set, so the unread fields
+ *  default to ''/0 WITHOUT changing the verdict — byte-identical to reading all four (proven: matches() never touches a
+ *  field whose selector field is undefined), but skips the 2-3 in-proc cached decodes a {name}/{nameContains}/{nameNot}
+ *  client-filter walk would waste on automationId/className/controlType. The cross-process MATCHER_PROPERTIES cache
+ *  request still prefetches all four, so a returned Element's own cached* getters are unchanged. */
+function readCachedProperties(ptr: bigint, selector: Selector): ElementProperties {
   return {
-    automationId: getBstr(ptr, SLOT.get_CachedAutomationId),
-    className: getBstr(ptr, SLOT.get_CachedClassName),
-    controlType: getLong(ptr, SLOT.get_CachedControlType),
-    name: getBstr(ptr, SLOT.get_CachedName),
+    automationId: selector.automationId !== undefined ? getBstr(ptr, SLOT.get_CachedAutomationId) : '',
+    className: selector.className !== undefined ? getBstr(ptr, SLOT.get_CachedClassName) : '',
+    controlType: selector.controlType !== undefined || selector.controlTypes !== undefined ? getLong(ptr, SLOT.get_CachedControlType) : 0,
+    name: selector.name !== undefined || selector.nameContains !== undefined || selector.nameNot !== undefined ? getBstr(ptr, SLOT.get_CachedName) : '',
   };
 }
 
@@ -173,7 +178,7 @@ function findFirstMatch(scopeElement: bigint, compiled: CompiledCondition, selec
     const pointers = findAllCachedPointers(scopeElement, scope, compiled.condition, request.ptr);
     for (let index = 0; index < pointers.length; index += 1) {
       const pointer = pointers[index]!;
-      if (matches(readCachedProperties(pointer), selector) && (!subtreeFilter || subtreeMatches(pointer, selector))) {
+      if (matches(readCachedProperties(pointer, selector), selector) && (!subtreeFilter || subtreeMatches(pointer, selector))) {
         for (let rest = index + 1; rest < pointers.length; rest += 1) comRelease(pointers[rest]!);
         return new Element(pointer);
       }
@@ -621,7 +626,7 @@ export class Element {
       try {
         const result: Element[] = [];
         for (const pointer of findAllCachedPointers(this.ptr, scope, compiled.condition, request.ptr)) {
-          if (matches(readCachedProperties(pointer), selector) && (!subtreeFilter || subtreeMatches(pointer, selector))) result.push(new Element(pointer));
+          if (matches(readCachedProperties(pointer, selector), selector) && (!subtreeFilter || subtreeMatches(pointer, selector))) result.push(new Element(pointer));
           else comRelease(pointer);
         }
         return result;
@@ -652,7 +657,7 @@ export class Element {
           if (vcall(pArray, SLOT.GetElement, [FFIType.i32, FFIType.ptr], [index, scratch8.ptr!]) !== S_OK) continue;
           const pointer = scratch8.readBigUInt64LE(0);
           if (pointer === 0n) continue;
-          if ((!compiled.needsClientFilter || matches(readCachedProperties(pointer), selector)) && (!subtreeFilter || subtreeMatches(pointer, selector))) result.push(new Element(pointer));
+          if ((!compiled.needsClientFilter || matches(readCachedProperties(pointer, selector), selector)) && (!subtreeFilter || subtreeMatches(pointer, selector))) result.push(new Element(pointer));
           else comRelease(pointer);
         }
         return result;
