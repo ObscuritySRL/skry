@@ -1276,14 +1276,14 @@ function clickElement(element: Element, button: 'left' | 'right' | 'middle', dou
     // folder/drive cursor-free on a background window (LegacyIAccessible.DoDefaultAction is a silent no-op on
     // those shell items, so it is only a secondary fallback). A real double-click is the last resort.
     try {
-      element.invoke();
-      return 'opened (cursor-free, invoke)';
+      // Disclose the steal if invoke/doDefaultAction moves foreground (a classic own-HWND target routes through the MSAA
+      // bridge SetFocus) — parity with the single-click chain + the invoke verb; byte-identical '(cursor-free…)' when no steal.
+      return disclosingPatternAct('opened (cursor-free, invoke)', () => element.invoke());
     } catch {
       // no Invoke pattern — try the MSAA default action
     }
     try {
-      element.doDefaultAction();
-      return 'opened (cursor-free, default action)';
+      return disclosingPatternAct('opened (cursor-free, default action)', () => element.doDefaultAction());
     } catch {
       // no LegacyIAccessible pattern either — fall back to the real double-click below
     }
