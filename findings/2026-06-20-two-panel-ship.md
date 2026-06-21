@@ -90,3 +90,30 @@ VARIANT (caught by A11); the slot indices it verified ARE correct.
   (no binding). Logged in TODO.md; `desktop/power.ts` plumbing is ready for the actions once the binding exists.
 - Re-confirmed STILL walls: iphlpapi/ws2_32 (network), ntdll NtQueryInformationProcess (process cmdline), advapi32
   EnumServicesStatusExW mis-type. (all already in TODO.md)
+
+## Convergence rounds (post-ship verification) — 2 MORE slices, then CONVERGED
+
+An 8-seat convergence fleet + a 2-seat final + a 1-seat honesty re-confirm verified the 10 slices live and re-audited the
+NEW code the clean lanes never saw (power.ts privilege FFI, wgc ensureBundle restructure, firewall VARIANT). FFI-safety,
+reliability, security, tokens/docs, hygiene/tests, capability-completeness all CLEAN-with-evidence (power.ts
+TOKEN_PRIVILEGES 16-B x64 layout + firewall VARIANT 24-B + wgc no-double-release all header-verified vs 10.0.22000.0;
+power_state os-gated + confirm; counts reconcile 86/66/32/20). The rounds found TWO residuals — each the SAME honesty
+pattern, progressively closing the disclosure gap the convergence brief's fixed-sites list hadn't fully enumerated:
+
+- **`28429c8` fix(mcp): clickElement DOUBLE-click open path** (invoke/doDefaultAction) now routes through
+  disclosingPatternAct — the sibling of the single-click fix (found by C8-holistic). Byte-identical no-steal
+  (explorer-in-the-dark green: folder nav unchanged, real cursor unmoved).
+- **`e11ce9e` fix(mcp): select_option discloses the steal** — element.selectOption() internally does
+  item.select()/item.invoke() on a revealed classic own-HWND item; the handler now samples foregroundWindow before/after
+  + appends SELECT_STEAL_NOTE, and the tool description + element.ts JSDoc are softened to the honest conditional (found
+  by F1-honesty-complete's whole-codebase grep). select-option green.
+
+A definitive grep (11 raw pattern-act sites across mcp.ts + input/computer.ts) + a final fresh-eyes seat confirm EVERY
+bridge-steal-capable act (invoke / toggle / select / doDefaultAction / addToSelection / removeFromSelection / selectOption
++ setValueSmart's ValuePattern fallback) is now disclosure-routed; find_text/selectText (TextRange.Select), JAB, and the
+posted-message ops (WM_CHAR/WM_COPY/EM_UNDO/postClick) are genuinely cursor-free (no SetFocus), correctly carrying no note.
+
+## CONVERGED — 2026-06-20
+**12 slices shipped this pass** (10 two-panel + 2 convergence). In one final turn EVERY lane — both panels, the 8-seat
+convergence, and the honesty re-confirm — is CLEAN-with-evidence; **tsc 0, 51 unit tests green, slot-gate 145, biome
+clean, 86 tools**. No lane is still finding → STOP. (NOT version-bumped / published / server.json-touched — owner releases.)
