@@ -106,7 +106,7 @@ export { parseHive, registryCreateKey, registryDeleteKey, registryDeleteValue, r
 export { controlService, listServices, readServiceConfig, type ServiceAction, type ServiceConfig, type ServiceEntry } from './desktop/services';
 export { type EnvScope, getEnv, listEnv, parseScope, setEnv } from './desktop/env';
 export { type EventLogLevel, type EventLogRecord, readEventLog } from './desktop/eventlog';
-export { type DisplayInfo, getDisplays } from './desktop/display';
+export { type DisplayInfo, type DisplayMode, getDisplays, setDisplay } from './desktop/display';
 export { listVolumes, type VolumeInfo } from './desktop/disk';
 export { createTask, deleteTask, listScheduledTasks, type ScheduledTask, TASK_SLOT } from './desktop/tasks';
 export { FIREWALL_SLOT, type FirewallRule, listFirewallRules } from './desktop/firewall';

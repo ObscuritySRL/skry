@@ -50,3 +50,60 @@ export function getDisplays(): DisplayInfo[] {
   }
   return displays;
 }
+
+// ChangeDisplaySettingsExW write path (wingdi.h DM_*/DMDO_*, winuser.h CDS_*/DISP_CHANGE_*). Offsets confirmed vs the
+// active _devicemodeW union branch (dmPosition POINTL@76, then dmDisplayOrientation@84) and live (orientation read 0).
+const DM_PELSWIDTH = 0x0008_0000;
+const DM_PELSHEIGHT = 0x0010_0000;
+const DM_DISPLAYFREQUENCY = 0x0040_0000;
+const DM_DISPLAYORIENTATION = 0x0000_0080;
+const CDS_UPDATEREGISTRY = 0x0000_0001;
+const CDS_TEST = 0x0000_0002;
+const DISP_CHANGE_SUCCESSFUL = 0;
+const DISP_CHANGE_RESTART = 1;
+const DISP_CHANGE_NAMES: Record<number, string> = { 0: 'DISP_CHANGE_SUCCESSFUL', 1: 'DISP_CHANGE_RESTART', [-1]: 'DISP_CHANGE_FAILED', [-2]: 'DISP_CHANGE_BADMODE (the adapter/monitor does not support this mode)', [-3]: 'DISP_CHANGE_NOTUPDATED', [-4]: 'DISP_CHANGE_BADFLAGS', [-5]: 'DISP_CHANGE_BADPARAM', [-6]: 'DISP_CHANGE_BADDUALVIEW' };
+
+export interface DisplayMode {
+  width?: number;
+  height?: number;
+  orientation?: number; // degrees: 0 | 90 | 180 | 270 (mapped to DMDO_DEFAULT/90/180/270)
+  refreshHz?: number;
+  persist?: boolean; // false (default) = apply dynamically (Windows auto-reverts a bad mode); true = persist to the registry
+}
+
+/** Change a monitor's mode (resolution / orientation / refresh) natively via ChangeDisplaySettingsExW — the symmetric
+ *  WRITE half of getDisplays, focus-free + BG-default (no Settings UI). `device` is a getDisplays device name (\\.\DISPLAYn).
+ *  Seeds the CURRENT mode (EnumDisplaySettingsW) and ORs the changed members' bits onto the live dmFields, so unspecified
+ *  fields keep their current values. VALIDATES with CDS_TEST first; only a valid mode is applied — dynamically (so
+ *  Windows' confirm-timeout auto-reverts a bad confirmless mode) or, with {persist}, written to the registry. Returns
+ *  ok=false (nothing changed) when the device is unknown or the mode is rejected at validation. */
+export function setDisplay(device: string, mode: DisplayMode): { ok: boolean; message: string } {
+  const deviceWide = Buffer.from(`${device}\0`, 'utf16le');
+  const devmode = Buffer.alloc(DEVMODE_SIZE);
+  devmode.writeUInt16LE(DEVMODE_SIZE, 68); // dmSize — required before EnumDisplaySettingsW
+  if (User32.EnumDisplaySettingsW(deviceWide.ptr!, ENUM_CURRENT_SETTINGS, devmode.ptr!) === 0) return { ok: false, message: `unknown or unconfigurable device "${device}" (use a get_displays device name)` };
+  let fields = devmode.readUInt32LE(72); // keep the live dmFields — OR the changed bits on (ChangeDisplaySettingsEx reads only flagged members)
+  if (mode.width !== undefined) {
+    devmode.writeUInt32LE(mode.width, 172);
+    fields |= DM_PELSWIDTH;
+  }
+  if (mode.height !== undefined) {
+    devmode.writeUInt32LE(mode.height, 176);
+    fields |= DM_PELSHEIGHT;
+  }
+  if (mode.refreshHz !== undefined) {
+    devmode.writeUInt32LE(mode.refreshHz, 184);
+    fields |= DM_DISPLAYFREQUENCY;
+  }
+  if (mode.orientation !== undefined) {
+    devmode.writeUInt32LE(mode.orientation === 90 ? 1 : mode.orientation === 180 ? 2 : mode.orientation === 270 ? 3 : 0, 84); // DMDO_DEFAULT 0 / 90 1 / 180 2 / 270 3
+    fields |= DM_DISPLAYORIENTATION;
+  }
+  devmode.writeUInt32LE(fields, 72);
+  const tested = User32.ChangeDisplaySettingsExW(deviceWide.ptr!, devmode.ptr!, 0n, CDS_TEST, null); // validate WITHOUT applying first — no black screen on a bad mode
+  if (tested !== DISP_CHANGE_SUCCESSFUL) return { ok: false, message: `mode rejected at validation: ${DISP_CHANGE_NAMES[tested] ?? `code ${tested}`} — nothing changed` };
+  const applied = User32.ChangeDisplaySettingsExW(deviceWide.ptr!, devmode.ptr!, 0n, mode.persist === true ? CDS_UPDATEREGISTRY : 0, null);
+  if (applied === DISP_CHANGE_SUCCESSFUL) return { ok: true, message: `applied${mode.persist === true ? ' (persisted to the registry)' : ' (dynamic — not persisted; reverts on logoff/reboot)'}` };
+  if (applied === DISP_CHANGE_RESTART) return { ok: true, message: 'applied — a restart is required to take full effect' };
+  return { ok: false, message: `validated but apply returned ${DISP_CHANGE_NAMES[applied] ?? `code ${applied}`}` };
+}
