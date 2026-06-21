@@ -33,6 +33,7 @@ import {
   listScheduledTasks,
   listServices,
   getDisplays,
+  setDisplay,
   listVolumes,
   getEnv,
   listEnv,
@@ -2161,6 +2162,12 @@ const TOOLS: McpTool[] = [
     inputSchema: { type: 'object', properties: {} },
   },
   {
+    name: 'set_display',
+    category: 'os',
+    description: 'Change a monitor\'s mode natively (no Settings UI / WMI / PowerShell) — the symmetric WRITE half of get_displays, focus-free + BG-default. {device} is a get_displays device name (e.g. "\\\\.\\DISPLAY1"); set any of {width}/{height} (resolution), {orientation} (0|90|180|270 degrees), {refreshHz}. The mode is VALIDATED (CDS_TEST) before applying and applied DYNAMICALLY by default — Windows auto-reverts a bad mode after its confirm-timeout, so no permanent black screen; pass {persist:true} to write it to the registry. A rotation usually needs matching {width}/{height} (a portrait mode wants the dimensions swapped); an unsupported combo is rejected at validation (DISP_CHANGE_BADMODE) and nothing changes. REQUIRES {confirm:true}. Gated behind the "os" category; destructive.',
+    inputSchema: { type: 'object', properties: { device: { type: 'string', description: 'A get_displays device name, e.g. "\\\\.\\DISPLAY1"' }, width: { type: 'number', description: 'Horizontal resolution in pixels' }, height: { type: 'number', description: 'Vertical resolution in pixels' }, orientation: { type: 'number', enum: [0, 90, 180, 270], description: 'Rotation in degrees' }, refreshHz: { type: 'number', description: 'Refresh rate in Hz' }, persist: { type: 'boolean', description: 'Persist to the registry (default: dynamic, not persisted)' }, confirm: { type: 'boolean', description: 'MUST be true to change the mode (safety gate)' } }, required: ['device', 'confirm'] },
+  },
+  {
     name: 'list_volumes',
     category: 'read',
     description: 'List the mounted drives natively (no wmic logicaldisk / Get-Volume / Get-PSDrive shell): each drive root with its type (fixed/removable/network/cd-rom/ram-disk), volume label, filesystem (NTFS/FAT32/exFAT), and total + free space. Answer "will this install fit", "why is the disk full", or "what drives are mounted" before a copy/write/cleanup. An empty optical/card reader reports its type only (not ready). Read-only.',
@@ -3636,6 +3643,22 @@ const HANDLERS: Record<string, ToolHandler> = {
     const displays = getDisplays();
     if (displays.length === 0) return errorResult('get_displays: no attached displays could be enumerated');
     return textResult(displays.map((display) => `${display.device}${display.primary ? ' (primary)' : ''}: ${display.width}×${display.height} @ ${display.refreshHz}Hz, ${display.bitsPerPixel}-bit — ${display.adapter}`).join('\n'));
+  },
+  set_display: (args) => {
+    const device = requireString(args, 'device');
+    if (args.confirm !== true) return errorResult('set_display: refusing to change the display mode without {confirm:true} — a bad mode can black the desktop; it is validated (CDS_TEST) first and applied non-persistently (Windows auto-reverts) only after you confirm');
+    const mode: { width?: number; height?: number; orientation?: number; refreshHz?: number; persist?: boolean } = {};
+    if (typeof args.width === 'number') mode.width = args.width;
+    if (typeof args.height === 'number') mode.height = args.height;
+    if (typeof args.refreshHz === 'number') mode.refreshHz = args.refreshHz;
+    if (typeof args.orientation === 'number') {
+      if (args.orientation !== 0 && args.orientation !== 90 && args.orientation !== 180 && args.orientation !== 270) return errorResult('set_display: {orientation} must be 0, 90, 180, or 270 (degrees)');
+      mode.orientation = args.orientation;
+    }
+    if (args.persist === true) mode.persist = true;
+    if (mode.width === undefined && mode.height === undefined && mode.orientation === undefined && mode.refreshHz === undefined) return errorResult('set_display: provide at least one of {width, height, orientation, refreshHz} to change');
+    const result = setDisplay(device, mode);
+    return result.ok ? textResult(`set_display ${device}: ${result.message}`) : errorResult(`set_display ${device}: ${result.message}`);
   },
   list_volumes: () => {
     const volumes = listVolumes();
