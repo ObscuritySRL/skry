@@ -20,6 +20,19 @@ removed.
 
 ## Open
 
+### kernel32 · `GetVolumeInformationW` · 3 `_Out_opt_` params mis-typed non-nullable — `GAP` (binding fix, non-blocking)
+- **Need:** `desktop/disk.ts` `listVolumes` (the `list_volumes` tool) reads only the volume label + filesystem name;
+  it does not want the serial number, max-component-length, or filesystem-flags — all documented `_Out_opt_` on MS Learn,
+  so the natural call passes `NULL` for those three.
+- **Blocker (minor):** `@bun-win32/kernel32` types `lpVolumeSerialNumber` / `lpMaximumComponentLength` /
+  `lpFileSystemFlags` as non-nullable `LPDWORD` (the generator missed their `_Out_opt_`), and casts are forbidden, so
+  `NULL` does not type-check.
+- **Workaround in umbriel (shipped):** `disk.ts` passes ONE shared writable 4-byte scratch buffer for all three discarded
+  out-params (the API harmlessly overwrites it; the values are never read). Zero functional cost — NOT blocked, unlike the
+  `EnumServicesStatusExW` case below; flagged only so the typing can be relaxed.
+- **Fix:** mark those three params `_Out_opt_` → `LPDWORD | NULL` in `@bun-win32/kernel32`; then `disk.ts` can pass `null`
+  and drop the scratch buffer.
+
 ### advapi32 · `EnumServicesStatusExW` · `pszGroupName` mis-typed non-nullable — `GAP` (binding fix)
 - **Need:** the Ex enumerate variant carries the owning **pid per row**, so `list_services` could
   return each service's pid directly, dropping `control_service`'s per-service `QueryServiceStatusEx`
