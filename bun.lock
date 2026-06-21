@@ -11,9 +11,12 @@
         "@bun-win32/d3d11": "^1.0.1",
         "@bun-win32/dwmapi": "^1.0.5",
         "@bun-win32/gdi32": "^1.0.14",
+        "@bun-win32/iphlpapi": "^1.0.5",
         "@bun-win32/kernel32": "^1.0.26",
+        "@bun-win32/ntdll": "^1.0.7",
         "@bun-win32/oleacc": "^1.0.1",
         "@bun-win32/oleaut32": "^1.0.1",
+        "@bun-win32/powrprof": "^1.0.1",
         "@bun-win32/shcore": "^1.0.1",
         "@bun-win32/shell32": "^1.0.8",
         "@bun-win32/user32": "^3.0.22",
@@ -39,11 +42,17 @@
 
     "@bun-win32/gdi32": ["@bun-win32/gdi32@1.0.14", "", { "dependencies": { "@bun-win32/core": "1.1.4" }, "peerDependencies": { "typescript": "^5" } }, "sha512-crTq7oGJrEdmtQRPIOKKKwnSCf8JNpcFvhhEsoxBPFyXaEEOXoF+pMstjn7xuCcZrCVEJMFG2aPN5ZTYdPrR0w=="],
 
+    "@bun-win32/iphlpapi": ["@bun-win32/iphlpapi@1.0.5", "", { "dependencies": { "@bun-win32/core": "1.1.4" }, "peerDependencies": { "typescript": "^5" } }, "sha512-f9hDE+CLi+nmurUiVZF7zM6giy8NkkYMcP+6AKNDofcJ5eJJ47sOiTqufTZxAoKgrloheMxz09I/Yqzb4wSp+g=="],
+
     "@bun-win32/kernel32": ["@bun-win32/kernel32@1.0.26", "", { "dependencies": { "@bun-win32/core": "1.1.4" }, "peerDependencies": { "typescript": "^5" } }, "sha512-vmEUPRQkDt1O30fsQHGt/+umcaKly5sLhxaJClgwbNsMPifN94ODkPrEnnJMqCYl79p7U4M4oKBxwI43cl0fPw=="],
+
+    "@bun-win32/ntdll": ["@bun-win32/ntdll@1.0.7", "", { "dependencies": { "@bun-win32/core": "1.1.2" }, "peerDependencies": { "typescript": "^5" } }, "sha512-XgVU3rBZhuFgfqjSetLoyzp8QsxXjD0HkkZwMPE+7s08hCqHAwMSJn5X0z6pgHfa4WeJcMhVUHD03Xnf7l6esQ=="],
 
     "@bun-win32/oleacc": ["@bun-win32/oleacc@1.0.1", "", { "dependencies": { "@bun-win32/core": "1.1.4" }, "peerDependencies": { "typescript": "^5" } }, "sha512-jdzftJmqV+qVcfKVswUdCui2ZmSvr9/gfvKDBZ/RxyH92YGHAkTaO5Pd1FcGcdS7OYrs1ELQo68ZR9M+Wt156A=="],
 
     "@bun-win32/oleaut32": ["@bun-win32/oleaut32@1.0.1", "", { "dependencies": { "@bun-win32/core": "1.1.4" }, "peerDependencies": { "typescript": "^5" } }, "sha512-71m8mSl9hF2jdDaAuNENXgu6wgxTQfhQByORSYbEcTN6sUIKR+v8I2x1a1BsJWEScUiaMdHIpC7brcU732ZrtA=="],
+
+    "@bun-win32/powrprof": ["@bun-win32/powrprof@1.0.1", "", { "dependencies": { "@bun-win32/core": "1.1.1" }, "peerDependencies": { "typescript": "^5" } }, "sha512-dIMfVI7fQ62GJLBiw+now/5E1/PrhW7VHhyMICOAF1zyMf7sg6KrlGfd5b6FNLsEGxgiDEaQx0/BHrYVq7V3Ww=="],
 
     "@bun-win32/shcore": ["@bun-win32/shcore@1.0.1", "", { "dependencies": { "@bun-win32/core": "1.1.4" }, "peerDependencies": { "typescript": "^5" } }, "sha512-XrsSwMnwpmyccHBRnkk7WERbQp0CddexZdvi2BFZjkBNCpoPWQxJGf7Z/X5YhdwzQPLhymGhSR2G/PHHzyXDZA=="],
 
@@ -60,5 +69,9 @@
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@bun-win32/ntdll/@bun-win32/core": ["@bun-win32/core@1.1.2", "", { "peerDependencies": { "typescript": "^5" } }, "sha512-chLnrvvWCgKARdkZ7b89/GfNyjl6H7dsAvtccviiSdT6q+xxHxYQfJPsFYGbphQO5NU1UJhSS1UhELJDXHjiNA=="],
+
+    "@bun-win32/powrprof/@bun-win32/core": ["@bun-win32/core@1.1.1", "", { "peerDependencies": { "typescript": "^5" } }, "sha512-bsoV/iX+cBB3Ubf1JFeu8375vVrGZuext2nTav/uymD7M64qhGQcJqCY/nBwDYwhAJmXSRi6P4L8veZI2nSJyA=="],
   }
 }

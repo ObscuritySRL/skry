@@ -1,5 +1,6 @@
-// Windows session + power state — lock, sign out, restart, shut down — driven natively (no shutdown.exe / logoff.exe /
-// rundll32 user32,LockWorkStation / PowerShell Stop-Computer|Restart-Computer). ONE general primitive over the session/
+// Windows session + power state — lock, sign out, restart, shut down, sleep, hibernate — driven natively (no
+// shutdown.exe / logoff.exe / rundll32 user32,LockWorkStation|powrprof,SetSuspendState / PowerShell Stop-Computer).
+// ONE general primitive over the session/
 // power state machine, the same shape as control_service(query|start|stop) and manage_task(create|delete) — not a bag of
 // bespoke verbs. `lock` needs no privilege; `logoff` needs none either (a user may always end their own session);
 // `restart`/`shutdown` go through ExitWindowsEx, which requires SE_SHUTDOWN_NAME — present-but-DISABLED in every
@@ -9,6 +10,7 @@
 
 import Advapi32 from '@bun-win32/advapi32';
 import Kernel32 from '@bun-win32/kernel32';
+import PowrProf from '@bun-win32/powrprof';
 import User32 from '@bun-win32/user32';
 
 const TOKEN_ADJUST_PRIVILEGES = 0x0020;
@@ -20,7 +22,7 @@ const EWX_SHUTDOWN = 0x0000_0001;
 const EWX_REBOOT = 0x0000_0002;
 const SHTDN_REASON_FLAG_PLANNED = 0x8000_0000; // a clean "planned" reason code (major/minor = OTHER)
 
-export type PowerAction = 'lock' | 'logoff' | 'restart' | 'shutdown';
+export type PowerAction = 'lock' | 'logoff' | 'restart' | 'shutdown' | 'sleep' | 'hibernate';
 
 /** Enable SE_SHUTDOWN_NAME in THIS process's access token (present-but-disabled in every interactive user token) — the
  *  precondition ExitWindowsEx imposes for restart/shutdown. Returns true if the three token calls succeeded. A reusable
@@ -49,6 +51,10 @@ export function enableShutdownPrivilege(): boolean {
  *  SE_SHUTDOWN_NAME enabled first for restart/shutdown. Returns true if the OS accepted the request. */
 export function powerState(action: PowerAction): boolean {
   if (action === 'lock') return User32.LockWorkStation() !== 0;
+  if (action === 'sleep' || action === 'hibernate') {
+    if (!enableShutdownPrivilege()) return false; // SetSuspendState requires SE_SHUTDOWN_NAME (Microsoft Learn)
+    return PowrProf.SetSuspendState(action === 'hibernate' ? 1 : 0, 0, 0) !== 0; // bHibernate / bForce=0 (request, don't force) / bWakeupEventsDisabled=0 (keep wake events)
+  }
   if ((action === 'restart' || action === 'shutdown') && !enableShutdownPrivilege()) return false;
   const flags = action === 'logoff' ? EWX_LOGOFF : action === 'restart' ? EWX_REBOOT : EWX_SHUTDOWN;
   return User32.ExitWindowsEx(flags, SHTDN_REASON_FLAG_PLANNED >>> 0) !== 0;

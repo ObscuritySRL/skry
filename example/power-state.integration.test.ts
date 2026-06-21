@@ -21,7 +21,7 @@ import { enableShutdownPrivilege } from 'umbriel';
 
 import { assert, finish, spawnServer } from './_harness';
 
-type ToolList = { result?: { tools?: { name: string; annotations?: { destructiveHint?: boolean } }[] } };
+type ToolList = { result?: { tools?: { name: string; annotations?: { destructiveHint?: boolean }; inputSchema?: { properties?: { action?: { enum?: string[] } } } }[] } };
 const toolNames = (message: ToolList): string[] => (message.result?.tools ?? []).map((tool) => tool.name);
 
 // (1) LIVE FFI — the privilege-enable token dance succeeds (no segfault; struct + handle + signatures correct).
@@ -45,8 +45,12 @@ try {
   // (2b) CONFIRM + ACTION gates REFUSE before any OS call — exercised without firing a real power action.
   const noConfirm = await full.call('tools/call', { name: 'power_state', arguments: { action: 'lock' } });
   assert(noConfirm.result?.isError === true && /confirm/.test(noConfirm.result?.content?.[0]?.text ?? ''), 'power_state {action:lock} WITHOUT confirm is refused (the safety gate fires before any OS call — nothing was locked)');
-  const badAction = await full.call('tools/call', { name: 'power_state', arguments: { action: 'sleep', confirm: true } });
+  const badAction = await full.call('tools/call', { name: 'power_state', arguments: { action: 'bogus', confirm: true } });
   assert(badAction.result?.isError === true && /must be/.test(badAction.result?.content?.[0]?.text ?? ''), 'an unknown {action} is rejected with the valid set (no OS call made)');
+  // sleep/hibernate are now VALID actions — confirm they are advertised in the tool's enum (gated), without FIRING them (they would suspend the machine).
+  const powerTool = (fullList.result?.tools ?? []).find((tool) => tool.name === 'power_state');
+  const actionEnum = powerTool?.inputSchema?.properties?.action?.enum ?? [];
+  assert(actionEnum.includes('sleep') && actionEnum.includes('hibernate'), 'power_state advertises sleep + hibernate in its action enum (powrprof SetSuspendState — gated, not fired here)');
 } finally {
   safe.kill();
   full.kill();
