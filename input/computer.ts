@@ -8,12 +8,13 @@
 
 import { ownerHwnd, postClickAt, postClickToHwnd, postDoubleClickAt, postDragToHwnd, postTripleClickAt, scrollAt } from './coords';
 import { focused, fromPoint, type Window } from '../element/element';
-import { clickAt, cursorPosition, doubleClickAt, dragTo, holdKey, middleClickAt, mouseDown, mouseUp, moveTo, postHoldKey, postKey, postText, rightClickAt, scrollWheel, sendKeys, type as typeText } from './input';
+import { clickAt, cursorPosition, doubleClickAt, dragStroke, dragTo, holdKey, middleClickAt, mouseDown, mouseUp, moveTo, postHoldKey, postKey, postText, rightClickAt, scrollWheel, sendKeys, type as typeText } from './input';
 
 export interface ComputerAction {
   action: string;
   coordinate?: [number, number];
   startCoordinate?: [number, number];
+  path?: ReadonlyArray<{ x: number; y: number }>; // a multi-waypoint drag polyline (e.g. OpenAI-CUA drag.path[]); >1 point → dragStroke
   text?: string;
   scrollDirection?: 'up' | 'down' | 'left' | 'right';
   scrollAmount?: number;
@@ -169,6 +170,14 @@ export async function dispatch(window: Window, action: ComputerAction, options: 
         mouseUp(x, y);
         return { ok: true };
       case 'left_click_drag': {
+        // A multi-waypoint path (an OpenAI-CUA drag.path[] with >2 points: a curve, lasso, signature, slider arc, node
+        // connector) draws the FULL polyline via dragStroke — real cursor, foreground-gated, exactly as the MCP `drag
+        // {path}` tool behaves; there is no cursor-free posted multi-point path (postDragToHwnd is inherently 2-point).
+        // The 2-point start→coordinate path below stays the cursor-free fallback when no multi-point path is supplied.
+        if (action.path !== undefined && action.path.length >= 2) {
+          dragStroke(action.path);
+          return { ok: true, output: `dragged ${action.path.length}-point stroke (real cursor)` };
+        }
         const start = action.startCoordinate ?? action.coordinate;
         if (start === undefined || action.coordinate === undefined) return { ok: true };
         // Honor cursorless (the doctrine): resolve the owner HWND of the START point (fromPoint → ownerHwnd, mirroring
@@ -270,7 +279,8 @@ export function fromCuaAction(raw: { type: string; x?: number; y?: number; butto
       const path = raw.path ?? [];
       const start = path[0];
       const end = path[path.length - 1];
-      return { action: 'left_click_drag', startCoordinate: start !== undefined ? [start.x, start.y] : undefined, coordinate: end !== undefined ? [end.x, end.y] : undefined };
+      // Preserve the FULL polyline for dispatch's dragStroke path (no longer flatten to from→to); keep start/coordinate for the 2-point cursor-free fallback.
+      return { action: 'left_click_drag', startCoordinate: start !== undefined ? [start.x, start.y] : undefined, coordinate: end !== undefined ? [end.x, end.y] : undefined, path: path.length >= 2 ? path : undefined };
     }
     default:
       return { action: raw.type, coordinate: raw.x !== undefined && raw.y !== undefined ? point : undefined, text: raw.text };
