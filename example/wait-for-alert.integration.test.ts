@@ -60,5 +60,12 @@ try {
   umbriel.uninitialize();
 }
 
+// Regression gate: the pvarChild VARIANT can carry a VT_DISPATCH child the caller OWNS, so announcedText MUST
+// VariantClear it — otherwise a VT_DISPATCH-returning announcement leaks one COM ref per event (the VT_I4 dialog
+// path above never exposes the leak, so this source pin is what guards it).
+const eventsSrc = await Bun.file(`${import.meta.dir}/../desktop/events.ts`).text();
+const announced = eventsSrc.slice(eventsSrc.indexOf('function announcedText'), eventsSrc.indexOf('function accNameOfEvent'));
+assert(/Oleaut32\.VariantClear\(pvarChild\.ptr!\)/.test(announced), "announcedText VariantClear's the pvarChild VARIANT (releases a VT_DISPATCH child — no COM ref leak)");
+
 console.log(failures === 0 ? '\nPASS — waitForAlert resolves a transient a11y announcement (modal dialog) and bounds its own lifetime.' : `\nFAILED — ${failures} assertion(s)`);
 process.exit(failures === 0 ? 0 : 1);
