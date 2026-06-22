@@ -2817,11 +2817,13 @@ const HANDLERS: Record<string, ToolHandler> = {
     if (result.lines.length === 0) return textResult(`OCR (${origin}) found no text.`);
     const body = result.lines
       .map((line) => {
-        const lineRow = `  [${line.bounds.x},${line.bounds.y} ${line.bounds.width}x${line.bounds.height}] ${line.text}`;
+        const lineRow = `  [${line.bounds.x},${line.bounds.y} ${line.bounds.width}x${line.bounds.height}] ${redactSecrets(line.text)}`;
         if (line.words.length < 2) return lineRow; // single-word line: its box centre IS the word — no per-word centres needed
         // Multi-word line: the line-box centre lands on NO single word (whitespace or the wrong token), so hand back each
         // word's own click_point centre — clicking a specific word/username/badge then needs no re-OCR via click_text.
-        const words = line.words.map((word) => `${JSON.stringify(word.text)}@${word.bounds.x + Math.floor(word.bounds.width / 2)},${word.bounds.y + Math.floor(word.bounds.height / 2)}`).join(' ');
+        // Redact secret-shaped tokens like every other on-screen read path (act('read')/inspect_element/read_clipboard);
+        // click centres come from word.bounds geometry, not string length, so masking the text never shifts a coordinate.
+        const words = line.words.map((word) => `${JSON.stringify(redactSecrets(word.text))}@${word.bounds.x + Math.floor(word.bounds.width / 2)},${word.bounds.y + Math.floor(word.bounds.height / 2)}`).join(' ');
         return `${lineRow}\n      word centres: ${words}`;
       })
       .join('\n');
@@ -3046,7 +3048,11 @@ const HANDLERS: Record<string, ToolHandler> = {
       // The TextPattern body is on-screen document/terminal content — a prompt-injection surface; fence just THIS block
       // (the structural metadata above it is trusted), so an attacker's "ignore previous instructions" in a document is
       // data, not a command.
-      const body = text.length > 2000 ? `${text.slice(0, 2000)} …(+${text.length - 2000} more chars)` : text;
+      // Redact secret-shaped tokens before rendering — the sibling `value` line above already does (mcp.ts redactSecrets);
+      // a terminal/document scrollback (the named case for this branch) can hold an API key/token. Keep the (chars) header
+      // and the 2000-char cap computed on the RAW buffer so the reported scrollback size stays honest; only the body masks.
+      const redacted = redactSecrets(text);
+      const body = redacted.length > 2000 ? `${redacted.slice(0, 2000)} …(+${redacted.length - 2000} more chars)` : redacted;
       lines.push(fenceUntrusted(`${visible.length > 0 ? 'visible text' : 'text'} (${text.length} chars):\n${body}`, 'on-screen text'));
     }
     return textResult(lines.join('\n'));
