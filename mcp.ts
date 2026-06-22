@@ -2493,11 +2493,11 @@ const HANDLERS: Record<string, ToolHandler> = {
       : '';
     // Toasts/notification popups never come back from EnumWindows — surface them so the documented list_windows→attach flow finds them.
     for (const toast of notificationWindows())
-      lines.push(`- ${JSON.stringify(toast.label)} [class=Windows.UI.Core.CoreWindow] [notification popup — attach by hWnd to read its text + invoke its Dismiss/Settings/action buttons] [hWnd=0x${toast.hWnd.toString(16)}]`);
+      lines.push(`- ${JSON.stringify(redactSecrets(toast.label))} [class=Windows.UI.Core.CoreWindow] [notification popup — attach by hWnd to read its text + invoke its Dismiss/Settings/action buttons] [hWnd=0x${toast.hWnd.toString(16)}]`); // a toast label is its announced UIA name (CONTENT, not a window title) — mask secrets like every other control name
     // The open system-tray overflow flyout is also a root-child window EnumWindows misses — surface it so a hidden NotifyItemIcon is reachable.
     const trayFlyout = trayFlyoutWindow();
     if (trayFlyout !== undefined)
-      lines.push(`- ${JSON.stringify(trayFlyout.label)} [class=TopLevelWindowForOverflowXamlIsland] [system-tray overflow flyout — attach by hWnd to invoke a hidden tray icon] [hWnd=0x${trayFlyout.hWnd.toString(16)}]`);
+      lines.push(`- ${JSON.stringify(redactSecrets(trayFlyout.label))} [class=TopLevelWindowForOverflowXamlIsland] [system-tray overflow flyout — attach by hWnd to invoke a hidden tray icon] [hWnd=0x${trayFlyout.hWnd.toString(16)}]`); // tray-flyout label is a UIA name (content) — mask like the toast
     return textResult(`${secure}${lines.length > 0 ? lines.join('\n') : '(no visible top-level windows)'}`);
   },
   attach: (args) => {
