@@ -17,6 +17,7 @@ import { FFIType, JSCallback } from 'bun:ffi';
 import Kernel32 from '@bun-win32/kernel32';
 import Ntdll from '@bun-win32/ntdll';
 import Oleacc from '@bun-win32/oleacc';
+import Oleaut32 from '@bun-win32/oleaut32';
 import User32 from '@bun-win32/user32';
 
 import { comRelease, vcall } from '../com/com';
@@ -272,10 +273,11 @@ function announcedText(hWnd: bigint, idObject: number, idChild: number): string 
   const ppacc = Buffer.alloc(8);
   const pvarChild = Buffer.alloc(24); // x64 sizeof(VARIANT)
   if (Oleacc.AccessibleObjectFromEvent(hWnd, idObject >>> 0, idChild >>> 0, ppacc.ptr!, pvarChild.ptr!) !== S_OK) return '';
+  const childId = pvarChild.readUInt16LE(0) === VT_I4 ? pvarChild.readInt32LE(8) : CHILDID_SELF;
+  Oleaut32.VariantClear(pvarChild.ptr!); // pvarChild may carry a VT_DISPATCH child the caller OWNS — release it (a no-op for the VT_I4 child-id case); .ptr read inline, no await
   const accessible = ppacc.readBigUInt64LE(0);
   if (accessible === 0n) return '';
   try {
-    const childId = pvarChild.readUInt16LE(0) === VT_I4 ? pvarChild.readInt32LE(8) : CHILDID_SELF;
     const selfName = accNameOfEvent(accessible, CHILDID_SELF);
     return selfName !== '' ? selfName : childId !== CHILDID_SELF ? accNameOfEvent(accessible, childId) : '';
   } finally {
