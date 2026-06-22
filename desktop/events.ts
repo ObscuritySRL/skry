@@ -38,6 +38,8 @@ const THREAD_SUSPEND_RESUME = 0x0000_0002;
 const PROCESS_SET_INFORMATION = 0x0000_0200;
 const PROCESS_VM_READ = 0x0000_0010; // read another process's memory (the PEB walk for commandLine/workingDir) — read-only, no mutation
 const PROCESS_QUERY_LIMITED_INFORMATION = 0x0000_1000;
+const LIST_MODULES_ALL = 0x03; // EnumProcessModulesEx filter: 32-bit + 64-bit modules
+const MAX_MODULES = 1024; // hard cap on the HMODULE array (explorer ~375 — well under); bounds the buffer + loop
 const FILETIME_UNIX_EPOCH_MS = 11_644_473_600_000; // ms between 1601-01-01 (FILETIME epoch) and 1970-01-01 (unix)
 const INVALID_HANDLE = 0xffff_ffff_ffff_ffffn;
 const PROCESS_TERMINATE = 0x0001;
@@ -463,6 +465,52 @@ export function processInfo(processId: number): ProcessInfo | null {
     }
   }
   return { processId, name, parentProcessId, startTime, cpuKernelMs, cpuUserMs, workingSetMB, peakWorkingSetMB, handleCount, imagePath, commandLine, workingDir, children };
+}
+
+export interface ModuleInfo {
+  baseName: string; // the module file name, e.g. 'ntdll.dll' ('' if the name read was denied)
+  filePath: string; // full on-disk path, e.g. 'C:\\WINDOWS\\SYSTEM32\\ntdll.dll' ('' if denied)
+  baseAddress: string; // load address as a hex string ('0x…') — a 64-bit address does not fit a JS number
+  sizeBytes: number; // SizeOfImage: the module's mapped size in bytes
+}
+
+/**
+ * Enumerate a process's loaded modules (its .exe + every DLL) — the Process-Explorer "DLLs" view: each module's base
+ * name, full on-disk path, load address, and mapped size. Diagnoses DLL injection / a version mismatch / which .dll
+ * backs a stuck process — observability a human with Process Explorer has that an agent otherwise cannot. Returns []
+ * when the pid is gone or the handle is denied (elevated/protected), the same graceful-degraded contract processInfo's
+ * detail fields use. Read-only: OpenProcess(QUERY_LIMITED_INFORMATION | VM_READ), bounded at MAX_MODULES.
+ */
+export function listModules(processId: number): ModuleInfo[] {
+  const handle = Kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, 0, processId);
+  if (handle === 0n) return [];
+  const modules: ModuleInfo[] = [];
+  try {
+    // Single-pass: the binding types lphModule LPVOID (no `| NULL`), so a NULL sizing pass would not type-check and
+    // casts are forbidden — a MAX_MODULES-wide buffer caps the enumeration; lpcbNeeded reports the true byte count.
+    const handles = Buffer.alloc(MAX_MODULES * 8); // HMODULE[] — 8 bytes each on x64
+    const needed = Buffer.alloc(4);
+    if (Kernel32.K32EnumProcessModulesEx(handle, handles.ptr!, MAX_MODULES * 8, needed.ptr!, LIST_MODULES_ALL) === 0) return [];
+    const count = Math.min(Math.floor(needed.readUInt32LE(0) / 8), MAX_MODULES);
+    const baseName = Buffer.alloc(512); // 256 wide chars
+    const filePath = Buffer.alloc(2048); // 1024 wide chars
+    const info = Buffer.alloc(24); // MODULEINFO (x64): lpBaseOfDll @0 (8), SizeOfImage @8 (DWORD), EntryPoint @16 (8)
+    for (let index = 0; index < count; index += 1) {
+      const hModule = handles.readBigUInt64LE(index * 8);
+      const baseChars = Kernel32.K32GetModuleBaseNameW(handle, hModule, baseName.ptr!, 256); // nSize is in CHARACTERS
+      const pathChars = Kernel32.K32GetModuleFileNameExW(handle, hModule, filePath.ptr!, 1024);
+      const sizeBytes = Kernel32.K32GetModuleInformation(handle, hModule, info.ptr!, 24) !== 0 ? info.readUInt32LE(8) : 0;
+      modules.push({
+        baseName: baseChars > 0 ? baseName.toString('utf16le', 0, baseChars * 2) : '',
+        filePath: pathChars > 0 ? filePath.toString('utf16le', 0, pathChars * 2) : '',
+        baseAddress: `0x${hModule.toString(16)}`,
+        sizeBytes,
+      });
+    }
+  } finally {
+    Kernel32.CloseHandle(handle); // ONLY the OpenProcess handle — the enumerated HMODULEs are pseudo-handles (MS Learn: do NOT CloseHandle them)
+  }
+  return modules;
 }
 
 export interface SystemResources {
