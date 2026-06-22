@@ -158,34 +158,41 @@ export function captureWindowRGB(hWnd: bigint): WindowCapture | null {
   const height = rect.readInt32LE(12) - originY;
   if (width <= 0 || height <= 0) return null;
 
-  const hdcWindow = User32.GetWindowDC(hWnd);
-  const hdcMem = Gdi32.CreateCompatibleDC(hdcWindow);
-  const hBitmap = Gdi32.CreateCompatibleBitmap(hdcWindow, width, height);
-  Gdi32.SelectObject(hdcMem, hBitmap);
-  User32.PrintWindow(hWnd, hdcMem, PW_RENDERFULLCONTENT);
+  // GDI objects are a per-process quota; hold the DC/bitmap trio in a try/finally so a throw from the BGRA
+  // Buffer.alloc (width*height*4 — can RangeError/OOM on a huge window under memory pressure) cannot leak them.
+  let hdcWindow = 0n;
+  let hdcMem = 0n;
+  let hBitmap = 0n;
+  try {
+    hdcWindow = User32.GetWindowDC(hWnd);
+    hdcMem = Gdi32.CreateCompatibleDC(hdcWindow);
+    hBitmap = Gdi32.CreateCompatibleBitmap(hdcWindow, width, height);
+    Gdi32.SelectObject(hdcMem, hBitmap);
+    User32.PrintWindow(hWnd, hdcMem, PW_RENDERFULLCONTENT);
 
-  const info = Buffer.alloc(40); // BITMAPINFOHEADER
-  info.writeUInt32LE(40, 0); // biSize
-  info.writeInt32LE(width, 4); // biWidth
-  info.writeInt32LE(-height, 8); // biHeight (negative → top-down rows)
-  info.writeUInt16LE(1, 12); // biPlanes
-  info.writeUInt16LE(32, 14); // biBitCount (BGRA)
-  info.writeUInt32LE(0, 16); // biCompression = BI_RGB
+    const info = Buffer.alloc(40); // BITMAPINFOHEADER
+    info.writeUInt32LE(40, 0); // biSize
+    info.writeInt32LE(width, 4); // biWidth
+    info.writeInt32LE(-height, 8); // biHeight (negative → top-down rows)
+    info.writeUInt16LE(1, 12); // biPlanes
+    info.writeUInt16LE(32, 14); // biBitCount (BGRA)
+    info.writeUInt32LE(0, 16); // biCompression = BI_RGB
 
-  const bgra = Buffer.alloc(width * height * 4);
-  Gdi32.GetDIBits(hdcMem, hBitmap, 0, height, bgra.ptr!, info.ptr!, 0); // DIB_RGB_COLORS
+    const bgra = Buffer.alloc(width * height * 4);
+    Gdi32.GetDIBits(hdcMem, hBitmap, 0, height, bgra.ptr!, info.ptr!, 0); // DIB_RGB_COLORS
 
-  Gdi32.DeleteObject(hBitmap);
-  Gdi32.DeleteDC(hdcMem);
-  User32.ReleaseDC(hWnd, hdcWindow);
-
-  const rgb = new Uint8Array(width * height * 3);
-  for (let source = 0, target = 0; source < bgra.length; source += 4, target += 3) {
-    rgb[target] = bgra[source + 2]!; // R
-    rgb[target + 1] = bgra[source + 1]!; // G
-    rgb[target + 2] = bgra[source]!; // B
+    const rgb = new Uint8Array(width * height * 3);
+    for (let source = 0, target = 0; source < bgra.length; source += 4, target += 3) {
+      rgb[target] = bgra[source + 2]!; // R
+      rgb[target + 1] = bgra[source + 1]!; // G
+      rgb[target + 2] = bgra[source]!; // B
+    }
+    return { rgb, width, height, originX, originY };
+  } finally {
+    if (hBitmap !== 0n) Gdi32.DeleteObject(hBitmap);
+    if (hdcMem !== 0n) Gdi32.DeleteDC(hdcMem);
+    if (hdcWindow !== 0n) User32.ReleaseDC(hWnd, hdcWindow);
   }
-  return { rgb, width, height, originX, originY };
 }
 
 /** Capture a window via PrintWindow and encode it as PNG bytes. Empty Uint8Array on failure. */
