@@ -59,3 +59,14 @@ test('NO handler echoes a raw control name — every element/match/description/m
     expect(mcp).not.toContain(raw);
   }
 });
+
+test('the catch boundary redacts thrown error messages — a lib message can embed live control names (describeNoMatch)', () => {
+  // formatNoMatch (element/condition.ts, a pure lib) renders up to 8 live candidate names into the no-match error;
+  // redacting at the single dispatch catch covers it AND any future lib-thrown message that embeds on-screen content.
+  expect(mcp).toContain('errorResult(redactSecrets(error instanceof Error ? error.message : String(error)))');
+});
+
+test('inspect_element redacts helpText and itemStatus (sibling on-screen strings to the masked value/text)', () => {
+  expect(mcp).toContain('helpText: ${JSON.stringify(redactSecrets(helpText))}');
+  expect(mcp).toContain('itemStatus: ${JSON.stringify(redactSecrets(itemStatus))}');
+});

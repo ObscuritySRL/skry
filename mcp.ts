@@ -3129,9 +3129,9 @@ const HANDLERS: Record<string, ToolHandler> = {
     const accessKey = element.getProperty(PropertyId.AccessKey); // e.g. "Alt, F" — the mnemonic to reach this control via the keyboard
     if (typeof accessKey === 'string' && accessKey.length > 0) lines.push(`accessKey: ${accessKey}`);
     const helpText = element.getProperty(PropertyId.HelpText);
-    if (typeof helpText === 'string' && helpText.length > 0) lines.push(`helpText: ${JSON.stringify(helpText)}`);
+    if (typeof helpText === 'string' && helpText.length > 0) lines.push(`helpText: ${JSON.stringify(redactSecrets(helpText))}`);
     const itemStatus = element.getProperty(PropertyId.ItemStatus);
-    if (typeof itemStatus === 'string' && itemStatus.length > 0) lines.push(`itemStatus: ${JSON.stringify(itemStatus)}`);
+    if (typeof itemStatus === 'string' && itemStatus.length > 0) lines.push(`itemStatus: ${JSON.stringify(redactSecrets(itemStatus))}`);
     if (element.getProperty(PropertyId.HasKeyboardFocus) === true) lines.push('hasKeyboardFocus: true');
     if (element.getProperty(PropertyId.IsOffscreen) === true) lines.push('offscreen: true');
     const frameworkId = element.getProperty(PropertyId.FrameworkId);
@@ -4155,7 +4155,7 @@ async function dispatch(request: JsonRpcRequest): Promise<void> {
       try {
         result = await HANDLERS[name]!(callArgs);
       } catch (error) {
-        result = errorResult(error instanceof Error ? error.message : String(error));
+        result = errorResult(redactSecrets(error instanceof Error ? error.message : String(error))); // a lib-thrown message can embed LIVE on-screen content (e.g. describeNoMatch's candidate control names) — mask at the single catch boundary so no error path leaks a secret
       }
       auditCall(name, tool.category, callArgs, result);
       await traceCall(name, callArgs, result, traceArtifacts);
