@@ -1845,6 +1845,22 @@ const TOOLS: McpTool[] = [
     },
   },
   {
+    name: 'wait_for_alert',
+    category: 'read',
+    description:
+      'Wait for the NEXT transient accessibility ANNOUNCEMENT — a modal dialog, an alert, or a live-region (aria-live) update — that leaves no window and no stable tree node (an in-app "Saved"/error status, a form-validation message, a modal that auto-dismisses), then return its {type, text, hWnd, processId}. Driven by SetWinEventHook (EVENT_SYSTEM_ALERT / DIALOGSTART / OBJECT_LIVEREGIONCHANGED) on the safe posted-message pump — the screen-reader-grade signal a re-snapshot+diff misses. Answers "did my action raise an error/confirmation?". Filter by {type} (alert|dialog|liveRegion), {text} (substring), or {process} (pid). Modal-dialog text resolves reliably; live-region text is provider-dependent (pass {requireText:false} to surface a contentless event too). Install it BEFORE the action that triggers the announcement (it is momentary). Times out (default 30000ms) with an error.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['alert', 'dialog', 'liveRegion'], description: 'Only this announcement kind' },
+        text: { type: 'string', description: 'Substring the announced text must contain' },
+        process: { type: 'number', description: 'Only announcements from this process id' },
+        requireText: { type: 'boolean', description: 'Require resolvable non-empty text (default true) — filters a contentless live-region flicker' },
+        timeout: { type: 'number', description: 'Milliseconds (default 30000)' },
+      },
+    },
+  },
+  {
     name: 'wait_for_process',
     category: 'read',
     description:
@@ -2928,6 +2944,17 @@ const HANDLERS: Record<string, ToolHandler> = {
     lastSnapshotBody = '';
     lastSnapshotTree = null;
     return withLaunchSettledSnapshot(`window appeared — attached to ${JSON.stringify(window.name)}${blindSpotNote(window.className)}`);
+  },
+  wait_for_alert: async (args) => {
+    const match: { type?: 'alert' | 'dialog' | 'liveRegion'; text?: string; process?: number; requireText?: boolean } = {};
+    if (args.type === 'alert' || args.type === 'dialog' || args.type === 'liveRegion') match.type = args.type;
+    if (typeof args.text === 'string') match.text = args.text;
+    if (typeof args.process === 'number') match.process = args.process;
+    if (args.requireText === false) match.requireText = false;
+    const timeout = typeof args.timeout === 'number' ? args.timeout : 30000;
+    const alert = await umbriel.waitForAlert(match, { timeout });
+    // The announced text is attacker-influenceable on-screen content → redact + fence it as DATA (the OCR/TextPattern precedent).
+    return textResult(fenceUntrusted(`${alert.type} announcement: ${JSON.stringify(redactSecrets(alert.text))} (pid=${alert.processId}, hWnd=0x${alert.hWnd.toString(16)})`, 'announcement'));
   },
   wait_for_process: async (args) => {
     const name = requireString(args, 'name');
