@@ -16,8 +16,12 @@ import { FFIType, JSCallback } from 'bun:ffi';
 
 import Kernel32 from '@bun-win32/kernel32';
 import Ntdll from '@bun-win32/ntdll';
+import Oleacc from '@bun-win32/oleacc';
 import User32 from '@bun-win32/user32';
 
+import { comRelease, vcall } from '../com/com';
+import { S_OK, VT_I4 } from '../com/constants';
+import { decodeBstr } from '../com/reads';
 import { listWindows, type WindowInfo } from '../element/window';
 
 const EVENT_SYSTEM_FOREGROUND = 0x0000_0003;
@@ -26,6 +30,10 @@ const EVENT_SYSTEM_MINIMIZEEND = 0x0000_0017;
 const EVENT_OBJECT_DESTROY = 0x0000_8001;
 const EVENT_OBJECT_SHOW = 0x0000_8002;
 const EVENT_OBJECT_NAMECHANGE = 0x0000_800c;
+const EVENT_SYSTEM_ALERT = 0x0000_0002; // a transient alert was generated (winuser.h)
+const EVENT_SYSTEM_DIALOGSTART = 0x0000_0010; // a modal dialog appeared
+const EVENT_OBJECT_LIVEREGIONCHANGED = 0x0000_8019; // an aria-live / live-region content update
+const IACC_GET_ACCNAME = 10; // IAccessible::get_accName — IDispatch 0-6, then parent7 childCount8 child9 NAME10 (header-verified, same slot msaa.ts uses)
 const WINEVENT_OUTOFCONTEXT = 0x0000_0000;
 const WINEVENT_SKIPOWNPROCESS = 0x0000_0002;
 const PM_REMOVE = 0x0000_0001;
@@ -234,6 +242,118 @@ export function waitForWindowGone(match: WindowMatch, options: { timeout?: numbe
     const timer = setTimeout(() => {
       watcher.stop();
       reject(new Error(`waitForWindowGone: a window matching ${JSON.stringify(match)} was still open after ${timeout}ms`));
+    }, timeout);
+  });
+}
+
+export type AlertEventType = 'alert' | 'liveRegion' | 'dialog';
+export interface AlertEvent {
+  type: AlertEventType;
+  /** The announced text (the alert/dialog/live-region accessible name), or '' when the provider exposes none. */
+  text: string;
+  hWnd: bigint;
+  processId: number;
+}
+export interface AlertMatch {
+  type?: AlertEventType;
+  /** Substring (string) or pattern (RegExp) the announced text must contain/match. */
+  text?: string | RegExp;
+  /** Only events from this process id. */
+  process?: number;
+  /** Require non-empty resolved text (default true) — filters a contentless live-region flicker. */
+  requireText?: boolean;
+}
+
+// Resolve an event's announced text via MSAA SYNCHRONOUSLY, inside the OUTOFCONTEXT callback's own (main-thread) frame —
+// AccessibleObjectFromEvent → IAccessible::get_accName (slot 10, the same call msaa.ts uses). Fresh buffers per call (no
+// caching across an await; there is no await here). The IAccessible is caller-owned → released in a finally.
+function announcedText(hWnd: bigint, idObject: number, idChild: number): string {
+  if (hWnd === 0n) return '';
+  const ppacc = Buffer.alloc(8);
+  const pvarChild = Buffer.alloc(24); // x64 sizeof(VARIANT)
+  if (Oleacc.AccessibleObjectFromEvent(hWnd, idObject >>> 0, idChild >>> 0, ppacc.ptr!, pvarChild.ptr!) !== S_OK) return '';
+  const accessible = ppacc.readBigUInt64LE(0);
+  if (accessible === 0n) return '';
+  try {
+    const childId = pvarChild.readUInt16LE(0) === VT_I4 ? pvarChild.readInt32LE(8) : CHILDID_SELF;
+    const selfName = accNameOfEvent(accessible, CHILDID_SELF);
+    return selfName !== '' ? selfName : childId !== CHILDID_SELF ? accNameOfEvent(accessible, childId) : '';
+  } finally {
+    comRelease(accessible);
+  }
+}
+
+function accNameOfEvent(accessible: bigint, childId: number): string {
+  const variant = Buffer.alloc(24); // x64 VARIANT child-id by reference
+  variant.writeUInt16LE(VT_I4, 0);
+  variant.writeInt32LE(childId, 8);
+  const out = Buffer.alloc(8);
+  if (vcall(accessible, IACC_GET_ACCNAME, [FFIType.ptr, FFIType.ptr], [variant.ptr!, out.ptr!]) !== S_OK) return '';
+  return decodeBstr(out.readBigUInt64LE(0));
+}
+
+/**
+ * Resolve on the NEXT transient accessibility ANNOUNCEMENT — a modal dialog, an alert, or a live-region (aria-live)
+ * update — that no window event and no stable tree node would surface (an in-app "Saved" status, a form-validation
+ * error, a modal that auto-dismisses). A bounded, single-shot wait identical in lifetime to waitForWindow: it installs
+ * three OUTOFCONTEXT WinEvent hooks (EVENT_SYSTEM_ALERT, EVENT_SYSTEM_DIALOGSTART, EVENT_OBJECT_LIVEREGIONCHANGED) on
+ * the SAFE main-thread posted-message pump (NOT the forbidden foreign-thread UIA callback), resolves the announced text
+ * via MSAA get_accName, and rejects after `timeout` (default 30s). Modal-dialog text resolves reliably; live-region
+ * text is provider-dependent (it resolves where the provider exposes an accessible name, and `requireText` filters the
+ * rest). The announced text is RAW — callers that surface it must redact it (it is attacker-influenceable on-screen content).
+ */
+export function waitForAlert(match: AlertMatch = {}, options: { timeout?: number } = {}): Promise<AlertEvent> {
+  const timeout = options.timeout ?? 30_000;
+  const requireText = match.requireText !== false;
+  return new Promise<AlertEvent>((resolve, reject) => {
+    let settled = false;
+    let running = true;
+    const callback = new JSCallback(
+      (_hook: bigint, event: number, hWnd: bigint, idObject: number, idChild: number) => {
+        if (settled || hWnd === 0n) return;
+        const type: AlertEventType = event === EVENT_SYSTEM_ALERT ? 'alert' : event === EVENT_OBJECT_LIVEREGIONCHANGED ? 'liveRegion' : 'dialog';
+        if (match.type !== undefined && match.type !== type) return;
+        const processId = windowProcessId(hWnd);
+        if (match.process !== undefined && match.process !== processId) return;
+        const text = announcedText(hWnd, idObject, idChild);
+        if (requireText && text === '') return;
+        if (match.text !== undefined && !(typeof match.text === 'string' ? text.includes(match.text) : match.text.test(text))) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve({ type, text, hWnd, processId });
+        // Defer stop() OUT of this native JSCallback frame — stop()→callback.close() frees the trampoline while it is
+        // still on the stack (the waitForWindow use-after-free guard). stop() is `running`-guarded so the double stop is safe.
+        queueMicrotask(stop);
+      },
+      { args: [FFIType.u64, FFIType.u32, FFIType.u64, FFIType.i32, FFIType.i32, FFIType.u32, FFIType.u32], returns: FFIType.void },
+    );
+    const flags = (WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS) >>> 0;
+    const hookAlert = User32.SetWinEventHook(EVENT_SYSTEM_ALERT, EVENT_SYSTEM_ALERT, 0n, callback.ptr!, 0, 0, flags);
+    const hookDialog = User32.SetWinEventHook(EVENT_SYSTEM_DIALOGSTART, EVENT_SYSTEM_DIALOGSTART, 0n, callback.ptr!, 0, 0, flags);
+    const hookLive = User32.SetWinEventHook(EVENT_OBJECT_LIVEREGIONCHANGED, EVENT_OBJECT_LIVEREGIONCHANGED, 0n, callback.ptr!, 0, 0, flags);
+    function stop(): void {
+      if (!running) return;
+      running = false;
+      User32.UnhookWinEvent(hookAlert);
+      User32.UnhookWinEvent(hookDialog);
+      User32.UnhookWinEvent(hookLive);
+      callback.close();
+    }
+    const message = Buffer.alloc(48); // MSG (x64)
+    void (async () => {
+      while (running) {
+        while (User32.PeekMessageW(message.ptr!, 0n, 0, 0, PM_REMOVE) !== 0) {
+          User32.TranslateMessage(message.ptr!);
+          User32.DispatchMessageW(message.ptr!);
+        }
+        await Bun.sleep(15);
+      }
+    })();
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      stop();
+      reject(new Error(`waitForAlert: no announcement matched within ${timeout}ms`));
     }, timeout);
   });
 }
