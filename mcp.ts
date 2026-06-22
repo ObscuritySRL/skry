@@ -42,6 +42,7 @@ import {
   activePowerPlan,
   powerState,
   processInfo,
+  listModules,
   currentUser,
   coldTreeNote,
   ControlType,
@@ -2226,6 +2227,12 @@ const TOOLS: McpTool[] = [
     inputSchema: { type: 'object', properties: { pid: { type: 'number', description: 'Process id to introspect' } }, required: ['pid'] },
   },
   {
+    name: 'list_modules',
+    category: 'read',
+    description: 'List a process\'s loaded modules (the .exe + every DLL) by {pid} — the Process Explorer "DLLs" view (no tasklist /m / Get-Process -Module / listdlls shell): each module\'s base name, load address, mapped size, and full on-disk path. Diagnose DLL injection, a version mismatch, or which .dll backs a stuck process; pair with process_info / list_processes to pick the pid. Returns empty for a dead pid or an elevated/protected process (the same graceful-deny as process_info).',
+    inputSchema: { type: 'object', properties: { pid: { type: 'number', description: 'Process id to enumerate modules for' } }, required: ['pid'] },
+  },
+  {
     name: 'read_event_log',
     category: 'read',
     description: 'Read the newest records from a Windows event log natively (no Get-WinEvent/wevtutil shell) — THE canonical record of crashes, service failures, driver faults, and unexpected shutdowns; answer "why did X crash / what failed last night". {log} ∈ System|Application|Security|Setup (default System), {count} newest (default 20, max 100), {level} ∈ error|warning|all (default all). Each record: time, type, source, event id, and the raw insertion strings. System/Application read without elevation; Security needs admin.',
@@ -3763,6 +3770,16 @@ const HANDLERS: Record<string, ToolHandler> = {
     const cmd = info.commandLine !== '' ? `\ncmd: ${redactSecrets(info.commandLine)}` : ''; // an argv can carry --password=/-ptoken — route through the same secret redaction every other output uses
     const cwd = info.workingDir !== '' ? `\ncwd: ${info.workingDir}` : '';
     return textResult(`${info.name} (pid ${info.processId}, parent ${info.parentProcessId})${path}${cmd}${cwd}\n${detail}\n${children}`);
+  },
+  list_modules: (args) => {
+    if (typeof args.pid !== 'number') return errorResult('list_modules: provide {pid}');
+    const modules = listModules(args.pid);
+    if (modules.length === 0) return errorResult(`list_modules: pid ${args.pid}: no modules (the process is gone, or the handle was denied — elevated/protected; see current_user)`);
+    const LIMIT = 200;
+    // filePath/baseName emitted RAW (same kind of data as process_info's imagePath, mcp.ts emits that raw too) — not secret-shaped.
+    const body = modules.slice(0, LIMIT).map((module) => `${module.baseName} ${module.baseAddress} ${Math.round(module.sizeBytes / 1024)}KB ${module.filePath}`).join('\n');
+    const more = modules.length > LIMIT ? `\n(+${modules.length - LIMIT} more)` : '';
+    return textResult(`${modules.length} module(s) for pid ${args.pid}:\n${body}${more}`);
   },
   read_event_log: (args) => {
     const log = typeof args.log === 'string' ? args.log : 'System';
