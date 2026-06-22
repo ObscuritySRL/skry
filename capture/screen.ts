@@ -31,34 +31,42 @@ export function captureScreen(region?: Partial<Rect>): Bitmap {
   const width = region?.width ?? screen.width;
   const height = region?.height ?? screen.height;
 
-  const hdcScreen = User32.GetDC(0n);
-  const hdcMem = Gdi32.CreateCompatibleDC(hdcScreen);
-  const hBitmap = Gdi32.CreateCompatibleBitmap(hdcScreen, width, height);
-  Gdi32.SelectObject(hdcMem, hBitmap);
-  Gdi32.BitBlt(hdcMem, 0, 0, width, height, hdcScreen, originX, originY, (SRCCOPY | CAPTUREBLT) >>> 0);
+  // GDI objects are a per-process quota (default 10k); hold the DC/bitmap trio in a try/finally so a throw from
+  // the BGRA Buffer.alloc (a whole-virtual-desktop grab is tens of MB → RangeError/OOM under memory pressure)
+  // cannot leak them — mirroring the finally discipline in capture/wgc.ts and capture/ocr.ts.
+  let hdcScreen = 0n;
+  let hdcMem = 0n;
+  let hBitmap = 0n;
+  try {
+    hdcScreen = User32.GetDC(0n);
+    hdcMem = Gdi32.CreateCompatibleDC(hdcScreen);
+    hBitmap = Gdi32.CreateCompatibleBitmap(hdcScreen, width, height);
+    Gdi32.SelectObject(hdcMem, hBitmap);
+    Gdi32.BitBlt(hdcMem, 0, 0, width, height, hdcScreen, originX, originY, (SRCCOPY | CAPTUREBLT) >>> 0);
 
-  const info = Buffer.alloc(40); // BITMAPINFOHEADER
-  info.writeUInt32LE(40, 0);
-  info.writeInt32LE(width, 4);
-  info.writeInt32LE(-height, 8); // top-down rows
-  info.writeUInt16LE(1, 12);
-  info.writeUInt16LE(32, 14);
-  info.writeUInt32LE(0, 16);
+    const info = Buffer.alloc(40); // BITMAPINFOHEADER
+    info.writeUInt32LE(40, 0);
+    info.writeInt32LE(width, 4);
+    info.writeInt32LE(-height, 8); // top-down rows
+    info.writeUInt16LE(1, 12);
+    info.writeUInt16LE(32, 14);
+    info.writeUInt32LE(0, 16);
 
-  const bgra = Buffer.alloc(width * height * 4);
-  Gdi32.GetDIBits(hdcMem, hBitmap, 0, height, bgra.ptr!, info.ptr!, 0);
+    const bgra = Buffer.alloc(width * height * 4);
+    Gdi32.GetDIBits(hdcMem, hBitmap, 0, height, bgra.ptr!, info.ptr!, 0);
 
-  Gdi32.DeleteObject(hBitmap);
-  Gdi32.DeleteDC(hdcMem);
-  User32.ReleaseDC(0n, hdcScreen);
-
-  const rgb = new Uint8Array(width * height * 3);
-  for (let source = 0, target = 0; source < bgra.length; source += 4, target += 3) {
-    rgb[target] = bgra[source + 2]!;
-    rgb[target + 1] = bgra[source + 1]!;
-    rgb[target + 2] = bgra[source]!;
+    const rgb = new Uint8Array(width * height * 3);
+    for (let source = 0, target = 0; source < bgra.length; source += 4, target += 3) {
+      rgb[target] = bgra[source + 2]!;
+      rgb[target + 1] = bgra[source + 1]!;
+      rgb[target + 2] = bgra[source]!;
+    }
+    return { rgb, width, height, originX, originY };
+  } finally {
+    if (hBitmap !== 0n) Gdi32.DeleteObject(hBitmap);
+    if (hdcMem !== 0n) Gdi32.DeleteDC(hdcMem);
+    if (hdcScreen !== 0n) User32.ReleaseDC(0n, hdcScreen);
   }
-  return { rgb, width, height, originX, originY };
 }
 
 /** Crop a Bitmap to a sub-rectangle given in the SOURCE bitmap's local pixels (0,0 = its top-left). The crop is
