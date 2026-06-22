@@ -1,6 +1,6 @@
 // MSAA (oleacc IAccessible) fallback for legacy / owner-draw windows that expose no useful UIA tree.
 // IAccessible is IDispatch-derived (IUnknown 0-2, IDispatch 3-6, then its members): get_accChildCount
-// 8, get_accName 10, get_accRole 13. The VARIANT child-id is passed by pointer (the 16-byte aggregate
+// 8, get_accName 10, get_accRole 13. The VARIANT child-id is passed by pointer (the 24-byte aggregate
 // goes by hidden reference). AccessibleChildren returns VARIANTs: VT_DISPATCH → QI to IAccessible;
 // VT_I4 → a simple child-id leaf of the same parent (never a pointer).
 
@@ -17,7 +17,7 @@ const IACC_GET_ACCCHILDCOUNT = 8;
 const IACC_GET_ACCNAME = 10;
 const IACC_GET_ACCROLE = 13;
 const IACC_ACCLOCATION = 22; // IAccessible::accLocation (after IDispatch 3-6: parent7 childCount8 child9 name10 value11 desc12 role13 state14 help15 helpTopic16 kbd17 focus18 sel19 defAction20 select21 LOCATION22) — verified vs oleacc V_ACCLOCATION=0xb0
-const VARIANT_SIZE = 16;
+const VARIANT_SIZE = 24; // sizeof(VARIANT) on x64 — 8-byte header (vt + 3×WORD reserved) + 16-byte value union (DECIMAL / __tagBRECORD). AccessibleChildren/get_accRole WRITE a full VARIANT; sizing the out-array at 16 overflows it by 8·count and strides the decode wrong. Matches firewall.ts (IEnumVARIANT::Next) + reads.ts scratch24.
 const CHILDID_SELF = 0;
 const MAX_ACC_CHILDREN = 0x0001_0000; // 65536 — generous for any real container; bounds a hostile/buggy provider's child count
 
