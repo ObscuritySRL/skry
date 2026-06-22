@@ -1287,8 +1287,17 @@ function clickPoint(element: Element): { x: number; y: number } | null {
  * coordinate click is silently dropped on a no-own-HWND WinUI control. Falls back to a real SendInput click only for a
  * left double / right / middle click or when the cursor-free paths fail (and UMBRIEL_CURSOR!=='never').
  */
-function clickElement(element: Element, button: 'left' | 'right' | 'middle', doubleClick: boolean, forceCursor: boolean): string {
-  if (!forceCursor && doubleClick) {
+function clickElement(element: Element, button: 'left' | 'right' | 'middle', doubleClick: boolean, forceCursor: boolean, offset?: { x: number; y: number }): string {
+  // A positioned click is a TRUE coordinate click at an element-local offset — skip the semantic activation chain
+  // (invoke/toggle/select ignore coordinates) and target a specific interior point of a single-Element canvas/map/timeline/seek-bar.
+  let positioned: { x: number; y: number } | undefined;
+  if (offset !== undefined) {
+    const bounds = element.boundingRectangle;
+    if (bounds.width <= 0 || bounds.height <= 0) throw new Error(`cannot click ${named(element)} at a position — it has 0×0 bounds (no on-screen area)`);
+    if (offset.x < 0 || offset.y < 0 || offset.x >= bounds.width || offset.y >= bounds.height) throw new Error(`position {x:${offset.x},y:${offset.y}} is outside the control's ${bounds.width}×${bounds.height} bounds — it is element-local (top-left origin); pass 0..${bounds.width - 1} / 0..${bounds.height - 1}`);
+    positioned = { x: bounds.x + offset.x, y: bounds.y + offset.y };
+  }
+  if (!forceCursor && doubleClick && positioned === undefined) {
     // A double-click means "open/activate". Invoke is the pattern that actually navigates an Explorer
     // folder/drive cursor-free on a background window (LegacyIAccessible.DoDefaultAction is a silent no-op on
     // those shell items, so it is only a secondary fallback). A real double-click is the last resort.
@@ -1306,7 +1315,7 @@ function clickElement(element: Element, button: 'left' | 'right' | 'middle', dou
     }
   }
   if (!forceCursor) {
-    if (button === 'left' && !doubleClick) {
+    if (button === 'left' && !doubleClick && positioned === undefined) {
       try {
         // Disclose the foreground steal if the pattern act moves it (a classic own-HWND control routes through the MSAA
         // bridge SetFocus) — parity with the invoke/toggle/select VERBS; byte-identical '(cursor-free)' when no steal.
@@ -1331,7 +1340,7 @@ function clickElement(element: Element, button: 'left' | 'right' | 'middle', dou
         // not a SelectionItemPattern control — fall back to the posted coordinate click
       }
     }
-    const point = clickPoint(element);
+    const point = positioned ?? clickPoint(element);
     if (point === null)
       throw new Error(
         `cannot click ${named(element)} — it has no on-screen location (0×0 bounds, no clickable point), so a coordinate click would misfire to the screen corner. Drive it cursor-free with a pattern verb: toggle / invoke / set_value / select (see inspect_element {ref} can:).`,
@@ -1356,7 +1365,7 @@ function clickElement(element: Element, button: 'left' | 'right' | 'middle', dou
     }
   }
   if (cursorDenied) throw new Error('cursor-free click was not possible and the real cursor is disabled (UMBRIEL_CURSOR=never)');
-  const point = clickPoint(element);
+  const point = positioned ?? clickPoint(element);
   if (point === null)
     throw new Error(`cannot click ${named(element)} — it has no on-screen location (0×0 bounds, no clickable point). Drive it cursor-free with a pattern verb: toggle / invoke / set_value / select (see inspect_element {ref} can:).`);
   if (doubleClick) doubleClickAt(point.x, point.y);
@@ -1597,6 +1606,7 @@ const TOOLS: McpTool[] = [
         button: { type: 'string', enum: ['left', 'right', 'middle'] },
         doubleClick: { type: 'boolean' },
         cursor: { type: 'boolean', description: 'Force a real SendInput cursor click instead of the cursor-free path' },
+        position: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, required: ['x', 'y'], description: 'Element-LOCAL pixel offset {x,y} from the control top-left, to click a SPECIFIC interior point of a single-Element surface (a canvas / map / video timeline / seek bar / custom chart). Cursor-free + occlusion-correct (posted to the control own window) — unlike click_point, which takes ABSOLUTE screen coords and hits whatever window is topmost at the pixel. A true coordinate click: SKIPS the semantic invoke/toggle/select activation.' },
       },
       required: ['ref'],
     },
@@ -2571,7 +2581,12 @@ const HANDLERS: Record<string, ToolHandler> = {
     const element = resolveRef(requireString(args, 'ref'));
     assertActionable(element, 'click'); // Playwright-class enabled gate — a posted click on a greyed-out control silently no-ops
     const button = args.button === 'right' ? 'right' : args.button === 'middle' ? 'middle' : 'left';
-    const outcome = clickElement(element, button, args.doubleClick === true, args.cursor === true);
+    let offset: { x: number; y: number } | undefined;
+    if (args.position !== undefined) {
+      const position = record(args.position);
+      offset = { x: requireNumber(position, 'x'), y: requireNumber(position, 'y') };
+    }
+    const outcome = clickElement(element, button, args.doubleClick === true, args.cursor === true, offset);
     return withSnapshot(`${outcome} ${named(element)}`);
   },
   context_menu: async (args) => {
