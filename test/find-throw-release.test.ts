@@ -22,6 +22,14 @@ test('findFirstMatch frees the in-flight + remaining proxies on the throw path, 
   expect(body).toContain('request.release();'); // cache request still freed in finally
 });
 
+// On a MATCH, findFirstMatch eagerly releases the un-walked remainder INLINE (before returning the match). If a
+// remainder comRelease itself threw mid-loop, control would jump to the catch, whose rest=index.. loop overlaps the
+// already-released entries — a double-release that drops a COM refcount below true and later segfaults. The inline loop
+// nulls each released entry so the catch's overlapping cleanup is an idempotent no-op (comRelease(0n)). Pin it.
+test('findFirstMatch nulls out each released remainder on a match (idempotent vs the catch overlap)', () => {
+  expect(body).toContain('pointers[rest] = 0n;');
+});
+
 // findAll() shares findFirstMatch's cached client-filter loop and the SAME leak-on-throw class — the find-ALL path
 // must release the already-materialized matches AND the un-walked remainder when a per-candidate read throws, or every
 // match accumulated so far leaks (the array never returns, so the caller cannot release it). Pinned structurally.

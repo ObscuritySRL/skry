@@ -181,7 +181,10 @@ function findFirstMatch(scopeElement: bigint, compiled: CompiledCondition, selec
     for (; index < pointers.length; index += 1) {
       const pointer = pointers[index]!;
       if (matches(readCachedProperties(pointer, selector), selector) && (!subtreeFilter || subtreeMatches(pointer, selector))) {
-        for (let rest = index + 1; rest < pointers.length; rest += 1) comRelease(pointers[rest]!);
+        for (let rest = index + 1; rest < pointers.length; rest += 1) {
+          comRelease(pointers[rest]!);
+          pointers[rest] = 0n; // null out as released, so the catch's overlapping rest=index.. cleanup is an idempotent no-op (comRelease(0n)) should a remainder comRelease itself throw mid-loop — mirrors Element.release zeroing #ptr
+        }
         return new Element(pointer);
       }
       comRelease(pointer);
