@@ -2250,7 +2250,7 @@ const TOOLS: McpTool[] = [
     name: 'launch_app',
     category: 'os',
     description:
-      'Start a program by name (notepad, calc) OR an App-Paths / Store-alias exe a bare $PATH spawn can\'t find (mspaint, winword, excel, wt) — it falls back to ShellExecuteW automatically. With a title/className, waits for the NEWLY-appeared window THIS launch created (ignoring same-titled windows already open, preferring the spawned pid) and attaches (returns a snapshot); otherwise just spawns it. To gate on / attach to an ALREADY-open window use wait_for_window. Gated — disabled unless the server policy enables the "os" category.',
+      'Start a program by name (notepad, calc) OR an App-Paths / Store-alias exe a bare $PATH spawn can\'t find (mspaint, winword, excel, wt) — it falls back to ShellExecuteW automatically. With a title/className, waits for the NEWLY-appeared window THIS launch created (ignoring same-titled windows already open, preferring the spawned pid) and attaches (returns a snapshot); otherwise just spawns it. To gate on / attach to an ALREADY-open window use wait_for_window.',
     inputSchema: {
       type: 'object',
       properties: { command: { type: 'string', description: 'Executable + args, space-separated (e.g. "notepad.exe")' }, title: { type: 'string' }, className: { type: 'string' }, timeout: { type: 'number' } },
