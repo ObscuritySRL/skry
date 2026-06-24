@@ -13,7 +13,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Calculator):
  * Run: bun run example/calc-delta-stable.integration.test.ts
  */
-import { closeWindow, umbriel } from 'umbriel';
+import { umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
@@ -60,8 +60,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 try {
+  using calc = await umbriel.launchOwned(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'calc-delta', version: '1' } });
   await call('tools/call', { name: 'attach', arguments: { hWnd: `0x${calc.hWnd.toString(16)}` } });
   await Bun.sleep(400);
@@ -83,8 +83,6 @@ try {
   }
 } finally {
   proc.kill();
-  closeWindow(calc.hWnd);
-  calc.dispose();
   umbriel.uninitialize();
 }
 

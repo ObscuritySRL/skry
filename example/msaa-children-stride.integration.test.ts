@@ -20,7 +20,7 @@
  * bun test is broken repo-wide for FFI — runnable harness (charmap.exe):
  * Run: bun run example/msaa-children-stride.integration.test.ts
  */
-import { closeWindow, type MsaaNode, umbriel } from 'umbriel';
+import { type MsaaNode, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -44,8 +44,8 @@ function maxFanout(node: MsaaNode): number {
 }
 
 umbriel.initialize();
-const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
+  using charmap = await umbriel.launchOwned(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
   if (charmap === null) console.log('  skip: Character Map did not launch');
   else {
     await Bun.sleep(900); // let the glyph grid render its MSAA children
@@ -61,10 +61,6 @@ try {
     }
   }
 } finally {
-  if (charmap !== null) {
-    closeWindow(charmap.hWnd);
-    charmap.dispose();
-  }
   umbriel.uninitialize();
 }
 

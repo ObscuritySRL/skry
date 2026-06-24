@@ -13,7 +13,7 @@
  *
  * Run: bun run example/readcached-trim.integration.test.ts
  */
-import { AutomationElementMode, closeWindow, ControlType, createCacheRequest, getBstr, getLong, PropertyId, SLOT, TreeScope, umbriel } from 'umbriel';
+import { AutomationElementMode, ControlType, createCacheRequest, getBstr, getLong, PropertyId, SLOT, TreeScope, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -31,9 +31,9 @@ function medianUs(run: () => void, iterations: number): number {
 }
 
 umbriel.initialize();
-const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 let sink = 0;
 try {
+  using calc = await umbriel.launchOwned(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
   // Reference control (server-side scalar find) + its real properties.
   const five = calc.find({ controlType: ControlType.Button, name: 'Five' });
   assert(five !== null, 'reference: find({controlType:Button, name:"Five"}) resolves the Five button');
@@ -86,8 +86,6 @@ try {
   }
   console.log(`  (sink=${sink})`);
 } finally {
-  closeWindow(calc.hWnd);
-  calc.dispose();
   umbriel.uninitialize();
 }
 

@@ -6,12 +6,12 @@
     "url": "https://github.com/ObscuritySRL/umbriel",
     "source": "github"
   },
-  "version": "1.12.0",
+  "version": "1.13.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "umbriel",
-      "version": "1.12.0",
+      "version": "1.13.0",
       "runtimeHint": "bunx",
       "transport": {
         "type": "stdio"

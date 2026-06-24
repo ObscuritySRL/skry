@@ -16,7 +16,7 @@
  */
 import { FFIType } from 'bun:ffi';
 import { numberOfDFGCompiles } from 'bun:jsc';
-import { automation, closeWindow, comRelease, compileCondition, ControlType, SLOT, trueCondition, umbriel, vcall } from 'umbriel';
+import { automation, comRelease, compileCondition, ControlType, SLOT, trueCondition, umbriel, vcall } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -34,8 +34,8 @@ function medianUs(run: () => void, iterations: number): number {
 }
 
 umbriel.initialize();
-const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 try {
+  using calc = await umbriel.launchOwned(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
   // 1. memoization identity
   console.log('\n[1] TrueCondition singleton');
   const first = trueCondition();
@@ -82,8 +82,6 @@ try {
   assert(true, '3000× find({}) on the shared TrueCondition — no crash, no leak');
   console.log(`  (sink=${sink})`);
 } finally {
-  closeWindow(calc.hWnd);
-  calc.dispose();
   umbriel.uninitialize();
 }
 

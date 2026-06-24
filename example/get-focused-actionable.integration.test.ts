@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Character Map):
  * Run: bun run example/get-focused-actionable.integration.test.ts
  */
-import { closeWindow, umbriel } from 'umbriel';
+import { umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
@@ -57,8 +57,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
+  using charmap = await umbriel.launchOwned(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'get-focused', version: '1' } });
   if (charmap === null) console.log('  skip: Character Map did not launch');
   else {
@@ -73,10 +73,6 @@ try {
   }
 } finally {
   proc.kill();
-  if (charmap !== null) {
-    closeWindow(charmap.hWnd);
-    charmap.dispose();
-  }
   umbriel.uninitialize();
 }
 

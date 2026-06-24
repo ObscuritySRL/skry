@@ -59,8 +59,8 @@ function assert(condition: boolean, message: string): void {
 
 umbriel.initialize();
 const priorCalc = new Set(umbriel.windows({ includeUntitled: true }).filter((window) => /Calcul/i.test(window.title)).map((window) => window.hWnd));
-const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 try {
+  using calc = await umbriel.launchOwned(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'selector-aliases', version: '1' } });
   await call('tools/call', { name: 'attach', arguments: { hWnd: `0x${calc.hWnd.toString(16)}` } });
   await Bun.sleep(400);
@@ -84,8 +84,6 @@ try {
   assert(bogus.result?.isError === true && /unknown selector key/.test(textOf(bogus)), `a real unknown key is still rejected (got: ${JSON.stringify(textOf(bogus).slice(0, 80))})`);
 } finally {
   proc.kill();
-  closeWindow(calc.hWnd);
-  calc.dispose();
   for (const window of umbriel.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd); // sweep any sibling calc the single-instance relaunch spawned
   umbriel.uninitialize();
 }

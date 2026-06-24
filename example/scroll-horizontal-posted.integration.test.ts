@@ -11,7 +11,7 @@
  * Run: bun run example/scroll-horizontal-posted.integration.test.ts
  */
 import Kernel32 from '@bun-win32/kernel32';
-import { closeWindow, postHWheel, umbriel } from 'umbriel';
+import { postHWheel, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
@@ -68,8 +68,8 @@ if (win !== 0n) User32.DestroyWindow(win);
 
 // Part B — wire: the scroll handler routes left/right through the posted hwheel for an own-HWND no-ScrollPattern control.
 umbriel.initialize();
-const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
+  using charmap = await umbriel.launchOwned(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'hscroll', version: '1' } });
   if (charmap === null) console.log('  skip: Character Map did not launch');
   else {
@@ -85,10 +85,6 @@ try {
   }
 } finally {
   proc.kill();
-  if (charmap !== null) {
-    closeWindow(charmap.hWnd);
-    charmap.dispose();
-  }
   umbriel.uninitialize();
 }
 

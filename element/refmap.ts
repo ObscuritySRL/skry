@@ -284,7 +284,7 @@ export function snapshot(window: Element, options: { maxDepth?: number; maxNodes
   // walker's *BuildCache methods, each marshaling ONE node with its Full cache. The old TreeScope_Subtree forced the
   // WHOLE subtree to marshal up front — ~7s on a 3000-sibling flat panel, and maxDepth could not bound it (the cost is
   // sibling navigation, not depth). Per-parent BuildCache navigation makes a dense parent cost O(maxNodes), not O(N).
-  const request = createCacheRequest([...DEFAULT_CACHE_PROPERTIES, ...STATE_PROPERTIES], TreeScope.TreeScope_Element, AutomationElementMode.Full);
+  using request = createCacheRequest([...DEFAULT_CACHE_PROPERTIES, ...STATE_PROPERTIES], TreeScope.TreeScope_Element, AutomationElementMode.Full);
   // Heavy cross-process Chromium top-levels (e.g. Opera) deterministically FAIL BuildUpdatedCache while still serving
   // live reads + navigation. Default: try the one-shot cache; on failure fall back to the live walk so the native tree
   // (browser chrome: tabs / address bar / URL) is recovered instead of dropped. `live: true` skips the cache attempt.
@@ -314,9 +314,8 @@ export function snapshot(window: Element, options: { maxDepth?: number; maxNodes
   } catch (error) {
     for (const element of owned) element.release(); // owned = every node snapshot materialized (the cached clones it pushed + all children pushed before recursion); window / extraRoots stay caller-owned
     throw error;
-  } finally {
-    request.release();
   }
+  // `using request` releases the cache request here on every exit path (success / throw).
 }
 
 const LABEL_CAP = 120; // cap a displayed control NAME like the value@40 suffix above — an editor line / chat row / log line / paragraph surfaced as a node's name would otherwise render in FULL on EVERY per-action snapshot (and push actionable refs past capSnapshot's size cliff)

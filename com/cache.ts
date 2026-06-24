@@ -19,10 +19,14 @@ export enum AutomationElementMode {
 }
 
 export class CacheRequest {
-  readonly ptr: bigint;
+  #ptr: bigint;
 
   constructor(ptr: bigint) {
-    this.ptr = ptr;
+    this.#ptr = ptr;
+  }
+
+  get ptr(): bigint {
+    return this.#ptr;
   }
 
   /** Prefetch a property (UIA_*PropertyId) for every element the cache covers. */
@@ -49,9 +53,15 @@ export class CacheRequest {
     return this;
   }
 
-  /** Release the underlying COM pointer. */
+  /** Release the underlying COM pointer. Idempotent: a second release — or a `using` teardown after an explicit
+   *  release — zeroes the pointer so it is a no-op (comRelease(0n)), never a double-Release segfault. */
   release(): void {
-    comRelease(this.ptr);
+    comRelease(this.#ptr);
+    this.#ptr = 0n;
+  }
+
+  [Symbol.dispose](): void {
+    this.release();
   }
 }
 

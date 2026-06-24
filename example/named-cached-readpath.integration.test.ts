@@ -14,7 +14,7 @@
  * bun test is broken repo-wide — runnable harness:
  * Run: bun run example/named-cached-readpath.integration.test.ts
  */
-import { closeWindow, snapshot, umbriel } from 'umbriel';
+import { snapshot, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -26,8 +26,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const win = await umbriel.launch(['calc.exe'], { title: 'Calculator' }).catch(() => null);
 try {
+  using win = await umbriel.launchOwned(['calc.exe'], { title: 'Calculator' }).catch(() => null);
   if (win === null) {
     console.log('  skip: Calculator did not launch');
   } else {
@@ -59,10 +59,6 @@ try {
     root.dispose();
   }
 } finally {
-  if (win !== null) {
-    closeWindow(win.hWnd);
-    win.dispose();
-  }
   umbriel.uninitialize();
 }
 

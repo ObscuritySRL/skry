@@ -115,14 +115,13 @@ export function serialize(element: Element, options: SerializeOptions = {}): Uia
   // front — ~7s on a 2000-sibling flat panel, and maxDepth could not bound it (the cost is sibling navigation).
   // Full mode (not None): the control-view walker's *BuildCache navigation needs a LIVE reference to step from —
   // a None-mode (cache-only) element returns null on firstChildCached, dropping the whole tree.
-  const request = createCacheRequest(undefined, TreeScope.TreeScope_Element, AutomationElementMode.Full);
+  using request = createCacheRequest(undefined, TreeScope.TreeScope_Element, AutomationElementMode.Full);
   const cached = element.buildUpdatedCache(request);
   const budget: Budget = { remaining: options.maxNodes ?? 1500, truncated: false };
   try {
     return walk(cached, options, maxDepth, 0, request, budget) ?? { role: 'Pane', name: '', children: [] };
   } finally {
-    request.release();
-    if (cached.ptr !== element.ptr) cached.release();
+    if (cached.ptr !== element.ptr) cached.release(); // `using request` releases the cache request itself at scope exit (a separate COM object; release order is immaterial)
   }
 }
 

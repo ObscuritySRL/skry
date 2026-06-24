@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Character Map):
  * Run: bun run example/find-text-replace-guidance.integration.test.ts
  */
-import { closeWindow, umbriel } from 'umbriel';
+import { umbriel } from 'umbriel';
 
 type Tool = { name: string; description?: string };
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[]; tools?: Tool[] } };
@@ -58,8 +58,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
+  using charmap = await umbriel.launchOwned(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'find-text-guide', version: '1' } });
   const tools = (await call('tools/list', {})).result?.tools ?? [];
   const desc = tools.find((tool) => tool.name === 'find_text')?.description ?? '';
@@ -82,10 +82,6 @@ try {
   }
 } finally {
   proc.kill();
-  if (charmap !== null) {
-    closeWindow(charmap.hWnd);
-    charmap.dispose();
-  }
   umbriel.uninitialize();
 }
 
