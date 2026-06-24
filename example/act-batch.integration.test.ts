@@ -15,7 +15,7 @@
  * bun test is broken repo-wide for FFI — runnable harness (MCP subprocess + Calculator):
  * Run: bun run example/act-batch.integration.test.ts
  */
-import { closeWindow, umbriel } from 'umbriel';
+import { umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
@@ -62,8 +62,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const calc = await umbriel.launch(['calc.exe'], { title: 'Calculator' }).catch(() => null);
 try {
+  using calc = await umbriel.launchOwned(['calc.exe'], { title: 'Calculator' }).catch(() => null);
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'act-batch', version: '1' } });
   if (calc === null) console.log('  skip: Calculator did not launch');
   else {
@@ -87,10 +87,6 @@ try {
   }
 } finally {
   proc.kill();
-  if (calc !== null) {
-    closeWindow(calc.hWnd);
-    calc.dispose();
-  }
   umbriel.uninitialize();
 }
 

@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (the library waitForWindow path that toPredicate drives):
  * Run: bun run example/wait-for-window-case.integration.test.ts
  */
-import { closeWindow, umbriel } from 'umbriel';
+import { umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -22,8 +22,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
+  using charmap = await umbriel.launchOwned(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
   if (charmap === null) console.log('  skip: Character Map did not launch');
   else {
     await Bun.sleep(600);
@@ -43,10 +43,6 @@ try {
     assert(wrong === null, 'a genuinely absent title still times out (no false match)');
   }
 } finally {
-  if (charmap !== null) {
-    closeWindow(charmap.hWnd);
-    charmap.dispose();
-  }
   umbriel.uninitialize();
 }
 

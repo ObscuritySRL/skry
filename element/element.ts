@@ -15,7 +15,7 @@ import { clickAt, dragTo as inputDragTo, postText, type as inputType } from '../
 import { type OcrText, ocrBitmap } from '../capture/ocr';
 import { type Bitmap, cropBitmap } from '../capture/screen';
 import { captureWindowLive } from '../capture/wgc';
-import { captureWindowRGB, listWindows, openPath, renderWidgetHandles, screenshot as windowScreenshot, windowForProcess } from './window';
+import { captureWindowRGB, closeWindow, listWindows, openPath, renderWidgetHandles, screenshot as windowScreenshot, windowForProcess } from './window';
 import {
   addToSelection,
   canMove,
@@ -1189,6 +1189,19 @@ export class Window extends Element {
   }
 }
 
+/**
+ * A launched, owned Window whose disposal CLOSES the app. Unlike a plain Window/attach result — where dispose()
+ * releases only the COM element ref and never touches the window — OwnedWindow[Symbol.dispose] PostMessage-closes
+ * the window (WM_CLOSE) and then releases the ref, so `using app = await launchOwned(...)` tears the spawned app
+ * down at scope exit. Returned ONLY by launchOwned(); attach()/launch() keep the non-closing dispose() contract.
+ */
+export class OwnedWindow extends Window {
+  override [Symbol.dispose](): void {
+    closeWindow(this.hWnd); // WM_CLOSE the launched app — the close a plain Window.dispose() deliberately does NOT do
+    this.dispose(); // then release the COM element ref (idempotent)
+  }
+}
+
 function resolveWindow(target: string | bigint | { className?: string; process?: number; title?: string }): bigint {
   if (typeof target === 'bigint') return target;
   if (typeof target !== 'string' && target.process !== undefined) return windowForProcess(target.process);
@@ -1236,4 +1249,12 @@ export async function launch(command: string | readonly string[], target: { clas
     if ((Bun.nanoseconds() - start) / 1e6 >= timeout) throw new Error(`launch: window ${JSON.stringify(target)} did not appear within ${timeout}ms`);
     await Bun.sleep(150);
   }
+}
+
+/** Like launch(), but returns an OwnedWindow whose `using`/dispose CLOSES the spawned app (WM_CLOSE) and then releases the ref. */
+export async function launchOwned(command: string | readonly string[], target: { className?: string; title?: string }, timeout = 8000): Promise<OwnedWindow> {
+  const window = await launch(command, target, timeout);
+  // Re-wrap the SAME COM interface pointer as an OwnedWindow and drop the plain wrapper: both name one refcount, and
+  // `window` is never disposed, so the pointer is released exactly once — by the OwnedWindow at its scope exit.
+  return new OwnedWindow(window.ptr, window.hWnd);
 }

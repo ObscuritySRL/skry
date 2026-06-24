@@ -121,8 +121,8 @@ function measurePrune(label: string, tree: RefNode): { unprunedLines: number; pr
 // A + B. live
 async function live(): Promise<void> {
   umbriel.initialize();
-  const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
   try {
+    using calc = await umbriel.launchOwned(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
     // A. prune token win + the ref-preservation invariant — on a dense app (Calculator) and a noisy one (Settings).
     console.log('\n[A] prune + ref-preservation invariant (live)');
     const calcSnap = umbriel.snapshot(calc);
@@ -180,8 +180,6 @@ async function live(): Promise<void> {
     assert(/Display is/.test(delta.text), 'the delta NAMES the changed display text');
     renameNext.dispose();
   } finally {
-    closeWindow(calc.hWnd); // close the throwaway Calculator we launched
-    calc.dispose();
     umbriel.uninitialize();
   }
 }

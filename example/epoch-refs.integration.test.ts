@@ -20,7 +20,6 @@ import { closeWindow, umbriel } from 'umbriel';
 
 umbriel.initialize();
 const priorCalc = new Set(umbriel.windows({ includeUntitled: true }).filter((window) => /Calcul/i.test(window.title)).map((window) => window.hWnd));
-const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' }); // returns the CalculatorApp window (NOT the cmd shim) so teardown can actually close it
 
 const server = Bun.spawn(['bun', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
 const decoder = new TextDecoder();
@@ -66,6 +65,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 try {
+  using calc = await umbriel.launchOwned(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' }); // returns the CalculatorApp window (NOT the cmd shim) so teardown can actually close it
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'epoch-test', version: '1' } });
 
   // Before any snapshot exists, a tagged ref must report "no snapshot yet" — not a contradictory "re-ground / read the
@@ -126,8 +126,6 @@ try {
   server.stdin.end();
   await Bun.sleep(200);
   server.kill();
-  closeWindow(calc.hWnd); // close the ACTUAL CalculatorApp window (calc.kill() killed only the cmd shim)
-  calc.dispose();
   for (const window of umbriel.windows({ includeUntitled: true }).filter((w) => /Calcul/i.test(w.title) && !priorCalc.has(w.hWnd))) closeWindow(window.hWnd); // sweep any sibling calc the single-instance relaunch spawned
   umbriel.uninitialize();
 }

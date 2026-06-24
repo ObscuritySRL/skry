@@ -65,6 +65,8 @@ export interface WindowEvent {
 
 export interface WindowWatcher {
   stop(): void;
+  /** Alias of stop() — enables `using watcher = umbriel.watchWindows(...)`, which unhooks at scope exit. */
+  [Symbol.dispose](): void;
 }
 
 /** A window match: an exact/partial title, a class name, or an owning process id. A bare string is a title substring. */
@@ -184,6 +186,9 @@ export function watchWindows(handler: (event: WindowEvent) => void, options: { p
       User32.UnhookWinEvent(systemHook);
       User32.UnhookWinEvent(objectHook);
       callback.close();
+    },
+    [Symbol.dispose](): void {
+      this.stop();
     },
   };
 }

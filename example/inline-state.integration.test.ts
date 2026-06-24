@@ -47,7 +47,6 @@ const STATE_IDS = [
 ];
 
 umbriel.initialize();
-const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 const priorExplorers = new Set(
   umbriel
     .windows()
@@ -59,6 +58,7 @@ await Bun.sleep(2500);
 const explorerHwnd = umbriel.windows().find((window) => window.className === 'CabinetWClass' && !priorExplorers.has(window.hWnd))?.hWnd ?? 0n;
 
 try {
+  using calc = await umbriel.launchOwned(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
   // GATING — Calculator has BOTH plain Invoke buttons (digits → no state) and real toggle buttons
   // (Scientific notation / Trigonometry → on/off), so it proves the gate both ways on one app.
   console.log('\n[GATING] plain buttons show no state; real toggles show (on)/(off)');
@@ -119,8 +119,6 @@ try {
     explorer.dispose();
   }
 } finally {
-  closeWindow(calc.hWnd);
-  calc.dispose();
   if (explorerHwnd !== 0n) closeWindow(explorerHwnd);
   umbriel.uninitialize();
 }

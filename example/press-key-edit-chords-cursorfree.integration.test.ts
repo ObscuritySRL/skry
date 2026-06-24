@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Character Map):
  * Run: bun run example/press-key-edit-chords-cursorfree.integration.test.ts
  */
-import { closeWindow, umbriel } from 'umbriel';
+import { umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
@@ -63,8 +63,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
+  using charmap = await umbriel.launchOwned(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'edit-chords', version: '1' } });
   if (charmap === null) console.log('  skip: Character Map did not launch');
   else {
@@ -88,10 +88,6 @@ try {
   }
 } finally {
   proc.kill();
-  if (charmap !== null) {
-    closeWindow(charmap.hWnd);
-    charmap.dispose();
-  }
   umbriel.uninitialize();
 }
 

@@ -10,7 +10,7 @@
  * bun test is broken repo-wide — runnable script (lib facade + a spawned Character Map; no MCP subprocess):
  * Run: bun run example/facade-cursorfree-click.integration.test.ts
  */
-import { closeWindow, ControlType, execute, umbriel } from 'umbriel';
+import { ControlType, execute, umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 let failures = 0;
@@ -23,8 +23,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
+  using charmap = await umbriel.launchOwned(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
   if (charmap === null) console.log('  skip: Character Map did not launch');
   else {
     await Bun.sleep(900);
@@ -50,10 +50,6 @@ try {
     window.dispose();
   }
 } finally {
-  if (charmap !== null) {
-    closeWindow(charmap.hWnd);
-    charmap.dispose();
-  }
   umbriel.uninitialize();
 }
 

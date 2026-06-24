@@ -9,7 +9,7 @@
  * bun test is broken repo-wide for FFI; runnable harness:
  * Run: bun run example/get-variant.integration.test.ts
  */
-import { closeWindow, ControlType, PropertyId, umbriel } from 'umbriel';
+import { ControlType, PropertyId, umbriel } from 'umbriel';
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -21,8 +21,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const calc = await umbriel.launch(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
 try {
+  using calc = await umbriel.launchOwned(['cmd', '/c', 'start', 'calc'], { title: 'Calculator' });
   // VT_I4 — ProcessId is a real positive integer.
   const processId = calc.getProperty(PropertyId.ProcessId);
   console.log(`  ProcessId (VT_I4) = ${processId}`);
@@ -59,8 +59,6 @@ try {
   }
   assert(sink === 5000 * String(frameworkId).length, `5000 VT_BSTR reads are stable (no crash, no corruption; sink=${sink})`);
 } finally {
-  closeWindow(calc.hWnd); // close the throwaway Calculator we launched
-  calc.dispose();
   umbriel.uninitialize();
 }
 

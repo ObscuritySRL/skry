@@ -9,7 +9,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Character Map):
  * Run: bun run example/click-cursorfree-buttons.integration.test.ts
  */
-import { closeWindow, umbriel } from 'umbriel';
+import { umbriel } from 'umbriel';
 import User32 from '@bun-win32/user32';
 
 type Tool = { name: string; description?: string };
@@ -63,8 +63,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const charmap = await umbriel.launch(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
 try {
+  using charmap = await umbriel.launchOwned(['charmap.exe'], { title: 'Character Map' }).catch(() => null);
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'click-cf', version: '1' } });
   const tools = (await call('tools/list', {})).result?.tools ?? [];
   const desc = tools.find((tool) => tool.name === 'click')?.description ?? '';
@@ -89,10 +89,6 @@ try {
   }
 } finally {
   proc.kill();
-  if (charmap !== null) {
-    closeWindow(charmap.hWnd);
-    charmap.dispose();
-  }
   umbriel.uninitialize();
 }
 

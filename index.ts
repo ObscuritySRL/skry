@@ -4,7 +4,7 @@ import { copy, paste, readClipboard, readClipboardFiles, readClipboardImage, wri
 import { dispatch } from './input/computer';
 import { elementAt, listMonitors, postClickAt, scrollAt } from './input/coords';
 import { diffTrees } from './element/diff';
-import { attach, focused, fromPoint, launch, root } from './element/element';
+import { attach, focused, fromPoint, launch, launchOwned, root } from './element/element';
 import { killProcess, listProcesses, systemResources, waitForAlert, waitForProcess, waitForProcessGone, waitForWindow, waitForWindowGone, watchWindows } from './desktop/events';
 import { waitForIdle } from './desktop/idle';
 import { clickAt, isKeyDown, postKey, postText, sendKeys, setControlText, type } from './input/input';
@@ -34,6 +34,7 @@ export const umbriel = {
   initialize,
   isKeyDown,
   launch,
+  launchOwned,
   listMonitors,
   killProcess,
   listProcesses,
@@ -102,7 +103,7 @@ export {
 } from './input/coords';
 export { windowDesktopId, windowOnCurrentDesktop } from './desktop/desktop';
 export { type DiffNode, diffTrees, refsRenumbered, type RenameChange, renderDiff, type StateChange, type TreeChange, type TreeDiff } from './element/diff';
-export { attach, Element, focused, fromHandle, fromPoint, launch, root, type StateExpectation, Window } from './element/element';
+export { attach, Element, focused, fromHandle, fromPoint, launch, launchOwned, OwnedWindow, root, type StateExpectation, Window } from './element/element';
 export { type AlertEvent, type AlertEventType, type AlertMatch, killProcess, listModules, listProcesses, type ModuleInfo, type PriorityClass, type ProcessInfo, processInfo, setProcessPriority, suspendProcess, systemResources, type SystemResources, waitForAlert, waitForProcess, waitForProcessGone, waitForWindow, waitForWindowGone, watchWindows, type WindowEvent, type WindowEventType, type WindowMatch, windowResponsive, type WindowWatcher } from './desktop/events';
 export { parseHive, registryCreateKey, registryDeleteKey, registryDeleteValue, registryGet, registryList, registrySet, registrySetString, type RegistryData, type RegistryHive, type RegistryValue, type RegistryWriteType } from './desktop/registry';
 export { controlService, listServices, readServiceConfig, type ServiceAction, type ServiceConfig, type ServiceEntry } from './desktop/services';

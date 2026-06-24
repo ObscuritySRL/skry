@@ -12,7 +12,7 @@
  * bun test is broken repo-wide — runnable harness (MCP subprocess + a spawned Settings):
  * Run: bun run example/combobox-expand-settle.integration.test.ts
  */
-import { closeWindow, umbriel } from 'umbriel';
+import { umbriel } from 'umbriel';
 
 type Rpc = { id?: number; result?: { isError?: boolean; content?: { text?: string }[] } };
 const proc = Bun.spawn(['bun', 'run', `${import.meta.dir}/../mcp.ts`], { stdin: 'pipe', stdout: 'pipe', stderr: 'ignore', env: { ...Bun.env, UMBRIEL_PROFILE: 'safe' } });
@@ -60,8 +60,8 @@ function assert(condition: boolean, message: string): void {
 }
 
 umbriel.initialize();
-const settings = await umbriel.launch(['cmd', '/c', 'start', 'ms-settings:'], { title: 'Settings' }).catch(() => null);
 try {
+  using settings = await umbriel.launchOwned(['cmd', '/c', 'start', 'ms-settings:'], { title: 'Settings' }).catch(() => null);
   await call('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'combo-settle', version: '1' } });
   if (settings === null) console.log('  skip: Settings did not launch');
   else {
@@ -80,10 +80,6 @@ try {
   }
 } finally {
   proc.kill();
-  if (settings !== null) {
-    closeWindow(settings.hWnd);
-    settings.dispose();
-  }
   umbriel.uninitialize();
 }
 
