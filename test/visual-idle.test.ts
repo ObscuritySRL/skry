@@ -20,6 +20,14 @@ test('frameDifference: a dimension mismatch returns 255 (resize = changed; no ou
   expect(frameDifference(bmp(4, 4, 100), bmp(4, 5, 100))).toBe(255);
 });
 
+test('frameDifference: step>1 divides by the ceil-rounded sample count (the production wait_visual_idle path, step 4)', () => {
+  // 5×5 uniform frames differing by +30/channel, sampled at step 3 → x,y ∈ {0,3} = 4 pixels (a step that does NOT
+  // divide the dimension, so ceil rounding is load-bearing). samples = 3·ceil(5/3)·ceil(5/3) = 3·2·2 = 12;
+  // mean = (90·4)/12 = 30. A floor-rounded divisor (3·1·1 = 3) would wrongly yield 120 — this pins the closed-form
+  // `3·ceil(h/step)·ceil(w/step)` rounding that find-image cannot reach (findImage's score comes from its step-1 refine).
+  expect(frameDifference(bmp(5, 5, 100), bmp(5, 5, 130), 3)).toBe(30);
+});
+
 test('waitForVisualIdle: settles true once frames stop changing for quietMs', async () => {
   let poll = 0;
   const getFrame = () => {
