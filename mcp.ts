@@ -101,6 +101,7 @@ import {
   raiseWindow,
   type RefNode,
   renderDiff,
+  renderWidgetHandleAt,
   renderJavaTree,
   renderSnapshot,
   renderWindowTree,
@@ -166,7 +167,7 @@ interface McpTool {
 
 const PROTOCOL_VERSION = '2025-11-25';
 const SUPPORTED_VERSIONS = new Set(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
-const SERVER_INFO = { name: 'umbriel', version: '1.13.0' }; // keep in sync with package.json + server.json (scripts/release-check.ts gates this)
+const SERVER_INFO = { name: 'umbriel', version: '1.14.0' }; // keep in sync with package.json + server.json (scripts/release-check.ts gates this)
 const INSTRUCTIONS =
   'Drive Windows desktop apps via the UI Automation tree — and beyond it. Call list_windows, then attach (by hWnd or exact title — className is reliable only for single-window classes like Shell_TrayWnd, not the Chromium/Electron family) — attach ALREADY returns a ref-keyed tree, so act on those refs directly; call desktop_snapshot only to RE-ground after refs go stale (e.g. Button "Five" [ref=e49#1]); pass that ref VERBATIM (with its #generation tag) to click/invoke/type/toggle/set_value/inspect_element. Refs are valid ONLY for the most recent snapshot — every action returns a fresh one; re-ground from it. A ref from before a re-render is REJECTED (not silently mis-resolved), so always use the refs from the latest snapshot/delta. To stay cheap, an action that changes little returns just a "Δ" delta (the +/-/~ changes, with refs on appeared/renamed) instead of the full tree — your other refs stay valid; for a HIGH-DENSITY window (a non-virtualized LOB grid / toolbar / icon-wall with thousands of sibling controls) pass desktop_snapshot {maxNodes} (default 1500) to bound the walk, or {root} to scope into one subtree. Prefer invoke/set_value/toggle/scroll (cursor-free — they need no focus and work on a minimized, background, occluded, or locked window — for a classic Win32/HWND app: set_value posts WM_SETTEXT, invoke/toggle on a "Button"-class control post BM_CLICK, all focus-clean — the raw UIA Value/Toggle/Invoke pattern would instead STEAL FOREGROUND to the control via the MSAA bridge, so these tools route around it — but a no-own-HWND WinUI/WPF/Electron SUB-control has only that pattern, so its invoke/toggle/set_value WILL raise+focus (un-minimize) its window; the result STRING discloses the steal (⚠) when it happens, so trust the result, not the tool name; a UWP/WinUI store app SUSPENDS its UI tree when minimized or fully backgrounded, so its tree reads empty and posted actions may not land until you restore/raise it) over click. To SEE beyond the attached window (a 2nd monitor, a game/browser, a composited surface, or anything with no window) use screen_capture; to see a SPECIFIC window even when occluded, in the background, or GPU-composited (where a plain screenshot is blank) use capture_window (Windows.Graphics.Capture); turn a pixel into a control with inspect_point. screenshot auto-falls-back PrintWindow → WGC → desktop-region. Read legacy/owner-draw windows with native_tree/msaa_tree. drag and real-cursor clicks move the actual mouse; SendInput-based input (press_key chord, hold_key, drag, and the type/paste fallback for a control with no own HWND) needs an unlocked, foregrounded desktop — the posted cursor-free paths do not: type (WM_CHAR) / paste (WM_PASTE) / press_key {ref} on an own-HWND control, plus set_value/invoke/toggle. launch/run/file tools and manage_window may be disabled by the server policy (UMBRIEL_PROFILE).';
 // Shown instead of INSTRUCTIONS when the policy enables no 'input' category — so the system-prompt guidance never
@@ -3511,17 +3512,30 @@ const HANDLERS: Record<string, ToolHandler> = {
       const bounds = element.boundingRectangle;
       const centerX = bounds.x + Math.floor(bounds.width / 2);
       const centerY = bounds.y + Math.floor(bounds.height / 2);
+      const steps = Math.max(1, Math.trunc(amount));
       // No USABLE ScrollPattern — post a wheel CURSOR-FREE to the element's OWN HWND (a classic ScrollPattern-less
       // ListView/Edit/TreeView, works minimized/background/locked), or for a Chromium/Electron web fragment (no own HWND)
-      // to its browser HOST window (chromiumHostHandle — verified: a posted WM_MOUSEWHEEL there scrolls the page,
-      // occlusion-correct, no cursor). NOT an arbitrary ownerHwnd ancestor — posting the wheel to the parent (e.g. the
-      // taskbar) would scroll the WRONG window while PostMessage still returns success. Else a UIA-ScrollPattern ANCESTOR
-      // via scrollAt, then the honest "no scrollable container".
-      const handle = element.nativeWindowHandle !== 0n ? element.nativeWindowHandle : element.chromiumHostHandle();
-      const notches = direction === 'up' || direction === 'left' ? -Math.max(1, amount) : Math.max(1, amount); // wheel: +up/-down; hwheel: +right/-left
-      if ((direction === 'up' || direction === 'down') && handle !== 0n && postWheel(handle, centerX, centerY, direction === 'up' ? Math.max(1, amount) : -Math.max(1, amount)))
-        return withSnapshot(`scrolled ${target} ${direction} ${amount} (posted wheel, cursor-free)`);
-      if ((direction === 'left' || direction === 'right') && handle !== 0n && postHWheel(handle, centerX, centerY, notches)) return withSnapshot(`scrolled ${target} ${direction} ${amount} (posted wheel, cursor-free)`);
+      // to its render-widget HOST window. The host is resolved through the WINDOW tree (EnumChildWindows for
+      // Chrome_RenderWidgetHostHWND under the ATTACHED top-level) — NOT element.chromiumHostHandle()'s cross-process UIA
+      // ancestor walk, which marshals GetParentElement into the renderer's provider and HARD-FAULTS uiautomationcore.dll
+      // uncatchably on a heavy/hostile Chromium top-level (Opera, Electron/Discord) — the reproducible page-scroll crash.
+      // renderWidgetHandleAt is pure user32 (EnumChildWindows + GetWindowRect) and cannot fault. NOT an arbitrary
+      // ownerHwnd ancestor — posting the wheel to the parent (e.g. the taskbar) would scroll the WRONG window while
+      // PostMessage still returns success. Else a UIA-ScrollPattern ANCESTOR via scrollAt, then the honest "none".
+      const handle = element.nativeWindowHandle !== 0n ? element.nativeWindowHandle : renderWidgetHandleAt(requireAttached().hWnd, centerX, centerY);
+      // Post ONE wheel notch per requested step (deterministic delta) rather than a single large multiplied delta: a
+      // Chromium page applies a fixed scroll per WM_MOUSEWHEEL notch, so N discrete notches move predictably where one big
+      // coalesced delta under-scrolls erratically. +1 up / -1 down (wheel); +1 right / -1 left (hwheel).
+      if (handle !== 0n && (direction === 'up' || direction === 'down')) {
+        let posted = false;
+        for (let count = 0; count < steps; count += 1) posted = postWheel(handle, centerX, centerY, direction === 'up' ? 1 : -1) || posted;
+        if (posted) return withSnapshot(`scrolled ${target} ${direction} ${amount} (posted wheel, cursor-free)`);
+      }
+      if (handle !== 0n && (direction === 'left' || direction === 'right')) {
+        let posted = false;
+        for (let count = 0; count < steps; count += 1) posted = postHWheel(handle, centerX, centerY, direction === 'right' ? 1 : -1) || posted;
+        if (posted) return withSnapshot(`scrolled ${target} ${direction} ${amount} (posted wheel, cursor-free)`);
+      }
       if (scrollAt(centerX, centerY, direction, amount)) return withSnapshot(`scrolled ${target} ${direction} ${amount}`);
       return withSnapshot(`no scrollable container at ${target}`);
     }
@@ -4289,6 +4303,10 @@ async function dispatch(request: JsonRpcRequest): Promise<void> {
       log(
         `audit: ${auditMode === 'off' ? 'DISABLED (UMBRIEL_AUDIT=off — explicit opt-out)' : auditMode === 'verbose' ? 'on (verbose — reads logged too)' : 'on (mutating-category calls → stderr)'}; clipboard redaction: ${redactDisabled ? 'DISABLED (UMBRIEL_REDACT=off)' : redactCustom !== undefined ? 'on (custom regex)' : 'on (built-in secret shapes)'}`,
       );
+      // Forensic FFI tracing (UMBRIEL_FFI_TRACE): a flush-before-call journal of every COM vcall, so the LAST line after an
+      // uncatchable native crash names the faulting call. Off by default (per-call overhead when on); reported so the
+      // deployer knows it is active and bearing cost.
+      if (Bun.env.UMBRIEL_FFI_TRACE !== undefined && Bun.env.UMBRIEL_FFI_TRACE.length > 0) log(`FFI trace: ON → ${Bun.env.UMBRIEL_FFI_TRACE} (flush-before-call vcall journal; the last line after a hard crash names the faulting COM call — has per-call overhead, unset to disable)`);
       // Compute reachability from the ACTUAL allowed surface — UMBRIEL_ALLOW grants a tool via toolAllowed WITHOUT ever
       // adding to enabledCategories, so keying the honesty banner/warnings off enabledCategories would mis-tell the model it
       // is read-only while an allow-listed click/type/read_file is live. Honesty must track what tools/list actually serves.

@@ -4,22 +4,22 @@
     "url": "https://github.com/ObscuritySRL/umbriel/issues"
   },
   "dependencies": {
-    "@bun-win32/advapi32": "^1.0.13",
-    "@bun-win32/combase": "^1.1.0",
-    "@bun-win32/core": "^1.1.4",
-    "@bun-win32/d3d11": "^1.0.1",
-    "@bun-win32/dwmapi": "^1.0.5",
-    "@bun-win32/gdi32": "^1.0.14",
-    "@bun-win32/iphlpapi": "^1.0.5",
-    "@bun-win32/kernel32": "^1.0.26",
-    "@bun-win32/ntdll": "^1.0.7",
-    "@bun-win32/oleacc": "^1.0.1",
-    "@bun-win32/oleaut32": "^1.0.1",
-    "@bun-win32/powrprof": "^1.0.1",
-    "@bun-win32/shcore": "^1.0.1",
-    "@bun-win32/shell32": "^1.0.8",
-    "@bun-win32/user32": "^3.0.22",
-    "@bun-win32/windowsaccessbridge-64": "^1.0.0"
+    "@bun-win32/advapi32": "^2.0.1",
+    "@bun-win32/combase": "^2.0.1",
+    "@bun-win32/core": "^2.0.1",
+    "@bun-win32/d3d11": "^2.0.1",
+    "@bun-win32/dwmapi": "^2.0.1",
+    "@bun-win32/gdi32": "^2.0.1",
+    "@bun-win32/iphlpapi": "^2.0.1",
+    "@bun-win32/kernel32": "^2.0.1",
+    "@bun-win32/ntdll": "^2.0.1",
+    "@bun-win32/oleacc": "^2.0.1",
+    "@bun-win32/oleaut32": "^2.0.1",
+    "@bun-win32/powrprof": "^2.0.1",
+    "@bun-win32/shcore": "^2.0.1",
+    "@bun-win32/shell32": "^2.0.1",
+    "@bun-win32/user32": "^4.0.1",
+    "@bun-win32/windowsaccessbridge-64": "^2.0.1"
   },
   "description": "See and drive an entire Windows machine from Bun — not just app GUIs. Inspect kernel-to-pixels and act on any app through the UI Automation tree, synthetic input, screen capture + OCR, Spy++-style introspection, registry, and OS/filesystem reach — all via a security-gated MCP server. Pure TypeScript over bun:ffi: zero native deps, no build step.",
   "devDependencies": {
@@ -37,7 +37,7 @@
   "module": "index.ts",
   "name": "umbriel",
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "private": false,
   "publishConfig": {
@@ -49,7 +49,7 @@
     "url": "git+https://github.com/ObscuritySRL/umbriel.git"
   },
   "type": "module",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "main": "./index.ts",
   "keywords": [
     "accessibility",

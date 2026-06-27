@@ -9,7 +9,7 @@ import { automation, controlViewWalker } from '../com/automation';
 import { AutomationElementMode, type CacheRequest, createCacheRequest } from '../com/cache';
 import { comRelease, hresult, vcall } from '../com/com';
 import { type CompiledCondition, compileCondition, type ElementProperties, formatNoMatch, matches, needsSubtreeFilter, type Selector, selectorToString } from './condition';
-import { ControlType, PropertyId, S_OK, SLOT, TreeScope } from '../com/constants';
+import { ControlType, IUNKNOWN_ADDREF, PropertyId, S_OK, SLOT, TreeScope } from '../com/constants';
 import { ownerHwnd, postClickToHwnd } from '../input/coords';
 import { clickAt, dragTo as inputDragTo, postText, type as inputType } from '../input/input';
 import { type OcrText, ocrBitmap } from '../capture/ocr';
@@ -773,6 +773,16 @@ export class Element {
   release(): void {
     comRelease(this.#ptr);
     this.#ptr = 0n;
+  }
+
+  /** Increment the COM refcount (IUnknown::AddRef) and return a NEW owning Element wrapping the SAME pointer. The
+   *  snapshot uses this to keep its OWN reference to a live-walked Chromium web-root that the caller releases right
+   *  after snapshot() returns: without an independent ref, that release() zeroes the only instance the ref map holds,
+   *  leaving the web-root's ref resolving to a #ptr-0n element (every by-ref action on it then throws). The returned
+   *  Element must be release()d like any other (the snapshot owns it and frees it on dispose). */
+  addRef(): Element {
+    vcall(this.ptr, IUNKNOWN_ADDREF, [], []);
+    return new Element(this.ptr);
   }
 
   // control-pattern actions — each proven against a real control in Phase 5

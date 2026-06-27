@@ -302,8 +302,15 @@ export function snapshot(window: Element, options: { maxDepth?: number; maxNodes
     for (const extra of options.extraRoots ?? []) {
       try {
         const cachedExtra = extra.buildUpdatedCache(request);
-        if (cachedExtra.ptr !== extra.ptr) owned.push(cachedExtra); // snapshot owns the cached clone; the live path's root is the caller's extra (not owned)
-        const subtree = cachedExtra.ptr !== extra.ptr ? walk(cachedExtra, 1, maxDepth, request, budget, counter, byRef, owned, marks) : walkLive(extra, 1, maxDepth, budget, counter, byRef, owned, marks); // a render widget that refuses the cache still walks live
+        const cached = cachedExtra.ptr !== extra.ptr;
+        // The snapshot must own its OWN reference to the root it walks AND stores in byRef — the cached clone when the
+        // cache succeeded, or an AddRef'd retain of the live `extra` when it refused (heavy Chromium like Opera). Without
+        // the AddRef, byRef would hold the caller's `extra` instance, which buildWindowSnapshot release()s right after
+        // snapshot() returns — zeroing its #ptr, so the web-root's ref (the RootWebArea/Document — actionable, so it IS
+        // ref'd) would resolve to a dead 0n element and every by-ref action on it (scroll/find_and_act) would throw.
+        const extraRoot = cached ? cachedExtra : extra.addRef();
+        owned.push(extraRoot); // snapshot owns + releases it on dispose, symmetric for both paths (the caller's `extra` is released independently by buildWindowSnapshot)
+        const subtree = cached ? walk(extraRoot, 1, maxDepth, request, budget, counter, byRef, owned, marks) : walkLive(extraRoot, 1, maxDepth, budget, counter, byRef, owned, marks); // a render widget that refuses the cache still walks live
         if (subtree.children.length > 0 || subtree.ref !== undefined) tree.children.push(subtree); // skip an empty render widget
       } catch {
         // a render widget can be mid-navigation — its absence must not fail the whole snapshot

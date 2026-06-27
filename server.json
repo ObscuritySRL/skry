@@ -6,12 +6,12 @@
     "url": "https://github.com/ObscuritySRL/umbriel",
     "source": "github"
   },
-  "version": "1.13.0",
+  "version": "1.14.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "umbriel",
-      "version": "1.13.0",
+      "version": "1.14.0",
       "runtimeHint": "bunx",
       "transport": {
         "type": "stdio"
@@ -63,6 +63,13 @@
         {
           "name": "UMBRIEL_TRACE",
           "description": "File path to journal every mutating tool call as JSON Lines (tool, category, masked args, ok, observation); secret-bearing args and values are redacted. Unset = no trace.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "UMBRIEL_FFI_TRACE",
+          "description": "File path to a flush-before-call diagnostic journal of every COM vcall (slot, this-pointer, arg count). Each line is written and flushed to the OS BEFORE the native call, so after an uncatchable crash the last line names the faulting call. Has per-call overhead; unset = off. For debugging native faults only.",
           "isRequired": false,
           "isSecret": false,
           "format": "string"

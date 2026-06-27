@@ -5,6 +5,7 @@ import { CFunction, FFIType, type Pointer, read } from 'bun:ffi';
 import Combase from '@bun-win32/combase';
 
 import { IUNKNOWN_RELEASE, S_OK, UIA_E_ELEMENTNOTAVAILABLE, UIA_E_ELEMENTNOTENABLED, UIA_E_NOCLICKABLEPOINT, UIA_E_NOTSUPPORTED, UIA_E_PROXYASSEMBLYNOTLOADED } from './constants';
+import { ffiTrace, ffiTraceEnabled } from './trace';
 
 // The five well-known UI Automation HRESULTs (SDK um/UIAutomationCore.h), each paired with the exact
 // next step a cold LLM should take — so a COM failure names its own recovery instead of leaking raw hex.
@@ -28,7 +29,12 @@ const invokers = new Map<number, ReturnType<typeof CFunction>>();
  * leading u64 segfaults multi-pointer calls). `argTypes` must match the method's real signature.
  */
 export function vcall(thisPtr: bigint, slot: number, argTypes: readonly FFIType[], args: readonly unknown[]): number {
+  if (argTypes.length !== args.length) throw new Error(`vcall: arity mismatch (slot ${slot}: ${args.length} args vs ${argTypes.length} argTypes) — the memoized CFunction is built with argTypes' arity but invoked with args' arity, so a mismatch marshals a malformed native frame (stack corruption / segfault). Caller bug.`); // contract guard: a zero-cost length compare that converts a whole class of caller/ABI-drift mistakes from an uncatchable crash into a named throw
   if (thisPtr === 0n) throw new Error(`vcall: null interface pointer (slot ${slot})`); // predicted-not-taken; catches ONLY the literal-null case (a non-null-but-unmapped thisPtr still segfaults at the deref below — see note)
+  // Flush-before-call FFI trace (UMBRIEL_FFI_TRACE): write the call's identity to disk BEFORE the vtable deref + native
+  // invoke, so an uncatchable fault (a freed/unmapped thisPtr, or a cross-process UIA marshaling fault) leaves this line
+  // as the file's last entry — naming the exact COM call that crashed. Gated so the default path builds no string.
+  if (ffiTraceEnabled) ffiTrace(`vcall slot=${slot} this=0x${thisPtr.toString(16)} argc=${args.length}`);
   // A non-null-but-unmapped thisPtr CANNOT be guarded here: Bun has no safe-read, so this deref segfaults the host
   // uncatchably (e.g. read.ptr(0xdead, 0) panics). Callers MUST pass only refcounted COM proxies from a successful
   // (pointer === 0n ? null : …) result — never a raw/garbage address. The guards below fire only once thisPtr is mapped.

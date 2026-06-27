@@ -132,6 +132,29 @@ export function renderWidgetHandles(hWnd: bigint): bigint[] {
   return handles;
 }
 
+/**
+ * The Chromium render-widget host window (`Chrome_RenderWidgetHostHWND`) for a page-wheel scroll, resolved through the
+ * WINDOW tree — `renderWidgetHandles` (EnumChildWindows) + `GetWindowRect` — NOT a cross-process UIA ancestor walk.
+ * The UIA walk (`Element.chromiumHostHandle`) marshals `GetParentElement` into the renderer's provider, which on a heavy/
+ * hostile Chromium top-level (e.g. Opera, Electron) is the page-scroll crash path; this is pure user32 and cannot fault.
+ * Picks the render widget whose rectangle contains the screen point `(x, y)` (the right one on a multi-iframe page), else
+ * the first widget, else `0n` when the window hosts none. Post a `WM_MOUSEWHEEL` to the returned HWND to scroll the page.
+ */
+export function renderWidgetHandleAt(topLevelHWnd: bigint, x: number, y: number): bigint {
+  const handles = renderWidgetHandles(topLevelHWnd);
+  if (handles.length === 0) return 0n;
+  const rect = Buffer.alloc(16);
+  for (const handle of handles) {
+    if (User32.GetWindowRect(handle, rect.ptr!) === 0) continue;
+    const left = rect.readInt32LE(0);
+    const top = rect.readInt32LE(4);
+    const right = rect.readInt32LE(8);
+    const bottom = rect.readInt32LE(12);
+    if (x >= left && x < right && y >= top && y < bottom) return handle;
+  }
+  return handles[0]!; // no widget contains the point (the element center sits in chrome/scrollbar gutter) — the primary render widget is the best target
+}
+
 /** The first visible, titled top-level window owned by the process, or 0n. */
 export function windowForProcess(processId: number): bigint {
   for (const window of listWindows()) {

@@ -21,6 +21,9 @@ export const UIA_E_PROXYASSEMBLYNOTLOADED = 0x8004_0203 | 0;
 /** The element does not support the requested control pattern. */
 export const UIA_E_NOTSUPPORTED = 0x8004_0204 | 0;
 
+/** IUnknown::AddRef — vtable slot 1 on every COM interface. */
+export const IUNKNOWN_ADDREF = 1;
+
 /** IUnknown::Release — vtable slot 2 on every COM interface. */
 export const IUNKNOWN_RELEASE = 2;
 

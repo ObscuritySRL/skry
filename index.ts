@@ -192,6 +192,8 @@ export {
   processImagePath,
   raiseWindow,
   recycleToBin,
+  renderWidgetHandleAt,
+  renderWidgetHandles,
   restoreWindow,
   screenshot,
   setOpacity,
