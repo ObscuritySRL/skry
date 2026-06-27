@@ -469,6 +469,73 @@ describe('slot-gate coverage ↔ engine call sites (no drift)', () => {
     expect(accName).not.toBeUndefined(); // the const must exist and be parseable (a sanity check on the parser)
     expect(accName).toBe(10); // 10 = the slot the VTBL block above verifies vs oleacc.h IAccessible::get_accName; a wrong literal fails loudly here
   });
+
+  // wgc.ts (14 slot consts over 8 distinct values) and ocr.ts (16 over 6) hold their vtable slots as bare module consts.
+  // The WGC/OCR header blocks above verify the test's OWN name->slot table against the SDK but never read the engine
+  // source, and the call-site drift guard compares only the SET of distinct called values — so a transposition of ONE
+  // const onto a SIBLING's in-set value (e.g. wgc FRAME_GET_SURFACE 6 -> 7, already FRAMEPOOL_TRY_GET_NEXT_FRAME; ocr
+  // LINE_GET_TEXT 7 <-> LINE_GET_WORDS 6) leaves the set unchanged, keeps every existing slot-gate test GREEN, and
+  // SEGFAULTS live (a wrong-arity method called through a garbage interface pointer). msaa.ts/desktop.ts are single-use-
+  // distinct so their transpositions DO change the set and are already caught; wgc.ts/ocr.ts are the gap. This pins each
+  // engine literal to the SAME header-verified slot the blocks above assert — the comprehensive form of the single-const
+  // TEXTRANGE_SELECT / ENUM_NEXT / IACC_GET_ACCNAME pins — so a source-only transposition fails loudly here, not live.
+  const ENGINE_SLOT_LITERALS: Record<string, Record<string, number>> = {
+    'wgc.ts': {
+      ITEM_GET_SIZE: 7, // CIGraphicsCaptureItem.get_Size
+      INTEROP_CREATE_FOR_WINDOW: 3, // IGraphicsCaptureItemInterop.CreateForWindow
+      FRAMEPOOL_CREATE_FREE_THREADED: 6, // CIDirect3D11CaptureFramePoolStatics2.CreateFreeThreaded
+      FRAMEPOOL_TRY_GET_NEXT_FRAME: 7, // CIDirect3D11CaptureFramePool.TryGetNextFrame
+      FRAMEPOOL_CREATE_CAPTURE_SESSION: 10, // CIDirect3D11CaptureFramePool.CreateCaptureSession
+      SESSION_START_CAPTURE: 6, // CIGraphicsCaptureSession.StartCapture
+      FRAME_GET_SURFACE: 6, // CIDirect3D11CaptureFrame.get_Surface
+      DXGI_ACCESS_GET_INTERFACE: 3, // IDirect3DDxgiInterfaceAccess.GetInterface
+      TEX2D_GET_DESC: 10, // ID3D11Texture2D.GetDesc
+      DEV_CREATE_TEXTURE_2D: 5, // ID3D11Device.CreateTexture2D
+      CTX_COPY_RESOURCE: 47, // ID3D11DeviceContext.CopyResource
+      CTX_MAP: 14, // ID3D11DeviceContext.Map
+      CTX_UNMAP: 15, // ID3D11DeviceContext.Unmap
+      CLOSABLE_CLOSE: 6, // Windows.Foundation.IClosable.Close
+    },
+    'ocr.ts': {
+      BYTEACCESS_BUFFER: 3, // IBufferByteAccess.Buffer
+      BUFFERFACTORY_CREATE: 6, // IBufferFactory.Create
+      BUFFER_PUT_LENGTH: 8, // IBuffer.put_Length
+      SBSTATICS_CREATE_COPY_FROM_BUFFER: 9, // ISoftwareBitmapStatics.CreateCopyFromBuffer
+      OCRSTATICS_TRY_CREATE_FROM_USER_PROFILE: 10, // IOcrEngineStatics.TryCreateFromUserProfileLanguages
+      ENGINE_RECOGNIZE_ASYNC: 6, // IOcrEngine.RecognizeAsync
+      ASYNCINFO_GET_STATUS: 7, // IAsyncInfo.get_Status
+      ASYNCOP_GET_RESULTS: 8, // IAsyncOperation<OcrResult>.GetResults
+      RESULT_GET_LINES: 6, // IOcrResult.get_Lines
+      RESULT_GET_TEXT: 8, // IOcrResult.get_Text
+      VECTORVIEW_GET_AT: 6, // IVectorView<T>.GetAt
+      VECTORVIEW_GET_SIZE: 7, // IVectorView<T>.get_Size
+      LINE_GET_WORDS: 6, // IOcrLine.get_Words
+      LINE_GET_TEXT: 7, // IOcrLine.get_Text
+      WORD_GET_BOUNDING_RECT: 6, // IOcrWord.get_BoundingRect
+      WORD_GET_TEXT: 7, // IOcrWord.get_Text
+    },
+  };
+
+  for (const [file, literals] of Object.entries(ENGINE_SLOT_LITERALS)) {
+    test(`${file}: every slot-const literal equals its header-verified slot, and every called slot const is pinned`, () => {
+      const source = readFileSync(engineFile(file), 'utf8');
+      const values = constValues(source);
+      // 1. transposition guard — each engine literal equals the slot the WGC/OCR header blocks verify against the SDK.
+      for (const [name, expected] of Object.entries(literals)) {
+        expect({ file, name, slot: values.get(name) }).toEqual({ file, name, slot: expected });
+      }
+      // 2. completeness — every NON-IUnknown slot const the engine actually vcalls is pinned above, so a freshly added
+      //    bare slot const cannot slip past this guard the way the set-only call-site drift check can.
+      const called = new Set<string>();
+      const call = /vcall\(\s*[^,]+,\s*([A-Z][A-Z0-9_]+)\b/g;
+      for (let entry = call.exec(source); entry !== null; entry = call.exec(source)) {
+        const value = values.get(entry[1]!);
+        if (value !== undefined && !IUNKNOWN_SLOTS.has(value)) called.add(entry[1]!);
+      }
+      expect(called.size).toBeGreaterThan(0); // sanity: the parser found real call sites
+      expect([...called].filter((name) => !Object.prototype.hasOwnProperty.call(literals, name)).sort()).toEqual([]);
+    });
+  }
 });
 
 // Perf-regression guard (the seat-mandated automated perf gate). The package's two highest-value perf wins are
