@@ -449,7 +449,12 @@ export class Element {
     };
     const direct = this.find(selector);
     if (direct !== null) {
-      if (realized(direct)) return direct;
+      try {
+        if (realized(direct)) return direct; // realized() reads boundingRectangle/isOffscreen vcalls — a torn-down ghost throws the UAF guard
+      } catch (error) {
+        direct.release(); // free the candidate on that throw (was a bare release after the read → leaked it); the realized==true return path leaves it caller-owned
+        throw error;
+      }
       direct.release(); // found-but-unrealized virtualized ghost — fall through to scroll it into existence
     }
     let container = options.container ?? this.find({ controlType: ControlType.List }) ?? this.find({ controlType: ControlType.DataGrid }) ?? this.find({ controlType: ControlType.Tree }) ?? this.find({ controlType: ControlType.Table });
@@ -489,7 +494,12 @@ export class Element {
         for (let count = 0; count < maxSteps; count += 1) {
           const found = this.find(selector);
           if (found !== null) {
-            if (realized(found)) return found;
+            try {
+              if (realized(found)) return found;
+            } catch (error) {
+              found.release(); // free the candidate on a realized() throw (was a bare release after the read → leaked it); the realized==true return leaves it caller-owned
+              throw error;
+            }
             found.release(); // in the tree but not yet on-screen-realized — keep paging until it has a real rect
           }
           const before = percent();
