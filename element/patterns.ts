@@ -492,8 +492,11 @@ function elementArrayNames(arrayPtr: bigint): string[] {
     if (vcall(arrayPtr, SLOT.GetElement, [FFIType.i32, FFIType.ptr], [index, elementOut.ptr!]) !== S_OK) continue;
     const element = elementOut.readBigUInt64LE(0);
     if (element === 0n) continue;
-    names.push(getBstr(element, SLOT.get_CurrentName));
-    comRelease(element);
+    try {
+      names.push(getBstr(element, SLOT.get_CurrentName)); // getBstr issues a vcall — a torn-down element proxy throws the UAF guard
+    } finally {
+      comRelease(element); // release on EVERY exit incl. that throw (was a bare comRelease outside try → leaked the element proxy; mirrors getSelectedText/readVisibleText/readTable)
+    }
   }
   return names;
 }
