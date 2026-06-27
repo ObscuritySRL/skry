@@ -100,14 +100,20 @@ function walk(accessible: bigint, childId: number, maxDepth: number, depth: numb
     if (variantType === VT_DISPATCH) {
       const dispatch = children.readBigUInt64LE(base + 8);
       if (dispatch === 0n) continue;
-      const childOut = Buffer.alloc(8);
-      const queried = vcall(dispatch, IACC_QUERYINTERFACE, [FFIType.ptr, FFIType.ptr], [IID_IACCESSIBLE_GUID.ptr!, childOut.ptr!]);
-      const childAccessible = childOut.readBigUInt64LE(0);
-      if (queried === S_OK && childAccessible !== 0n) {
-        node.children.push(walk(childAccessible, CHILDID_SELF, maxDepth, depth + 1));
-        comRelease(childAccessible);
+      try {
+        const childOut = Buffer.alloc(8);
+        const queried = vcall(dispatch, IACC_QUERYINTERFACE, [FFIType.ptr, FFIType.ptr], [IID_IACCESSIBLE_GUID.ptr!, childOut.ptr!]);
+        const childAccessible = childOut.readBigUInt64LE(0);
+        if (queried === S_OK && childAccessible !== 0n) {
+          try {
+            node.children.push(walk(childAccessible, CHILDID_SELF, maxDepth, depth + 1));
+          } finally {
+            comRelease(childAccessible); // release on a recursive-walk vcall throw too (was a bare comRelease outside try → leaked the child IAccessible)
+          }
+        }
+      } finally {
+        comRelease(dispatch); // release the VARIANT's IDispatch on EVERY exit incl. a QueryInterface/child-walk throw (was a bare comRelease outside try → leaked it)
       }
-      comRelease(dispatch);
     } else if (variantType === VT_I4) {
       node.children.push(walk(accessible, children.readInt32LE(base + 8), maxDepth, depth + 1));
     }
