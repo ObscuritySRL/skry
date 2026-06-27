@@ -437,13 +437,13 @@ export function readVisibleText(ptr: bigint): string {
       if (vcall(array, SLOT.get_Length, [FFIType.ptr], [lengthOut.ptr!]) !== S_OK) return '';
       const length = lengthOut.readInt32LE(0);
       const parts: string[] = [];
+      const rangeOut = Buffer.alloc(8); // loop-invariant out-buffers: written by the vcall, read inline before the next
+      const textOut = Buffer.alloc(8); // vcall (synchronous, no await), so reuse is safe — saves 2 allocs+.ptr per range (cf. getSelectedText)
       for (let index = 0; index < length; index += 1) {
-        const rangeOut = Buffer.alloc(8);
         if (vcall(array, SLOT.GetElement, [FFIType.i32, FFIType.ptr], [index, rangeOut.ptr!]) !== S_OK) continue;
         const range = rangeOut.readBigUInt64LE(0);
         if (range === 0n) continue;
         try {
-          const textOut = Buffer.alloc(8);
           if (vcall(range, SLOT.GetText, [FFIType.i32, FFIType.ptr], [-1, textOut.ptr!]) === S_OK) parts.push(decodeBstr(textOut.readBigUInt64LE(0)));
         } finally {
           comRelease(range);
@@ -639,8 +639,8 @@ export function views(ptr: bigint): ViewState | null {
     if (vcall(pattern, SLOT.get_CurrentCurrentView, [FFIType.ptr], [out.ptr!]) !== S_OK) return null;
     const current = out.readInt32LE(0);
     const supported: { id: number; name: string }[] = [];
+    const nameOut = Buffer.alloc(8); // loop-invariant out-buffer, read inline each iteration (synchronous) — hoisted to save 16 allocs+.ptr per call
     for (let id = 0; id <= 15; id += 1) {
-      const nameOut = Buffer.alloc(8);
       if (vcall(pattern, SLOT.GetViewName, [FFIType.i32, FFIType.ptr], [id, nameOut.ptr!]) !== S_OK) continue;
       const name = decodeBstr(nameOut.readBigUInt64LE(0));
       if (name.length > 0) supported.push({ id, name });
