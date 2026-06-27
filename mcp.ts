@@ -3684,7 +3684,7 @@ const HANDLERS: Record<string, ToolHandler> = {
     if (image !== null) return imageResult(encodePNG(image.rgb, image.width, image.height), `(${image.width}×${image.height} image on the clipboard)`);
     return textResult('(clipboard empty, or an unsupported format)');
   },
-  set_clipboard: (args) => textResult(umbriel.writeClipboard(requireString(args, 'text')) ? 'clipboard set' : 'failed to set clipboard'),
+  set_clipboard: (args) => (umbriel.writeClipboard(requireString(args, 'text')) ? textResult('clipboard set') : errorResult('set_clipboard: could not set the clipboard text — another app may be holding it open; retry')),
   copy_image: async (args) => {
     const region = regionArg(args);
     if (region !== undefined) {
