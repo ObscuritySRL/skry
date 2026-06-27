@@ -3044,7 +3044,7 @@ const HANDLERS: Record<string, ToolHandler> = {
       const windowResult = await umbriel.ocrWindow(hWnd);
       if (windowResult === null) {
         if (isMinimized(hWnd)) return errorResult(minimizedCaptureSteer(hWnd, 'ocr'));
-        throw new Error('ocr: could not capture the window (protected / no surface)');
+        return errorResult(captureUnavailable('ocr'));
       }
       result = windowResult;
       origin = `hWnd 0x${hWnd.toString(16)}`;
@@ -3103,7 +3103,7 @@ const HANDLERS: Record<string, ToolHandler> = {
     const result = await umbriel.ocrWindow(hWnd);
     if (result === null) {
       if (isMinimized(hWnd)) return errorResult(minimizedCaptureSteer(hWnd, 'click_text'));
-      throw new Error('click_text: could not capture the window (protected / no surface)');
+      return errorResult(captureUnavailable('click_text'));
     }
     const words = result.lines.flatMap((line) => line.words);
     const hit = words.find((word) => word.text.toLowerCase().includes(want)) ?? result.lines.find((line) => line.text.toLowerCase().includes(want)) ?? null;
