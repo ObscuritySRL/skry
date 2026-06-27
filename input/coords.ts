@@ -150,18 +150,22 @@ export function scrollAt(x: number, y: number, direction: 'up' | 'down' | 'left'
   const horizontal = direction === 'left' || direction === 'right';
   const step = direction === 'up' || direction === 'left' ? ScrollAmount.SmallDecrement : ScrollAmount.SmallIncrement;
   for (let depth = 0; element !== null && depth < 16; depth += 1) {
-    const info = element.scrollInfo;
-    if (info !== null && (horizontal ? info.horizontallyScrollable : info.verticallyScrollable)) {
-      try {
-        for (let count = 0; count < Math.max(1, amount); count += 1) element.scroll(horizontal ? step : ScrollAmount.NoAmount, horizontal ? ScrollAmount.NoAmount : step);
-      } catch {
-        // boundary reached mid-scroll — the container still moved
+    const node: Element = element; // element is non-null per the loop guard; a stable typed alias avoids the reassigned-let circular-narrowing TS7022 while keeping the release in the finally
+    let ancestor: Element | null = null;
+    try {
+      const info = node.scrollInfo; // scrollInfo (getPattern) and .parent below are vcalls — a torn-down node mid-walk throws the UAF guard
+      if (info !== null && (horizontal ? info.horizontallyScrollable : info.verticallyScrollable)) {
+        try {
+          for (let count = 0; count < Math.max(1, amount); count += 1) node.scroll(horizontal ? step : ScrollAmount.NoAmount, horizontal ? ScrollAmount.NoAmount : step);
+        } catch {
+          // boundary reached mid-scroll — the container still moved
+        }
+        return true;
       }
-      element.release();
-      return true;
+      ancestor = node.parent;
+    } finally {
+      node.release(); // release on EVERY exit incl. a scrollInfo/parent throw (was a bare release outside try → leaked the walked node on the throw path)
     }
-    const ancestor: Element | null = element.parent;
-    element.release();
     element = ancestor;
   }
   if (element !== null) element.release();
