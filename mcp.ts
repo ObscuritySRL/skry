@@ -1607,7 +1607,7 @@ const TOOLS: McpTool[] = [
         text: { type: 'string', description: 'Text for type / set_value' },
         submit: { type: 'boolean', description: 'Press Enter after a type' },
         mode: { type: 'string', enum: ['replace', 'add', 'remove'], description: 'For do:select only — replace (default, clears other selections), add (multi-select, keeps the others), remove (deselect). Ignored by other verbs.' },
-        timeout: { type: 'number', description: 'Auto-wait budget in ms for a not-yet-present OR (for a mutating verb) not-yet-enabled target (default 2000; 0 = no wait, fail immediately). Ignored when targeting by ref.' },
+        timeout: { type: 'number', description: 'Auto-wait budget in ms (default 2000; 0 = fail immediately). Ignored when targeting by ref.' },
       },
       required: ['do'],
     },
@@ -1994,7 +1994,7 @@ const TOOLS: McpTool[] = [
     category: 'read',
     description:
       'Read a data grid / list / table (Explorer details view, a DataGrid, a spreadsheet-like control) as structured rows — UIA GridPattern cell-by-cell, with column headers when available. Target a ref from the latest snapshot (the List/DataGrid/Table node). Returns a markdown table; far cheaper and more reliable than reading cells from a screenshot. For a grid bigger than maxRows, PAGE forward with startRow (the footer names the next startRow) instead of re-reading from the top. To ACT on one cell (edit/toggle/invoke/select it), use grid_cell {ref, row, column, do}.',
-    inputSchema: { type: 'object', properties: { ref: { type: 'string', description: REF_DESC }, maxRows: { type: 'number', description: 'Rows to read in this page (default 100)' }, startRow: { type: 'number', description: '0-based row to start the page at (default 0) — page a big grid forward without re-reading from row 0.' } }, required: ['ref'] },
+    inputSchema: { type: 'object', properties: { ref: { type: 'string', description: REF_DESC }, maxRows: { type: 'number', description: 'Rows to read in this page (default 100)' }, startRow: { type: 'number', description: '0-based row to start the page at (default 0)' } }, required: ['ref'] },
   },
   {
     name: 'grid_cell',
